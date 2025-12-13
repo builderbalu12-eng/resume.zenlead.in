@@ -87,8 +87,7 @@ async function generateEntryLevelModernDocx(
     contact.email ? `✉️ ${contact.email}` : "",
     contact.linkedin ? `🔗 ${contact.linkedin}` : "",
     contact.github ? `💻 ${contact.github}` : "",
-  ]
-    .filter(Boolean);
+  ].filter(Boolean);
 
   contactLines.forEach((line) => {
     children.push(
@@ -195,9 +194,10 @@ async function generateEntryLevelModernDocx(
   );
 
   experience.forEach((exp) => {
-    const dateRange = exp.endDate && !exp.isCurrentlyWorking
-      ? `${exp.startDate} - ${exp.endDate}`
-      : `${exp.startDate} - Present`;
+    const dateRange =
+      exp.endDate && !exp.isCurrentlyWorking
+        ? `${exp.startDate} - ${exp.endDate}`
+        : `${exp.startDate} - Present`;
 
     children.push(
       new Paragraph({
