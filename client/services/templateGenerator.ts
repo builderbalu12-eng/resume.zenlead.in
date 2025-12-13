@@ -320,6 +320,184 @@ async function generateTemplateDocx(
   return await Packer.toBlob(doc);
 }
 
+// Generate Entry Level Modern PDF
+async function generateEntryLevelModernPDF(
+  resume: ResumeData,
+  template: ResumeTemplate,
+): Promise<Blob> {
+  const { contact, skills, experience, education } = resume;
+
+  const overviewSkills = skills.slice(0, 5);
+  const programmingSkills = skills.slice(5);
+
+  const skillBubbles = overviewSkills
+    .map(
+      (skill) =>
+        `<div style="display: inline-block; margin: 4px; width: 60px; height: 60px; border-radius: 50%; border: 2px solid #0395DE; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 9px; font-weight: 600; color: #4D4D4D; background-color: #fff;">
+          ${skill}
+        </div>`,
+    )
+    .join("");
+
+  const programmingBars = programmingSkills
+    .map(
+      (skill) =>
+        `<div style="margin: 6px 0; font-size: 10px;">
+          <div style="font-weight: 600; margin-bottom: 3px;">${skill}</div>
+          <div style="background-color: #E7E7E7; height: 8px; border-radius: 2px;"></div>
+        </div>`,
+    )
+    .join("");
+
+  const htmlContent = `
+    <div style="display: flex; font-family: 'Segoe UI', Arial, sans-serif; background-color: #fff; color: #4D4D4D; page-break-after: avoid;">
+
+      <!-- Sidebar -->
+      <div style="width: 28%; background-color: #E7E7E7; padding: 20px; box-sizing: border-box; page-break-inside: avoid;">
+        <!-- Name -->
+        <div style="font-size: 24px; font-weight: 700; color: #0395DE; margin-bottom: 4px;">
+          ${contact.name.toUpperCase()}
+        </div>
+
+        <!-- Job Title -->
+        <div style="font-size: 14px; color: #4D4D4D; margin-bottom: 12px;">
+          ${contact.location || "Professional"}
+        </div>
+
+        <!-- Contact Info -->
+        <div style="font-size: 10px; line-height: 1.6; margin-bottom: 14px; color: #4D4D4D;">
+          ${contact.phone ? `<div>📱 ${contact.phone}</div>` : ""}
+          ${contact.website ? `<div>🌐 ${contact.website}</div>` : ""}
+          ${contact.email ? `<div>✉️ ${contact.email}</div>` : ""}
+          ${contact.linkedin ? `<div>🔗 ${contact.linkedin}</div>` : ""}
+          ${contact.github ? `<div>💻 ${contact.github}</div>` : ""}
+        </div>
+
+        <!-- Technical Skills -->
+        <div style="font-size: 12px; font-weight: 700; color: #4D4D4D; margin-top: 14px; margin-bottom: 8px;">
+          Technical Skills
+        </div>
+        <hr style="border: none; border-top: 1px solid #ccc; margin: 8px 0;" />
+
+        <!-- Overview Skills -->
+        <div style="font-size: 11px; font-weight: 600; margin-bottom: 8px;">Overview</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; justify-content: center;">
+          ${skillBubbles}
+        </div>
+
+        <!-- Programming Skills -->
+        <div style="font-size: 11px; font-weight: 600; margin-bottom: 8px;">Programming</div>
+        <div style="font-size: 10px;">
+          ${programmingBars}
+        </div>
+
+        <!-- Education -->
+        ${
+          education.length > 0
+            ? `
+            <div style="margin-top: 14px;">
+              <div style="font-size: 12px; font-weight: 700; color: #4D4D4D; margin-bottom: 8px;">
+                Education
+              </div>
+              <hr style="border: none; border-top: 1px solid #ccc; margin: 8px 0;" />
+              ${education
+                .map(
+                  (edu) => `
+                <div style="font-size: 9px; margin-bottom: 8px;">
+                  <div style="font-weight: 600;">${edu.degree} in ${edu.field}</div>
+                  ${edu.gpa ? `<div>GPA: ${edu.gpa}</div>` : ""}
+                  <div>${edu.institution}</div>
+                  <div>${edu.graduationDate}</div>
+                </div>
+              `,
+                )
+                .join("")}
+            </div>
+          `
+            : ""
+        }
+      </div>
+
+      <!-- Main Content -->
+      <div style="flex: 1; padding: 20px 25px; page-break-inside: avoid;">
+
+        <!-- Experience Section -->
+        <div style="margin-bottom: 16px;">
+          <div style="font-size: 18px; font-weight: 700; color: #0395DE; margin-bottom: 6px;">
+            Experience
+          </div>
+          <div style="border-bottom: 2px solid #0395DE; padding-bottom: 8px;"></div>
+
+          ${
+            experience.length > 0
+              ? experience
+                  .map((exp) => {
+                    const dateRange = exp.endDate && !exp.isCurrentlyWorking
+                      ? `${exp.startDate} - ${exp.endDate}`
+                      : `${exp.startDate} - Present`;
+                    return `
+                  <div style="margin-bottom: 14px; page-break-inside: avoid;">
+                    <div style="font-weight: 700; font-size: 11px; color: #4D4D4D; margin-bottom: 2px;">
+                      ${dateRange} | ${exp.title}
+                      <span style="float: right;">${exp.company}</span>
+                    </div>
+                    <ul style="margin: 6px 0 0 0; padding-left: 18px; font-size: 10px; line-height: 1.4; color: #4D4D4D;">
+                      ${exp.description
+                        .map(
+                          (desc) => `
+                        <li style="margin-bottom: 3px; text-align: justify;">
+                          ${desc}
+                        </li>
+                      `,
+                        )
+                        .join("")}
+                    </ul>
+                  </div>
+                `;
+                  })
+                  .join("")
+              : "<div style='font-size: 10px; color: #999;'>No experience added</div>"
+          }
+        </div>
+      </div>
+    </div>
+  `;
+
+  const element = document.createElement("div");
+  element.innerHTML = htmlContent;
+  element.style.display = "none";
+  document.body.appendChild(element);
+
+  try {
+    const html2pdf = await loadHtml2Pdf();
+
+    return new Promise((resolve, reject) => {
+      html2pdf()
+        .set({
+          margin: 0,
+          filename: "Resume_Entry_Level_Modern.pdf",
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+        })
+        .from(element)
+        .toPdf()
+        .output("blob")
+        .then((blob: Blob) => {
+          document.body.removeChild(element);
+          resolve(blob);
+        })
+        .catch((err: Error) => {
+          document.body.removeChild(element);
+          reject(err);
+        });
+    });
+  } catch (error) {
+    document.body.removeChild(element);
+    throw error;
+  }
+}
+
 // Generate PDF with template styling
 async function generateTemplatePDF(
   resume: ResumeData,
@@ -327,6 +505,10 @@ async function generateTemplatePDF(
   company: string,
   jobTitle: string,
 ): Promise<Blob> {
+  if (template.id === "entry-level-modern") {
+    return generateEntryLevelModernPDF(resume, template);
+  }
+
   const { contact, summary, skills, experience, education, projects } = resume;
 
   const htmlContent = `
