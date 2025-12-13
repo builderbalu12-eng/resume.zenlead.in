@@ -631,7 +631,7 @@ async function generateEntryLevelModernPDF(
       </div>
 
       <!-- Main Content -->
-      <div style="flex: 1; padding: 20px 25px; page-break-inside: avoid;">
+      <div class="main">
 
         <!-- Experience Section -->
         <div style="margin-bottom: 16px;">
