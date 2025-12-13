@@ -694,14 +694,14 @@ export const TailorResume: React.FC = () => {
 
                   <div className="flex gap-3">
                     <button
-                      onClick={handleDownload}
-                      className="flex-1 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors font-medium"
+                      onClick={handleOpenTemplateSelector}
+                      className="flex-1 px-4 py-2 rounded-lg bg-gradient-primary text-primary-foreground hover:shadow-glow transition-all font-medium"
                     >
-                      ⬇️ Download
+                      📄 Choose Template & Download
                     </button>
                     <button
                       onClick={handleSaveApplication}
-                      className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:shadow-glow transition-all font-medium"
+                      className="flex-1 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors font-medium"
                     >
                       💾 Save to History
                     </button>
