@@ -51,6 +51,219 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
     : null;
 }
 
+// Generate Entry Level Modern DOCX
+async function generateEntryLevelModernDocx(
+  resume: ResumeData,
+  template: ResumeTemplate,
+): Promise<Blob> {
+  const { contact, skills, experience, education } = resume;
+
+  const overviewSkills = skills.slice(0, 5);
+  const programmingSkills = skills.slice(5);
+
+  const sections = [];
+
+  // Create sidebar content
+  const sidebarCells = [
+    new Paragraph({
+      text: contact.name.toUpperCase(),
+      bold: true,
+      size: 48,
+      color: "0395DE",
+      spacing: { after: 100 },
+    }),
+    new Paragraph({
+      text: contact.location || "Professional",
+      size: 28,
+      color: "4D4D4D",
+      spacing: { after: 200 },
+    }),
+    new Paragraph({
+      text: [
+        contact.phone ? `📱 ${contact.phone}` : "",
+        contact.website ? `🌐 ${contact.website}` : "",
+        contact.email ? `✉️ ${contact.email}` : "",
+        contact.linkedin ? `🔗 ${contact.linkedin}` : "",
+        contact.github ? `💻 ${contact.github}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      size: 20,
+      color: "4D4D4D",
+      spacing: { after: 200 },
+    }),
+    new Paragraph({
+      text: "TECHNICAL SKILLS",
+      bold: true,
+      size: 24,
+      color: "4D4D4D",
+      spacing: { after: 100 },
+    }),
+    new Paragraph({
+      text: "Overview",
+      bold: true,
+      size: 22,
+      spacing: { after: 100 },
+    }),
+    new Paragraph({
+      text: overviewSkills.join(", "),
+      size: 20,
+      spacing: { after: 200 },
+    }),
+    new Paragraph({
+      text: "Programming",
+      bold: true,
+      size: 22,
+      spacing: { after: 100 },
+    }),
+    new Paragraph({
+      text: programmingSkills.join(", "),
+      size: 20,
+      spacing: { after: 200 },
+    }),
+  ];
+
+  if (education.length > 0) {
+    sidebarCells.push(
+      new Paragraph({
+        text: "EDUCATION",
+        bold: true,
+        size: 24,
+        color: "4D4D4D",
+        spacing: { after: 100 },
+      }),
+    );
+
+    education.forEach((edu) => {
+      sidebarCells.push(
+        new Paragraph({
+          text: `${edu.degree} in ${edu.field}`,
+          bold: true,
+          size: 20,
+          spacing: { after: 0 },
+        }),
+        new Paragraph({
+          text: `${edu.institution}${edu.gpa ? ` (GPA: ${edu.gpa})` : ""}`,
+          size: 20,
+          spacing: { after: 0 },
+        }),
+        new Paragraph({
+          text: edu.graduationDate,
+          size: 20,
+          spacing: { after: 100 },
+        }),
+      );
+    });
+  }
+
+  // Create main content
+  const mainCells = [
+    new Paragraph({
+      text: "EXPERIENCE",
+      bold: true,
+      size: 32,
+      color: "0395DE",
+      spacing: { after: 100 },
+      border: {
+        bottom: {
+          color: "0395DE",
+          space: 1,
+          style: BorderStyle.SINGLE,
+          size: 12,
+        },
+      },
+    }),
+  ];
+
+  experience.forEach((exp) => {
+    const dateRange = exp.endDate && !exp.isCurrentlyWorking
+      ? `${exp.startDate} - ${exp.endDate}`
+      : `${exp.startDate} - Present`;
+
+    mainCells.push(
+      new Paragraph({
+        text: `${dateRange} | ${exp.title}`,
+        bold: true,
+        size: 22,
+        color: "4D4D4D",
+        spacing: { after: 0 },
+      }),
+      new Paragraph({
+        text: exp.company,
+        bold: true,
+        size: 22,
+        color: "4D4D4D",
+        spacing: { after: 100 },
+      }),
+    );
+
+    exp.description.forEach((desc) => {
+      mainCells.push(
+        new Paragraph({
+          text: desc,
+          size: 20,
+          spacing: { after: 50 },
+          indent: { left: 360 },
+        }),
+      );
+    });
+
+    mainCells.push(
+      new Paragraph({
+        text: "",
+        spacing: { after: 100 },
+      }),
+    );
+  });
+
+  // Create table with two columns (sidebar + main)
+  const table = new Table({
+    rows: [
+      new TableRow({
+        cells: [
+          new TableCell({
+            children: sidebarCells,
+            shading: {
+              type: "clear",
+              color: "E7E7E7",
+            },
+            width: { size: 25, type: WidthType.PERCENTAGE },
+            borders: {
+              top: { style: BorderStyle.NONE },
+              bottom: { style: BorderStyle.NONE },
+              left: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.NONE },
+            },
+          }),
+          new TableCell({
+            children: mainCells,
+            width: { size: 75, type: WidthType.PERCENTAGE },
+            borders: {
+              top: { style: BorderStyle.NONE },
+              bottom: { style: BorderStyle.NONE },
+              left: { style: BorderStyle.NONE },
+              right: { style: BorderStyle.NONE },
+            },
+          }),
+        ],
+      }),
+    ],
+  });
+
+  sections.push(table);
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: {},
+        children: sections,
+      },
+    ],
+  });
+
+  return await Packer.toBlob(doc);
+}
+
 // Generate DOCX with template styling
 async function generateTemplateDocx(
   resume: ResumeData,
@@ -58,6 +271,10 @@ async function generateTemplateDocx(
   company: string,
   jobTitle: string,
 ): Promise<Blob> {
+  if (template.id === "entry-level-modern") {
+    return generateEntryLevelModernDocx(resume, template);
+  }
+
   const { contact, summary, skills, experience, education, projects } = resume;
 
   const primaryRgb = hexToRgb(template.colors.primary);
