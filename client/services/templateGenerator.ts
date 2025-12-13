@@ -223,7 +223,6 @@ async function generateEntryLevelModernDocx(
       new TableRow({
         cells: [
           new TableCell({
-            children: sidebarCells,
             shading: {
               type: "clear",
               color: "E7E7E7",
@@ -235,9 +234,9 @@ async function generateEntryLevelModernDocx(
               left: { style: BorderStyle.NONE },
               right: { style: BorderStyle.NONE },
             },
+            children: sidebarCells,
           }),
           new TableCell({
-            children: mainCells,
             width: { size: 75, type: WidthType.PERCENTAGE },
             borders: {
               top: { style: BorderStyle.NONE },
@@ -245,19 +244,19 @@ async function generateEntryLevelModernDocx(
               left: { style: BorderStyle.NONE },
               right: { style: BorderStyle.NONE },
             },
+            children: mainCells,
           }),
         ],
       }),
     ],
+    width: { size: 100, type: WidthType.PERCENTAGE },
   });
-
-  sections.push(table);
 
   const doc = new Document({
     sections: [
       {
         properties: {},
-        children: sections,
+        children: [table],
       },
     ],
   });
