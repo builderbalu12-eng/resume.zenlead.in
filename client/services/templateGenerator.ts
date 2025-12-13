@@ -550,17 +550,29 @@ async function generateEntryLevelModernPDF(
     .join("");
 
   const htmlContent = `
-    <div style="display: flex; font-family: 'Segoe UI', Arial, sans-serif; background-color: #fff; color: #4D4D4D; page-break-after: avoid;">
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; }
+        .container { display: flex; height: 297mm; width: 210mm; }
+        .sidebar { width: 30%; background-color: #E7E7E7; padding: 25px; overflow: hidden; }
+        .main { width: 70%; padding: 25px 30px; background-color: #fff; }
+      </style>
+    </head>
+    <body>
+    <div class="container">
 
       <!-- Sidebar -->
-      <div style="width: 28%; background-color: #E7E7E7; padding: 20px; box-sizing: border-box; page-break-inside: avoid;">
+      <div class="sidebar">
         <!-- Name -->
-        <div style="font-size: 24px; font-weight: 700; color: #0395DE; margin-bottom: 4px;">
+        <div style="font-size: 28px; font-weight: 700; color: #0395DE; margin-bottom: 8px; line-height: 1.2;">
           ${contact.name.toUpperCase()}
         </div>
 
         <!-- Job Title -->
-        <div style="font-size: 14px; color: #4D4D4D; margin-bottom: 12px;">
+        <div style="font-size: 14px; color: #4D4D4D; margin-bottom: 16px;">
           ${contact.location || "Professional"}
         </div>
 
