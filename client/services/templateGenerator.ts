@@ -674,6 +674,8 @@ async function generateEntryLevelModernPDF(
         </div>
       </div>
     </div>
+    </body>
+    </html>
   `;
 
   const element = document.createElement("div");
