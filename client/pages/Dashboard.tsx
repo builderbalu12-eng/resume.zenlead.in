@@ -11,6 +11,7 @@ import {
 import { ResumeData, ApplicationRecord } from "@/types";
 import { getApplicationHistory } from "@/services/mongodb";
 import { getMasterResume } from "@/utils/storage";
+import { TemplatesShowcase } from "@/components/TemplatesShowcase";
 
 export const Dashboard: React.FC = () => {
   const [masterResume, setMasterResume] = useState<ResumeData | null>(null);
