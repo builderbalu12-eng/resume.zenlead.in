@@ -387,6 +387,11 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Templates Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+        <TemplatesShowcase />
+      </div>
+
       {/* CTA Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-32">
         <div className="relative rounded-3xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 border border-primary/20 p-12 sm:p-20 text-center overflow-hidden">
