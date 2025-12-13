@@ -8,6 +8,7 @@ import {
   getSettings,
 } from "@/utils/storage";
 import { Settings } from "@/components/Settings";
+import { TemplateSelector } from "@/components/TemplateSelector";
 import {
   tailorResumeForJob,
   calculateATSScore,
