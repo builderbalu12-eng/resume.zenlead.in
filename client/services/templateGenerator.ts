@@ -176,9 +176,10 @@ async function generateEntryLevelModernDocx(
   ];
 
   experience.forEach((exp) => {
-    const dateRange = exp.endDate && !exp.isCurrentlyWorking
-      ? `${exp.startDate} - ${exp.endDate}`
-      : `${exp.startDate} - Present`;
+    const dateRange =
+      exp.endDate && !exp.isCurrentlyWorking
+        ? `${exp.startDate} - ${exp.endDate}`
+        : `${exp.startDate} - Present`;
 
     mainCells.push(
       new Paragraph({
