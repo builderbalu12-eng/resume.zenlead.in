@@ -181,6 +181,28 @@ export const RESUME_TEMPLATES: ResumeTemplate[] = [
     formats: ["docx", "pdf"],
     layout: "two-column",
   },
+  {
+    id: "entry-level-modern",
+    name: "Entry Level Modern",
+    description:
+      "Professional two-column layout with sidebar skills, perfect for early-career professionals",
+    category: "modern",
+    colors: {
+      primary: "#0395DE",
+      secondary: "#4D4D4D",
+      accent: "#E7E7E7",
+    },
+    features: [
+      "Sidebar layout",
+      "Skill bubbles",
+      "Programming bars",
+      "Professional design",
+      "Contact icons",
+    ],
+    bestFor: ["Entry-level", "Graduate", "Recent career changer", "Junior professional"],
+    formats: ["latex", "pdf"],
+    layout: "two-column",
+  },
 ];
 
 export function getTemplateById(id: string): ResumeTemplate | undefined {
