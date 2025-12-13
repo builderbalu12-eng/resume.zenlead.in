@@ -270,6 +270,12 @@ export const TailorResume: React.FC = () => {
     }
   };
 
+  const handleOpenTemplateSelector = () => {
+    if (tailorState.tailored && tailorState.jobData) {
+      setShowTemplateSelector(true);
+    }
+  };
+
   const handleSaveApplication = async () => {
     if (!tailorState.tailored || !tailorState.jobData || !masterResume) return;
 
