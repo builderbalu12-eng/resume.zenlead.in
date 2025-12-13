@@ -205,7 +205,7 @@ export const RESUME_TEMPLATES: ResumeTemplate[] = [
       "Recent career changer",
       "Junior professional",
     ],
-    formats: ["latex", "pdf"],
+    formats: ["docx", "pdf"],
     layout: "two-column",
   },
 ];
