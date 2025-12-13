@@ -533,8 +533,8 @@ async function generateEntryLevelModernPDF(
   const skillBubbles = overviewSkills
     .map(
       (skill) =>
-        `<div style="display: inline-block; margin: 4px; width: 60px; height: 60px; border-radius: 50%; border: 2px solid #0395DE; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 9px; font-weight: 600; color: #4D4D4D; background-color: #fff;">
-          ${skill}
+        `<div style="display: inline-flex; margin: 6px; width: 65px; height: 65px; border-radius: 50%; border: 2px solid #0395DE; align-items: center; justify-content: center; text-align: center; font-size: 10px; font-weight: 700; color: #4D4D4D; background-color: #fff; flex-shrink: 0;">
+          <span style="padding: 0 4px;">${skill}</span>
         </div>`,
     )
     .join("");
