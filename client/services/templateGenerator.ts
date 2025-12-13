@@ -432,9 +432,10 @@ async function generateEntryLevelModernPDF(
             experience.length > 0
               ? experience
                   .map((exp) => {
-                    const dateRange = exp.endDate && !exp.isCurrentlyWorking
-                      ? `${exp.startDate} - ${exp.endDate}`
-                      : `${exp.startDate} - Present`;
+                    const dateRange =
+                      exp.endDate && !exp.isCurrentlyWorking
+                        ? `${exp.startDate} - ${exp.endDate}`
+                        : `${exp.startDate} - Present`;
                     return `
                   <div style="margin-bottom: 14px; page-break-inside: avoid;">
                     <div style="font-weight: 700; font-size: 11px; color: #4D4D4D; margin-bottom: 2px;">
