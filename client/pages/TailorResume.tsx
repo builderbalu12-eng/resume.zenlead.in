@@ -341,6 +341,15 @@ export const TailorResume: React.FC = () => {
       {/* Settings Modal */}
       <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
+      {/* Template Selector Modal */}
+      {showTemplateSelector && tailorState.tailored && tailorState.jobData && (
+        <TemplateSelector
+          resume={tailorState.tailored}
+          jobData={tailorState.jobData}
+          onClose={() => setShowTemplateSelector(false)}
+        />
+      )}
+
       <div className="max-w-6xl mx-auto px-4">
         <button
           onClick={() => navigate("/")}
