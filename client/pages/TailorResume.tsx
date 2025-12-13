@@ -41,6 +41,7 @@ export const TailorResume: React.FC = () => {
     atsScore: 0,
     jobData: null,
   });
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
 
   // Load resume on component mount and when user navigates to this page
   useEffect(() => {
