@@ -61,37 +61,55 @@ async function generateEntryLevelModernDocx(
   const overviewSkills = skills.slice(0, 5);
   const programmingSkills = skills.slice(5);
 
-  const sections = [];
+  const children: Paragraph[] = [];
 
-  // Create sidebar content
-  const sidebarCells = [
+  // Header section
+  children.push(
     new Paragraph({
       text: contact.name.toUpperCase(),
       bold: true,
       size: 48,
       color: "0395DE",
-      spacing: { after: 100 },
+      spacing: { after: 50 },
     }),
     new Paragraph({
       text: contact.location || "Professional",
-      size: 28,
+      size: 26,
       color: "4D4D4D",
-      spacing: { after: 200 },
+      spacing: { after: 150 },
     }),
+  );
+
+  // Contact information
+  const contactLines = [
+    contact.phone ? `📱 ${contact.phone}` : "",
+    contact.website ? `🌐 ${contact.website}` : "",
+    contact.email ? `✉️ ${contact.email}` : "",
+    contact.linkedin ? `🔗 ${contact.linkedin}` : "",
+    contact.github ? `💻 ${contact.github}` : "",
+  ]
+    .filter(Boolean);
+
+  contactLines.forEach((line) => {
+    children.push(
+      new Paragraph({
+        text: line,
+        size: 20,
+        color: "4D4D4D",
+        spacing: { after: 50 },
+      }),
+    );
+  });
+
+  children.push(
     new Paragraph({
-      text: [
-        contact.phone ? `📱 ${contact.phone}` : "",
-        contact.website ? `🌐 ${contact.website}` : "",
-        contact.email ? `✉️ ${contact.email}` : "",
-        contact.linkedin ? `🔗 ${contact.linkedin}` : "",
-        contact.github ? `💻 ${contact.github}` : "",
-      ]
-        .filter(Boolean)
-        .join("\n"),
-      size: 20,
-      color: "4D4D4D",
-      spacing: { after: 200 },
+      text: "",
+      spacing: { after: 150 },
     }),
+  );
+
+  // Technical Skills
+  children.push(
     new Paragraph({
       text: "TECHNICAL SKILLS",
       bold: true,
@@ -103,28 +121,29 @@ async function generateEntryLevelModernDocx(
       text: "Overview",
       bold: true,
       size: 22,
-      spacing: { after: 100 },
+      spacing: { after: 50 },
     }),
     new Paragraph({
       text: overviewSkills.join(", "),
       size: 20,
-      spacing: { after: 200 },
+      spacing: { after: 150 },
     }),
     new Paragraph({
       text: "Programming",
       bold: true,
       size: 22,
-      spacing: { after: 100 },
+      spacing: { after: 50 },
     }),
     new Paragraph({
       text: programmingSkills.join(", "),
       size: 20,
       spacing: { after: 200 },
     }),
-  ];
+  );
 
+  // Education
   if (education.length > 0) {
-    sidebarCells.push(
+    children.push(
       new Paragraph({
         text: "EDUCATION",
         bold: true,
@@ -135,29 +154,29 @@ async function generateEntryLevelModernDocx(
     );
 
     education.forEach((edu) => {
-      sidebarCells.push(
+      children.push(
         new Paragraph({
           text: `${edu.degree} in ${edu.field}`,
           bold: true,
           size: 20,
-          spacing: { after: 0 },
+          spacing: { after: 50 },
         }),
         new Paragraph({
           text: `${edu.institution}${edu.gpa ? ` (GPA: ${edu.gpa})` : ""}`,
           size: 20,
-          spacing: { after: 0 },
+          spacing: { after: 50 },
         }),
         new Paragraph({
           text: edu.graduationDate,
           size: 20,
-          spacing: { after: 100 },
+          spacing: { after: 150 },
         }),
       );
     });
   }
 
-  // Create main content
-  const mainCells = [
+  // Experience
+  children.push(
     new Paragraph({
       text: "EXPERIENCE",
       bold: true,
@@ -173,21 +192,20 @@ async function generateEntryLevelModernDocx(
         },
       },
     }),
-  ];
+  );
 
   experience.forEach((exp) => {
-    const dateRange =
-      exp.endDate && !exp.isCurrentlyWorking
-        ? `${exp.startDate} - ${exp.endDate}`
-        : `${exp.startDate} - Present`;
+    const dateRange = exp.endDate && !exp.isCurrentlyWorking
+      ? `${exp.startDate} - ${exp.endDate}`
+      : `${exp.startDate} - Present`;
 
-    mainCells.push(
+    children.push(
       new Paragraph({
         text: `${dateRange} | ${exp.title}`,
         bold: true,
         size: 22,
         color: "4D4D4D",
-        spacing: { after: 0 },
+        spacing: { after: 50 },
       }),
       new Paragraph({
         text: exp.company,
@@ -199,7 +217,7 @@ async function generateEntryLevelModernDocx(
     );
 
     exp.description.forEach((desc) => {
-      mainCells.push(
+      children.push(
         new Paragraph({
           text: desc,
           size: 20,
@@ -209,7 +227,7 @@ async function generateEntryLevelModernDocx(
       );
     });
 
-    mainCells.push(
+    children.push(
       new Paragraph({
         text: "",
         spacing: { after: 100 },
@@ -217,46 +235,11 @@ async function generateEntryLevelModernDocx(
     );
   });
 
-  // Create table with two columns (sidebar + main)
-  const table = new Table({
-    rows: [
-      new TableRow({
-        cells: [
-          new TableCell({
-            shading: {
-              type: "clear",
-              color: "E7E7E7",
-            },
-            width: { size: 25, type: WidthType.PERCENTAGE },
-            borders: {
-              top: { style: BorderStyle.NONE },
-              bottom: { style: BorderStyle.NONE },
-              left: { style: BorderStyle.NONE },
-              right: { style: BorderStyle.NONE },
-            },
-            children: sidebarCells,
-          }),
-          new TableCell({
-            width: { size: 75, type: WidthType.PERCENTAGE },
-            borders: {
-              top: { style: BorderStyle.NONE },
-              bottom: { style: BorderStyle.NONE },
-              left: { style: BorderStyle.NONE },
-              right: { style: BorderStyle.NONE },
-            },
-            children: mainCells,
-          }),
-        ],
-      }),
-    ],
-    width: { size: 100, type: WidthType.PERCENTAGE },
-  });
-
   const doc = new Document({
     sections: [
       {
         properties: {},
-        children: [table],
+        children: children,
       },
     ],
   });
