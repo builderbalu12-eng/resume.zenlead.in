@@ -11,6 +11,7 @@ import {
 import { ResumeData, ApplicationRecord } from "@/types";
 import { getApplicationHistory } from "@/services/mongodb";
 import { getMasterResume } from "@/utils/storage";
+import { TemplatesShowcase } from "@/components/TemplatesShowcase";
 
 export const Dashboard: React.FC = () => {
   const [masterResume, setMasterResume] = useState<ResumeData | null>(null);
@@ -385,6 +386,11 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Templates Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+        <TemplatesShowcase />
+      </div>
 
       {/* CTA Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-32">

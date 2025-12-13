@@ -8,6 +8,7 @@ import {
   getSettings,
 } from "@/utils/storage";
 import { Settings } from "@/components/Settings";
+import { TemplateSelector } from "@/components/TemplateSelector";
 import {
   tailorResumeForJob,
   calculateATSScore,
@@ -40,6 +41,7 @@ export const TailorResume: React.FC = () => {
     atsScore: 0,
     jobData: null,
   });
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
 
   // Load resume on component mount and when user navigates to this page
   useEffect(() => {
@@ -268,6 +270,12 @@ export const TailorResume: React.FC = () => {
     }
   };
 
+  const handleOpenTemplateSelector = () => {
+    if (tailorState.tailored && tailorState.jobData) {
+      setShowTemplateSelector(true);
+    }
+  };
+
   const handleSaveApplication = async () => {
     if (!tailorState.tailored || !tailorState.jobData || !masterResume) return;
 
@@ -332,6 +340,15 @@ export const TailorResume: React.FC = () => {
     <div className="min-h-screen bg-background py-12">
       {/* Settings Modal */}
       <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} />
+
+      {/* Template Selector Modal */}
+      {showTemplateSelector && tailorState.tailored && tailorState.jobData && (
+        <TemplateSelector
+          resume={tailorState.tailored}
+          jobData={tailorState.jobData}
+          onClose={() => setShowTemplateSelector(false)}
+        />
+      )}
 
       <div className="max-w-6xl mx-auto px-4">
         <button
@@ -686,14 +703,14 @@ export const TailorResume: React.FC = () => {
 
                   <div className="flex gap-3">
                     <button
-                      onClick={handleDownload}
-                      className="flex-1 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors font-medium"
+                      onClick={handleOpenTemplateSelector}
+                      className="flex-1 px-4 py-2 rounded-lg bg-gradient-primary text-primary-foreground hover:shadow-glow transition-all font-medium"
                     >
-                      ⬇️ Download
+                      📄 Choose Template & Download
                     </button>
                     <button
                       onClick={handleSaveApplication}
-                      className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:shadow-glow transition-all font-medium"
+                      className="flex-1 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors font-medium"
                     >
                       💾 Save to History
                     </button>
