@@ -199,7 +199,12 @@ export const RESUME_TEMPLATES: ResumeTemplate[] = [
       "Professional design",
       "Contact icons",
     ],
-    bestFor: ["Entry-level", "Graduate", "Recent career changer", "Junior professional"],
+    bestFor: [
+      "Entry-level",
+      "Graduate",
+      "Recent career changer",
+      "Junior professional",
+    ],
     formats: ["latex", "pdf"],
     layout: "two-column",
   },

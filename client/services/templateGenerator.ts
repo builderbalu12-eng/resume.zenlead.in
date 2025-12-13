@@ -813,9 +813,10 @@ function generateEntryLevelModernLatex(
     experience.length > 0
       ? experience
           .map((exp) => {
-            const dateRange = exp.endDate && !exp.isCurrentlyWorking
-              ? `${exp.startDate} - ${exp.endDate}`
-              : `${exp.startDate} - Present`;
+            const dateRange =
+              exp.endDate && !exp.isCurrentlyWorking
+                ? `${exp.startDate} - ${exp.endDate}`
+                : `${exp.startDate} - Present`;
             return `
   {\\bfseries${dateRange}} \\hspace{6pt} {\\bfseries${exp.title}} \\hfill {\\bfseries${exp.company}}\\\\
   \\vspace{-8pt}
