@@ -485,6 +485,10 @@ function generateLatexResume(
     return generateTwentySecondsLatex(resume, template);
   }
 
+  if (template.id === "entry-level-modern") {
+    return generateEntryLevelModernLatex(resume, template);
+  }
+
   // Standard academic LaTeX format
   let latex = `\\documentclass[11pt,a4paper]{article}
 \\usepackage[utf-8]{inputenc}
