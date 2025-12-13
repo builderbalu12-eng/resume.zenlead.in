@@ -38,7 +38,12 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     activeCategory === "all"
       ? RESUME_TEMPLATES
       : getTemplatesByCategory(
-          activeCategory as "classic" | "modern" | "creative" | "minimal" | "academic",
+          activeCategory as
+            | "classic"
+            | "modern"
+            | "creative"
+            | "minimal"
+            | "academic",
         );
 
   const handleDownload = async () => {
@@ -236,7 +241,9 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                 <div className="sticky top-20 space-y-6">
                   {/* Preview Card */}
                   <div className="bg-card border border-border rounded-lg p-6">
-                    <h3 className="text-sm font-semibold mb-4">TEMPLATE PREVIEW</h3>
+                    <h3 className="text-sm font-semibold mb-4">
+                      TEMPLATE PREVIEW
+                    </h3>
 
                     {/* Sample Layout Preview */}
                     <div
@@ -256,13 +263,17 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                         >
                           JOHN DOE
                         </div>
-                        <div style={{ color: currentTemplate.colors.secondary }}>
+                        <div
+                          style={{ color: currentTemplate.colors.secondary }}
+                        >
                           john@example.com • (555) 123-4567
                         </div>
                       </div>
 
                       <div
-                        style={{ borderBottom: `1px solid ${currentTemplate.colors.accent}` }}
+                        style={{
+                          borderBottom: `1px solid ${currentTemplate.colors.accent}`,
+                        }}
                         className="mb-2 pb-2"
                       >
                         <div
@@ -271,7 +282,9 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                         >
                           EXPERIENCE
                         </div>
-                        <div style={{ color: currentTemplate.colors.secondary }}>
+                        <div
+                          style={{ color: currentTemplate.colors.secondary }}
+                        >
                           Senior Manager
                         </div>
                         <div style={{ color: currentTemplate.colors.accent }}>
@@ -286,7 +299,9 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                         >
                           SKILLS
                         </div>
-                        <div style={{ color: currentTemplate.colors.secondary }}>
+                        <div
+                          style={{ color: currentTemplate.colors.secondary }}
+                        >
                           Leadership • Strategy • Innovation
                         </div>
                       </div>
@@ -323,7 +338,9 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
 
                   {/* Format Selection */}
                   <div className="bg-card border border-border rounded-lg p-6">
-                    <h3 className="text-sm font-semibold mb-4">EXPORT FORMAT</h3>
+                    <h3 className="text-sm font-semibold mb-4">
+                      EXPORT FORMAT
+                    </h3>
 
                     <div className="space-y-2">
                       {currentTemplate.formats.map((format) => (

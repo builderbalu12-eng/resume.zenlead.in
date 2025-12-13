@@ -133,10 +133,12 @@ export const TemplatesShowcase: React.FC = () => {
 
         {/* Call to Action */}
         <div className="mt-12 text-center p-8 bg-primary/5 border border-primary/20 rounded-lg">
-          <h3 className="text-xl font-semibold mb-2">Ready to Tailor Your Resume?</h3>
+          <h3 className="text-xl font-semibold mb-2">
+            Ready to Tailor Your Resume?
+          </h3>
           <p className="text-muted-foreground mb-6">
-            All templates become available once you tailor a resume for a job. Choose
-            your preferred format and download your professional resume.
+            All templates become available once you tailor a resume for a job.
+            Choose your preferred format and download your professional resume.
           </p>
           <a
             href="/tailor"

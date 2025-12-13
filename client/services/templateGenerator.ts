@@ -35,7 +35,9 @@ async function loadHtml2Pdf(): Promise<any> {
 }
 
 function rgbToHex(r: number, g: number, b: number): string {
-  return "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).toUpperCase();
+  return (
+    "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).toUpperCase()
+  );
 }
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -613,7 +615,10 @@ function generateTwentySecondsLatex(
 
 \\newcommand\\skills{
   ~ \\smartdiagram[bubble diagram]{
-    ${skills.slice(0, 5).map((s) => `\\textbf{${s}}`).join(", ")}
+    ${skills
+      .slice(0, 5)
+      .map((s) => `\\textbf{${s}}`)
+      .join(", ")}
   }
 }
 
