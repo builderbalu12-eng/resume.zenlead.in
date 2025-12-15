@@ -960,10 +960,11 @@ async function generateEntryLevelModernPDF(
           },
         })
         .from(element.querySelector(".container") || element)
-        .save()
-        .then(() => {
+        .toPdf()
+        .output("blob")
+        .then((blob: Blob) => {
           document.body.removeChild(element);
-          resolve(new Blob([], { type: "application/pdf" }));
+          resolve(blob);
         })
         .catch((err: Error) => {
           document.body.removeChild(element);
