@@ -665,41 +665,208 @@ async function generateEntryLevelModernPDF(
 <html>
 <head>
   <meta charset="UTF-8">
-  <link rel="stylesheet" href="/templates/entry-level-modern/styles.css">
   <style>
-    /* Inline critical styles for PDF rendering */
+    /* Complete inline styles for PDF rendering - NO external stylesheets */
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: "ClearSans", "Segoe UI", Arial, sans-serif; color: #4d4d4d; }
-    .container { display: flex; width: 210mm; height: auto; min-height: 297mm; }
-    .sidebar { width: 9cm; background-color: #e7e7e7; padding: 20px; }
-    .main { flex: 1; padding: 20px 25px; background-color: #fff; }
-    .sidebar-name { font-size: 22px; font-weight: 700; color: #0395de; line-height: 1.2; }
-    .sidebar-jobtitle { font-size: 13px; font-weight: 600; color: #4d4d4d; }
-    .sidebar-section { padding-top: 12px; border-top: 1px solid #ccc; }
-    .sidebar-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
-    .contact-item { font-size: 9px; margin-bottom: 6px; line-height: 1.4; }
-    .skills-bubbles { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-    .skill-bubble { width: 55px; height: 55px; border-radius: 50%; border: 2px solid #0395de; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; text-align: center; padding: 4px; }
-    .programming-item { margin-bottom: 8px; }
-    .programming-label { font-size: 9px; font-weight: 600; margin-bottom: 2px; }
-    .programming-bar { background: #d3d3d3; height: 6px; border-radius: 2px; }
-    .programming-bar-fill { background: #0395de; height: 100%; width: 70%; }
-    .education-item { font-size: 8px; margin-bottom: 8px; line-height: 1.3; }
-    .education-degree { font-weight: 600; }
-    .education-school { color: #666; }
-    .section { margin-bottom: 12px; }
-    .section-header { display: flex; align-items: center; margin-bottom: 8px; gap: 8px; }
-    .section-shortcode { background: #0395de; color: #fff; font-weight: 700; font-size: 10px; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; min-width: 32px; text-align: center; }
-    .section-title { font-size: 14px; font-weight: 700; color: #0395de; text-transform: uppercase; }
-    .section-divider { width: 100%; height: 2px; background: #0395de; margin-bottom: 8px; }
-    .experience-entry { margin-bottom: 12px; }
-    .experience-meta { display: flex; justify-content: space-between; font-size: 10px; font-weight: 600; margin-bottom: 4px; }
-    .experience-title { font-size: 10px; font-weight: 600; }
-    .experience-descriptions { font-size: 9px; margin-top: 4px; margin-left: 12px; }
-    .experience-descriptions li { list-style-position: inside; margin-bottom: 2px; line-height: 1.3; }
+    html, body { width: 100%; height: 100%; }
+    body {
+      font-family: "ClearSans", "Segoe UI", Arial, sans-serif;
+      color: #4d4d4d;
+      background: white;
+      line-height: 1.4;
+    }
+    .container {
+      display: flex;
+      width: 210mm;
+      height: auto;
+      min-height: 297mm;
+      background: white;
+      margin: 0;
+      padding: 0;
+    }
+    .sidebar {
+      width: 85mm;
+      flex-shrink: 0;
+      background-color: #e7e7e7;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .main {
+      flex: 1;
+      padding: 20px 25px;
+      background-color: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .sidebar-name {
+      font-size: 22px;
+      font-weight: 700;
+      color: #0395de;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+    .sidebar-jobtitle {
+      font-size: 13px;
+      font-weight: 600;
+      color: #4d4d4d;
+    }
+    .sidebar-section {
+      padding-top: 12px;
+      border-top: 1px solid #ccc;
+    }
+    .sidebar-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      color: #4d4d4d;
+    }
+    .contact-item {
+      font-size: 9px;
+      margin-bottom: 6px;
+      line-height: 1.4;
+      color: #4d4d4d;
+    }
+    .contact-icon { margin-right: 4px; }
+    .skills-bubbles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+    }
+    .skill-bubble {
+      width: 55px;
+      height: 55px;
+      border-radius: 50%;
+      border: 2px solid #0395de;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: 700;
+      text-align: center;
+      padding: 4px;
+      flex-shrink: 0;
+      color: #4d4d4d;
+    }
+    .programming-item {
+      margin-bottom: 8px;
+    }
+    .programming-label {
+      font-size: 9px;
+      font-weight: 600;
+      margin-bottom: 2px;
+      color: #4d4d4d;
+    }
+    .programming-bar {
+      background: #d3d3d3;
+      height: 6px;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .programming-bar-fill {
+      background: #0395de;
+      height: 100%;
+      width: 70%;
+    }
+    .education-item {
+      font-size: 8px;
+      margin-bottom: 8px;
+      line-height: 1.3;
+      color: #4d4d4d;
+    }
+    .education-degree {
+      font-weight: 600;
+      color: #4d4d4d;
+    }
+    .education-school {
+      color: #666;
+      font-size: 8px;
+    }
+    .education-date {
+      color: #666;
+      font-size: 8px;
+    }
+    .section {
+      margin-bottom: 12px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+    .section-shortcode {
+      background: #0395de;
+      color: #fff;
+      font-weight: 700;
+      font-size: 10px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      min-width: 32px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0395de;
+      text-transform: uppercase;
+    }
+    .section-divider {
+      width: 100%;
+      height: 2px;
+      background: #0395de;
+      margin-bottom: 8px;
+    }
+    .experience-entry {
+      margin-bottom: 12px;
+    }
+    .experience-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #4d4d4d;
+    }
+    .experience-date {
+      font-weight: 600;
+    }
+    .experience-company {
+      font-weight: 600;
+    }
+    .experience-title {
+      font-size: 10px;
+      font-weight: 600;
+      color: #4d4d4d;
+      margin-bottom: 4px;
+    }
+    .experience-descriptions {
+      font-size: 9px;
+      margin-top: 4px;
+      margin-left: 12px;
+      color: #4d4d4d;
+      list-style-position: inside;
+    }
+    .experience-descriptions li {
+      margin-bottom: 2px;
+      line-height: 1.3;
+    }
+    @media print {
+      body { margin: 0; padding: 0; }
+      .container { page-break-after: avoid; }
+      .sidebar { page-break-inside: avoid; }
+      .section { page-break-inside: avoid; }
+    }
   </style>
 </head>
-<body>
+<body style="margin: 0; padding: 0; background: white;">
 <div class="container">
 
   <!-- Sidebar -->
