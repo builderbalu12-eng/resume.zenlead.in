@@ -131,7 +131,9 @@ export const Dashboard: React.FC = () => {
               </div>
 
               <p className="text-lg sm:text-xl text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                Automatically tailor your resume for every job application. Get instant ATS scores and land interviews 3x faster with AI-powered optimization.
+                Automatically tailor your resume for every job application. Get
+                instant ATS scores and land interviews 3x faster with AI-powered
+                optimization.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -215,7 +217,9 @@ export const Dashboard: React.FC = () => {
                     </div>
 
                     <div>
-                      <h4 className="text-sm font-bold mb-4 text-slate-900 dark:text-slate-100">Top Skills</h4>
+                      <h4 className="text-sm font-bold mb-4 text-slate-900 dark:text-slate-100">
+                        Top Skills
+                      </h4>
                       <div className="flex flex-wrap gap-2">
                         {(
                           masterResume?.skills ?? [
@@ -260,7 +264,9 @@ export const Dashboard: React.FC = () => {
                       ).map((exp) => (
                         <div key={exp.title} className="text-sm space-y-3">
                           <div>
-                            <div className="font-bold text-slate-900 dark:text-slate-100">{exp.title}</div>
+                            <div className="font-bold text-slate-900 dark:text-slate-100">
+                              {exp.title}
+                            </div>
                             <div className="text-xs text-slate-500 dark:text-slate-500 font-semibold">
                               {exp.company} • {exp.startDate}{" "}
                               {exp.endDate ? `– ${exp.endDate}` : "– Present"}
@@ -312,7 +318,8 @@ export const Dashboard: React.FC = () => {
               <span className="text-slate-900 dark:text-slate-100"> Works</span>
             </h2>
             <p className="text-center text-slate-600 dark:text-slate-400 text-lg max-w-2xl mx-auto font-medium">
-              Our intelligent AI system analyzes job requirements and optimizes your resume for maximum impact in seconds
+              Our intelligent AI system analyzes job requirements and optimizes
+              your resume for maximum impact in seconds
             </p>
           </div>
 
@@ -353,14 +360,22 @@ export const Dashboard: React.FC = () => {
                 key={idx}
                 className="group relative rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:border-opacity-50 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 overflow-hidden"
               >
-                <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full bg-gradient-to-br ${feature.gradient} opacity-10 group-hover:opacity-20 transition-opacity duration-300 blur-2xl`} />
+                <div
+                  className={`absolute -top-12 -right-12 w-32 h-32 rounded-full bg-gradient-to-br ${feature.gradient} opacity-10 group-hover:opacity-20 transition-opacity duration-300 blur-2xl`}
+                />
 
                 <div className="relative z-10 space-y-6">
                   <div className="flex items-start justify-between">
-                    <div className={`rounded-xl bg-gradient-to-br ${feature.lightGradient} dark:${feature.darkGradient} p-4 group-hover:scale-110 transition-transform duration-300`}>
-                      <feature.icon className={`h-7 w-7 bg-gradient-to-r ${feature.gradient} bg-clip-text text-transparent`} />
+                    <div
+                      className={`rounded-xl bg-gradient-to-br ${feature.lightGradient} dark:${feature.darkGradient} p-4 group-hover:scale-110 transition-transform duration-300`}
+                    >
+                      <feature.icon
+                        className={`h-7 w-7 bg-gradient-to-r ${feature.gradient} bg-clip-text text-transparent`}
+                      />
                     </div>
-                    <span className={`text-5xl font-black opacity-5 group-hover:opacity-10 transition-opacity bg-gradient-to-r ${feature.gradient} bg-clip-text text-transparent`}>
+                    <span
+                      className={`text-5xl font-black opacity-5 group-hover:opacity-10 transition-opacity bg-gradient-to-r ${feature.gradient} bg-clip-text text-transparent`}
+                    >
                       {feature.number}
                     </span>
                   </div>
@@ -447,7 +462,9 @@ export const Dashboard: React.FC = () => {
           </h2>
 
           <p className="text-xl sm:text-2xl text-slate-300 max-w-2xl mx-auto leading-relaxed font-medium">
-            Start tailoring your resume for every application and increase your chances of getting noticed by hiring managers. Join thousands of successful job seekers.
+            Start tailoring your resume for every application and increase your
+            chances of getting noticed by hiring managers. Join thousands of
+            successful job seekers.
           </p>
 
           <div className="pt-4">
