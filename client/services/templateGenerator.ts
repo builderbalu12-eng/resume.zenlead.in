@@ -607,8 +607,7 @@ async function generateEntryLevelModernPDF(
   // Build skill bubbles HTML
   const skillBubblesHtml = overviewSkills
     .map(
-      (skill) =>
-        `<div class="skill-bubble" data-edit="skill">${skill}</div>`,
+      (skill) => `<div class="skill-bubble" data-edit="skill">${skill}</div>`,
     )
     .join("");
 
@@ -654,10 +653,7 @@ async function generateEntryLevelModernPDF(
           <div class="experience-title" data-edit="title">${exp.title}</div>
           <ul class="experience-descriptions">
             ${exp.description
-              .map(
-                (desc) =>
-                  `<li data-edit="description">${desc}</li>`,
-              )
+              .map((desc) => `<li data-edit="description">${desc}</li>`)
               .join("")}
           </ul>
         </div>
