@@ -63,7 +63,7 @@ async function generateEntryLevelModernDocx(
 
   const children: Paragraph[] = [];
 
-  // Header section
+  // Header - Name
   children.push(
     new Paragraph({
       text: contact.name.toUpperCase(),
@@ -72,15 +72,21 @@ async function generateEntryLevelModernDocx(
       color: "0395DE",
       spacing: { after: 50 },
     }),
-    new Paragraph({
-      text: contact.location || "Professional",
-      size: 26,
-      color: "4D4D4D",
-      spacing: { after: 150 },
-    }),
   );
 
-  // Contact information
+  // Job Title / Location
+  if (contact.location) {
+    children.push(
+      new Paragraph({
+        text: contact.location,
+        size: 26,
+        color: "4D4D4D",
+        spacing: { after: 100 },
+      }),
+    );
+  }
+
+  // Contact Section
   const contactLines = [
     contact.phone ? `📱 ${contact.phone}` : "",
     contact.website ? `🌐 ${contact.website}` : "",
@@ -89,66 +95,110 @@ async function generateEntryLevelModernDocx(
     contact.github ? `💻 ${contact.github}` : "",
   ].filter(Boolean);
 
-  contactLines.forEach((line) => {
+  if (contactLines.length > 0) {
     children.push(
       new Paragraph({
-        text: line,
-        size: 20,
-        color: "4D4D4D",
-        spacing: { after: 50 },
+        text: "CONTACT",
+        bold: true,
+        size: 22,
+        color: "0395DE",
+        spacing: { before: 0, after: 50 },
+        border: {
+          bottom: {
+            color: "0395DE",
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 12,
+          },
+        },
       }),
     );
-  });
 
-  children.push(
-    new Paragraph({
-      text: "",
-      spacing: { after: 150 },
-    }),
-  );
+    contactLines.forEach((line) => {
+      children.push(
+        new Paragraph({
+          text: line,
+          size: 20,
+          color: "4D4D4D",
+          spacing: { after: 40 },
+        }),
+      );
+    });
+
+    children.push(
+      new Paragraph({
+        text: "",
+        spacing: { after: 100 },
+      }),
+    );
+  }
 
   // Technical Skills
-  children.push(
-    new Paragraph({
-      text: "TECHNICAL SKILLS",
-      bold: true,
-      size: 24,
-      color: "4D4D4D",
-      spacing: { after: 100 },
-    }),
-    new Paragraph({
-      text: "Overview",
-      bold: true,
-      size: 22,
-      spacing: { after: 50 },
-    }),
-    new Paragraph({
-      text: overviewSkills.join(", "),
-      size: 20,
-      spacing: { after: 150 },
-    }),
-    new Paragraph({
-      text: "Programming",
-      bold: true,
-      size: 22,
-      spacing: { after: 50 },
-    }),
-    new Paragraph({
-      text: programmingSkills.join(", "),
-      size: 20,
-      spacing: { after: 200 },
-    }),
-  );
+  if (overviewSkills.length > 0 || programmingSkills.length > 0) {
+    children.push(
+      new Paragraph({
+        text: "SKILLS",
+        bold: true,
+        size: 24,
+        color: "0395DE",
+        spacing: { before: 0, after: 50 },
+        border: {
+          bottom: {
+            color: "0395DE",
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 12,
+          },
+        },
+      }),
+    );
+
+    if (overviewSkills.length > 0) {
+      children.push(
+        new Paragraph({
+          text: "Overview:",
+          bold: true,
+          size: 22,
+          spacing: { after: 30 },
+        }),
+        new Paragraph({
+          text: overviewSkills.join(", "),
+          size: 20,
+          spacing: { after: 80 },
+        }),
+      );
+    }
+
+    if (programmingSkills.length > 0) {
+      children.push(
+        new Paragraph({
+          text: "Programming:",
+          bold: true,
+          size: 22,
+          spacing: { after: 30 },
+        }),
+        new Paragraph({
+          text: programmingSkills.join(", "),
+          size: 20,
+          spacing: { after: 100 },
+        }),
+      );
+    }
+  }
 
   // Education
   if (education.length > 0) {
     children.push(
       new Paragraph({
-        text: "EDUCATION",
+        text: "EDU",
         bold: true,
-        size: 24,
-        color: "4D4D4D",
-        spacing: { after: 100 },
+        size: 20,
+        color: "#FFF",
+        shading: {
+          type: "clear",
+          fill: "0395DE",
+        },
+        spacing: { before: 0, after: 50 },
       }),
     );
 
@@ -158,38 +208,50 @@ async function generateEntryLevelModernDocx(
           text: `${edu.degree} in ${edu.field}`,
           bold: true,
           size: 20,
-          spacing: { after: 50 },
+          spacing: { after: 30 },
         }),
         new Paragraph({
-          text: `${edu.institution}${edu.gpa ? ` (GPA: ${edu.gpa})` : ""}`,
+          text: `${edu.institution}`,
           size: 20,
-          spacing: { after: 50 },
+          spacing: { after: 20 },
+          color: "666666",
         }),
+      );
+
+      if (edu.gpa) {
+        children.push(
+          new Paragraph({
+            text: `GPA: ${edu.gpa}`,
+            size: 20,
+            spacing: { after: 20 },
+            color: "666666",
+          }),
+        );
+      }
+
+      children.push(
         new Paragraph({
           text: edu.graduationDate,
           size: 20,
-          spacing: { after: 150 },
+          spacing: { after: 80 },
+          color: "666666",
         }),
       );
     });
   }
 
-  // Experience
+  // Experience Section
   children.push(
     new Paragraph({
-      text: "EXPERIENCE",
+      text: "EXP",
       bold: true,
-      size: 32,
-      color: "0395DE",
-      spacing: { after: 100 },
-      border: {
-        bottom: {
-          color: "0395DE",
-          space: 1,
-          style: BorderStyle.SINGLE,
-          size: 12,
-        },
+      size: 20,
+      color: "#FFF",
+      shading: {
+        type: "clear",
+        fill: "0395DE",
       },
+      spacing: { before: 0, after: 50 },
     }),
   );
 
@@ -205,14 +267,14 @@ async function generateEntryLevelModernDocx(
         bold: true,
         size: 22,
         color: "4D4D4D",
-        spacing: { after: 50 },
+        spacing: { after: 30 },
       }),
       new Paragraph({
         text: exp.company,
         bold: true,
         size: 22,
         color: "4D4D4D",
-        spacing: { after: 100 },
+        spacing: { after: 60 },
       }),
     );
 
@@ -221,7 +283,7 @@ async function generateEntryLevelModernDocx(
         new Paragraph({
           text: desc,
           size: 20,
-          spacing: { after: 50 },
+          spacing: { after: 40 },
           indent: { left: 360 },
         }),
       );
@@ -230,7 +292,7 @@ async function generateEntryLevelModernDocx(
     children.push(
       new Paragraph({
         text: "",
-        spacing: { after: 100 },
+        spacing: { after: 80 },
       }),
     );
   });
