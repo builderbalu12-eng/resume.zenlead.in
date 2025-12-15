@@ -1,0 +1,100 @@
+{
+  "name": "Entry Level Modern",
+  "id": "entry-level-modern",
+  "version": "1.0.0",
+  "description": "Professional two-column layout with sidebar skills, perfect for early-career professionals",
+  "colors": {
+    "primary": "#0395DE",
+    "sidebar": "#E7E7E7",
+    "text": "#4D4D4D",
+    "accent": "#666666"
+  },
+  "layout": {
+    "type": "two-column",
+    "sidebarWidth": "9cm",
+    "mainPadding": "20px 25px",
+    "sidebarPadding": "20px"
+  },
+  "typography": {
+    "fontFamily": "ClearSans, Segoe UI, Arial, sans-serif",
+    "headingSize": "22px",
+    "bodySize": "10px",
+    "sectionHeaderSize": "14px"
+  },
+  "sections": {
+    "experience": {
+      "shortcode": "EXP",
+      "title": "Experience",
+      "format": "date | title | company | descriptions"
+    },
+    "education": {
+      "shortcode": "EDU",
+      "title": "Education",
+      "format": "degree | institution | date"
+    },
+    "projects": {
+      "shortcode": "PRO",
+      "title": "Projects",
+      "format": "title | description"
+    },
+    "research": {
+      "shortcode": "RES",
+      "title": "Research",
+      "format": "title | details"
+    },
+    "publications": {
+      "shortcode": "PUB",
+      "title": "Publications",
+      "format": "title | venue | date"
+    },
+    "certifications": {
+      "shortcode": "CER",
+      "title": "Certifications",
+      "format": "title | issuer | date"
+    },
+    "awards": {
+      "shortcode": "AWD",
+      "title": "Awards",
+      "format": "title | description"
+    },
+    "skills": {
+      "shortcode": "SKL",
+      "title": "Skills",
+      "format": "overview-bubbles | programming-bars"
+    }
+  },
+  "sidebar": {
+    "elements": [
+      "name",
+      "jobtitle",
+      "contact",
+      "skills-overview",
+      "skills-programming",
+      "education"
+    ],
+    "colors": {
+      "background": "#E7E7E7",
+      "text": "#4D4D4D",
+      "accent": "#0395DE"
+    }
+  },
+  "formats": {
+    "pdf": true,
+    "docx": true,
+    "latex": false
+  },
+  "editableFields": [
+    "name",
+    "title",
+    "location",
+    "email",
+    "phone",
+    "website",
+    "linkedin",
+    "github",
+    "skills",
+    "experience",
+    "education",
+    "projects"
+  ]
+}
