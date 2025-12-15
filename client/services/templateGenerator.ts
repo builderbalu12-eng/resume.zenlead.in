@@ -923,27 +923,47 @@ async function generateEntryLevelModernPDF(
 
   const element = document.createElement("div");
   element.innerHTML = htmlContent;
-  element.style.display = "none";
+  element.style.position = "fixed";
+  element.style.top = "0";
+  element.style.left = "0";
+  element.style.width = "210mm";
+  element.style.backgroundColor = "white";
+  element.style.zIndex = "-9999";
+  element.style.visibility = "hidden";
   document.body.appendChild(element);
 
   try {
     const html2pdf = await loadHtml2Pdf();
 
+    // Add delay to allow content to render
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     return new Promise((resolve, reject) => {
+      const htmlElement = element.querySelector("html") || element;
+
       html2pdf()
         .set({
-          margin: 0,
+          margin: [0, 0, 0, 0],
           filename: "Resume_Entry_Level_Modern.pdf",
           image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2 },
-          jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: "#ffffff",
+          },
+          jsPDF: {
+            orientation: "portrait",
+            unit: "mm",
+            format: "a4",
+            compress: true,
+          },
         })
-        .from(element)
-        .toPdf()
-        .output("blob")
-        .then((blob: Blob) => {
+        .from(element.querySelector(".container") || element)
+        .save()
+        .then(() => {
           document.body.removeChild(element);
-          resolve(blob);
+          resolve(new Blob([], { type: "application/pdf" }));
         })
         .catch((err: Error) => {
           document.body.removeChild(element);
@@ -951,7 +971,9 @@ async function generateEntryLevelModernPDF(
         });
     });
   } catch (error) {
-    document.body.removeChild(element);
+    if (document.body.contains(element)) {
+      document.body.removeChild(element);
+    }
     throw error;
   }
 }
