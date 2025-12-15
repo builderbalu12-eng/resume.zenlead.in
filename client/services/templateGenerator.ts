@@ -520,6 +520,18 @@ async function generateTemplateDocx(
   return await Packer.toBlob(doc);
 }
 
+// Section shortcode mapping
+const SECTION_SHORTCODES: Record<string, string> = {
+  experience: "EXP",
+  education: "EDU",
+  projects: "PRO",
+  research: "RES",
+  publications: "PUB",
+  certifications: "CER",
+  awards: "AWD",
+  skills: "SKL",
+};
+
 // Generate Entry Level Modern PDF
 async function generateEntryLevelModernPDF(
   resume: ResumeData,
@@ -530,153 +542,159 @@ async function generateEntryLevelModernPDF(
   const overviewSkills = skills.slice(0, 5);
   const programmingSkills = skills.slice(5);
 
-  const skillBubbles = overviewSkills
+  // Build skill bubbles HTML
+  const skillBubblesHtml = overviewSkills
     .map(
       (skill) =>
-        `<div style="display: inline-flex; margin: 6px; width: 65px; height: 65px; border-radius: 50%; border: 2px solid #0395DE; align-items: center; justify-content: center; text-align: center; font-size: 10px; font-weight: 700; color: #4D4D4D; background-color: #fff; flex-shrink: 0;">
-          <span style="padding: 0 4px;">${skill}</span>
-        </div>`,
+        `<div class="skill-bubble" data-edit="skill">${skill}</div>`,
     )
     .join("");
 
-  const programmingBars = programmingSkills
+  // Build programming bars HTML
+  const programmingBarsHtml = programmingSkills
     .map(
       (skill) =>
-        `<div style="margin: 6px 0; font-size: 10px;">
-          <div style="font-weight: 600; margin-bottom: 3px;">${skill}</div>
-          <div style="background-color: #E7E7E7; height: 8px; border-radius: 2px;"></div>
-        </div>`,
-    )
-    .join("");
-
-  const htmlContent = `
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; }
-        .container { display: flex; height: 297mm; width: 210mm; }
-        .sidebar { width: 30%; background-color: #E7E7E7; padding: 25px; overflow: hidden; }
-        .main { width: 70%; padding: 25px 30px; background-color: #fff; }
-      </style>
-    </head>
-    <body>
-    <div class="container">
-
-      <!-- Sidebar -->
-      <div class="sidebar">
-        <!-- Name -->
-        <div style="font-size: 28px; font-weight: 700; color: #0395DE; margin-bottom: 8px; line-height: 1.2;">
-          ${contact.name.toUpperCase()}
-        </div>
-
-        <!-- Job Title -->
-        <div style="font-size: 14px; color: #4D4D4D; margin-bottom: 16px;">
-          ${contact.location || "Professional"}
-        </div>
-
-        <!-- Contact Info -->
-        <div style="font-size: 10px; line-height: 1.6; margin-bottom: 14px; color: #4D4D4D;">
-          ${contact.phone ? `<div>📱 ${contact.phone}</div>` : ""}
-          ${contact.website ? `<div>🌐 ${contact.website}</div>` : ""}
-          ${contact.email ? `<div>✉️ ${contact.email}</div>` : ""}
-          ${contact.linkedin ? `<div>🔗 ${contact.linkedin}</div>` : ""}
-          ${contact.github ? `<div>💻 ${contact.github}</div>` : ""}
-        </div>
-
-        <!-- Technical Skills -->
-        <div style="font-size: 12px; font-weight: 700; color: #4D4D4D; margin-top: 14px; margin-bottom: 8px;">
-          Technical Skills
-        </div>
-        <hr style="border: none; border-top: 1px solid #ccc; margin: 8px 0;" />
-
-        <!-- Overview Skills -->
-        <div style="font-size: 11px; font-weight: 600; margin-bottom: 8px;">Overview</div>
-        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; justify-content: center;">
-          ${skillBubbles}
-        </div>
-
-        <!-- Programming Skills -->
-        <div style="font-size: 11px; font-weight: 600; margin-bottom: 8px;">Programming</div>
-        <div style="font-size: 10px;">
-          ${programmingBars}
-        </div>
-
-        <!-- Education -->
-        ${
-          education.length > 0
-            ? `
-            <div style="margin-top: 14px;">
-              <div style="font-size: 12px; font-weight: 700; color: #4D4D4D; margin-bottom: 8px;">
-                Education
-              </div>
-              <hr style="border: none; border-top: 1px solid #ccc; margin: 8px 0;" />
-              ${education
-                .map(
-                  (edu) => `
-                <div style="font-size: 9px; margin-bottom: 8px;">
-                  <div style="font-weight: 600;">${edu.degree} in ${edu.field}</div>
-                  ${edu.gpa ? `<div>GPA: ${edu.gpa}</div>` : ""}
-                  <div>${edu.institution}</div>
-                  <div>${edu.graduationDate}</div>
-                </div>
-              `,
-                )
-                .join("")}
-            </div>
-          `
-            : ""
-        }
-      </div>
-
-      <!-- Main Content -->
-      <div class="main">
-
-        <!-- Experience Section -->
-        <div style="margin-bottom: 16px;">
-          <div style="font-size: 18px; font-weight: 700; color: #0395DE; margin-bottom: 6px;">
-            Experience
+        `<div class="programming-item">
+          <div class="programming-label" data-edit="skill">${skill}</div>
+          <div class="programming-bar">
+            <div class="programming-bar-fill"></div>
           </div>
-          <div style="border-bottom: 2px solid #0395DE; padding-bottom: 8px;"></div>
+        </div>`,
+    )
+    .join("");
 
-          ${
-            experience.length > 0
-              ? experience
-                  .map((exp) => {
-                    const dateRange =
-                      exp.endDate && !exp.isCurrentlyWorking
-                        ? `${exp.startDate} - ${exp.endDate}`
-                        : `${exp.startDate} - Present`;
-                    return `
-                  <div style="margin-bottom: 14px; page-break-inside: avoid;">
-                    <div style="font-weight: 700; font-size: 11px; color: #4D4D4D; margin-bottom: 2px;">
-                      ${dateRange} | ${exp.title}
-                      <span style="float: right;">${exp.company}</span>
-                    </div>
-                    <ul style="margin: 6px 0 0 0; padding-left: 18px; font-size: 10px; line-height: 1.4; color: #4D4D4D;">
-                      ${exp.description
-                        .map(
-                          (desc) => `
-                        <li style="margin-bottom: 3px; text-align: justify;">
-                          ${desc}
-                        </li>
-                      `,
-                        )
-                        .join("")}
-                    </ul>
-                  </div>
-                `;
-                  })
-                  .join("")
-              : "<div style='font-size: 10px; color: #999;'>No experience added</div>"
-          }
+  // Build education items HTML
+  const educationHtml = education
+    .map(
+      (edu) =>
+        `<div class="education-item">
+          <div class="education-degree" data-edit="degree">${edu.degree} in ${edu.field}</div>
+          <div class="education-school" data-edit="institution">${edu.institution}</div>
+          ${edu.gpa ? `<div class="education-date">GPA: ${edu.gpa}</div>` : ""}
+          <div class="education-date" data-edit="date">${edu.graduationDate}</div>
+        </div>`,
+    )
+    .join("");
+
+  // Build experience entries HTML
+  const experienceHtml = experience
+    .map((exp) => {
+      const dateRange =
+        exp.endDate && !exp.isCurrentlyWorking
+          ? `${exp.startDate} - ${exp.endDate}`
+          : `${exp.startDate} - Present`;
+      return `
+        <div class="experience-entry">
+          <div class="experience-meta">
+            <span class="experience-date" data-edit="date">${dateRange}</span>
+            <span class="experience-company" data-edit="company">${exp.company}</span>
+          </div>
+          <div class="experience-title" data-edit="title">${exp.title}</div>
+          <ul class="experience-descriptions">
+            ${exp.description
+              .map(
+                (desc) =>
+                  `<li data-edit="description">${desc}</li>`,
+              )
+              .join("")}
+          </ul>
         </div>
+      `;
+    })
+    .join("");
+
+  const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="/templates/entry-level-modern/styles.css">
+  <style>
+    /* Inline critical styles for PDF rendering */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: "ClearSans", "Segoe UI", Arial, sans-serif; color: #4d4d4d; }
+    .container { display: flex; width: 210mm; height: auto; min-height: 297mm; }
+    .sidebar { width: 9cm; background-color: #e7e7e7; padding: 20px; }
+    .main { flex: 1; padding: 20px 25px; background-color: #fff; }
+    .sidebar-name { font-size: 22px; font-weight: 700; color: #0395de; line-height: 1.2; }
+    .sidebar-jobtitle { font-size: 13px; font-weight: 600; color: #4d4d4d; }
+    .sidebar-section { padding-top: 12px; border-top: 1px solid #ccc; }
+    .sidebar-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
+    .contact-item { font-size: 9px; margin-bottom: 6px; line-height: 1.4; }
+    .skills-bubbles { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+    .skill-bubble { width: 55px; height: 55px; border-radius: 50%; border: 2px solid #0395de; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; text-align: center; padding: 4px; }
+    .programming-item { margin-bottom: 8px; }
+    .programming-label { font-size: 9px; font-weight: 600; margin-bottom: 2px; }
+    .programming-bar { background: #d3d3d3; height: 6px; border-radius: 2px; }
+    .programming-bar-fill { background: #0395de; height: 100%; width: 70%; }
+    .education-item { font-size: 8px; margin-bottom: 8px; line-height: 1.3; }
+    .education-degree { font-weight: 600; }
+    .education-school { color: #666; }
+    .section { margin-bottom: 12px; }
+    .section-header { display: flex; align-items: center; margin-bottom: 8px; gap: 8px; }
+    .section-shortcode { background: #0395de; color: #fff; font-weight: 700; font-size: 10px; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; min-width: 32px; text-align: center; }
+    .section-title { font-size: 14px; font-weight: 700; color: #0395de; text-transform: uppercase; }
+    .section-divider { width: 100%; height: 2px; background: #0395de; margin-bottom: 8px; }
+    .experience-entry { margin-bottom: 12px; }
+    .experience-meta { display: flex; justify-content: space-between; font-size: 10px; font-weight: 600; margin-bottom: 4px; }
+    .experience-title { font-size: 10px; font-weight: 600; }
+    .experience-descriptions { font-size: 9px; margin-top: 4px; margin-left: 12px; }
+    .experience-descriptions li { list-style-position: inside; margin-bottom: 2px; line-height: 1.3; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-name" data-edit="name">${contact.name.toUpperCase()}</div>
+    <div class="sidebar-jobtitle" data-edit="title">${contact.location || "Professional"}</div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Contact</div>
+      ${contact.phone ? `<div class="contact-item"><span class="contact-icon">📱</span>${contact.phone}</div>` : ""}
+      ${contact.website ? `<div class="contact-item"><span class="contact-icon">🌐</span>${contact.website}</div>` : ""}
+      ${contact.email ? `<div class="contact-item"><span class="contact-icon">✉️</span>${contact.email}</div>` : ""}
+      ${contact.linkedin ? `<div class="contact-item"><span class="contact-icon">🔗</span>${contact.linkedin}</div>` : ""}
+      ${contact.github ? `<div class="contact-item"><span class="contact-icon">💻</span>${contact.github}</div>` : ""}
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Skills - Overview</div>
+      <div class="skills-bubbles">
+        ${skillBubblesHtml}
       </div>
     </div>
-    </body>
-    </html>
-  `;
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Skills - Programming</div>
+      ${programmingBarsHtml}
+    </div>
+
+    ${
+      education.length > 0
+        ? `<div class="sidebar-section">
+        <div class="sidebar-section-title">Education</div>
+        ${educationHtml}
+      </div>`
+        : ""
+    }
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+    <!-- Experience Section -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-shortcode">${SECTION_SHORTCODES.experience}</div>
+        <div class="section-title">Experience</div>
+      </div>
+      <div class="section-divider"></div>
+      ${experienceHtml || '<div style="font-size: 10px; color: #999;">No experience added</div>'}
+    </div>
+  </div>
+</div>
+</body>
+</html>`;
 
   const element = document.createElement("div");
   element.innerHTML = htmlContent;
