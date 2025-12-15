@@ -51,6 +51,264 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
     : null;
 }
 
+// Generate Entry Level Modern DOCX
+async function generateEntryLevelModernDocx(
+  resume: ResumeData,
+  template: ResumeTemplate,
+): Promise<Blob> {
+  const { contact, skills, experience, education } = resume;
+
+  const overviewSkills = skills.slice(0, 5);
+  const programmingSkills = skills.slice(5);
+
+  const children: Paragraph[] = [];
+
+  // Header - Name
+  children.push(
+    new Paragraph({
+      text: contact.name.toUpperCase(),
+      bold: true,
+      size: 48,
+      color: "0395DE",
+      spacing: { after: 50 },
+    }),
+  );
+
+  // Job Title / Location
+  if (contact.location) {
+    children.push(
+      new Paragraph({
+        text: contact.location,
+        size: 26,
+        color: "4D4D4D",
+        spacing: { after: 100 },
+      }),
+    );
+  }
+
+  // Contact Section
+  const contactLines = [
+    contact.phone ? `📱 ${contact.phone}` : "",
+    contact.website ? `🌐 ${contact.website}` : "",
+    contact.email ? `✉️ ${contact.email}` : "",
+    contact.linkedin ? `🔗 ${contact.linkedin}` : "",
+    contact.github ? `💻 ${contact.github}` : "",
+  ].filter(Boolean);
+
+  if (contactLines.length > 0) {
+    children.push(
+      new Paragraph({
+        text: "CONTACT",
+        bold: true,
+        size: 22,
+        color: "0395DE",
+        spacing: { before: 0, after: 50 },
+        border: {
+          bottom: {
+            color: "0395DE",
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 12,
+          },
+        },
+      }),
+    );
+
+    contactLines.forEach((line) => {
+      children.push(
+        new Paragraph({
+          text: line,
+          size: 20,
+          color: "4D4D4D",
+          spacing: { after: 40 },
+        }),
+      );
+    });
+
+    children.push(
+      new Paragraph({
+        text: "",
+        spacing: { after: 100 },
+      }),
+    );
+  }
+
+  // Technical Skills
+  if (overviewSkills.length > 0 || programmingSkills.length > 0) {
+    children.push(
+      new Paragraph({
+        text: "SKILLS",
+        bold: true,
+        size: 24,
+        color: "0395DE",
+        spacing: { before: 0, after: 50 },
+        border: {
+          bottom: {
+            color: "0395DE",
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 12,
+          },
+        },
+      }),
+    );
+
+    if (overviewSkills.length > 0) {
+      children.push(
+        new Paragraph({
+          text: "Overview:",
+          bold: true,
+          size: 22,
+          spacing: { after: 30 },
+        }),
+        new Paragraph({
+          text: overviewSkills.join(", "),
+          size: 20,
+          spacing: { after: 80 },
+        }),
+      );
+    }
+
+    if (programmingSkills.length > 0) {
+      children.push(
+        new Paragraph({
+          text: "Programming:",
+          bold: true,
+          size: 22,
+          spacing: { after: 30 },
+        }),
+        new Paragraph({
+          text: programmingSkills.join(", "),
+          size: 20,
+          spacing: { after: 100 },
+        }),
+      );
+    }
+  }
+
+  // Education
+  if (education.length > 0) {
+    children.push(
+      new Paragraph({
+        text: "EDU",
+        bold: true,
+        size: 20,
+        color: "#FFF",
+        shading: {
+          type: "clear",
+          fill: "0395DE",
+        },
+        spacing: { before: 0, after: 50 },
+      }),
+    );
+
+    education.forEach((edu) => {
+      children.push(
+        new Paragraph({
+          text: `${edu.degree} in ${edu.field}`,
+          bold: true,
+          size: 20,
+          spacing: { after: 30 },
+        }),
+        new Paragraph({
+          text: `${edu.institution}`,
+          size: 20,
+          spacing: { after: 20 },
+          color: "666666",
+        }),
+      );
+
+      if (edu.gpa) {
+        children.push(
+          new Paragraph({
+            text: `GPA: ${edu.gpa}`,
+            size: 20,
+            spacing: { after: 20 },
+            color: "666666",
+          }),
+        );
+      }
+
+      children.push(
+        new Paragraph({
+          text: edu.graduationDate,
+          size: 20,
+          spacing: { after: 80 },
+          color: "666666",
+        }),
+      );
+    });
+  }
+
+  // Experience Section
+  children.push(
+    new Paragraph({
+      text: "EXP",
+      bold: true,
+      size: 20,
+      color: "#FFF",
+      shading: {
+        type: "clear",
+        fill: "0395DE",
+      },
+      spacing: { before: 0, after: 50 },
+    }),
+  );
+
+  experience.forEach((exp) => {
+    const dateRange =
+      exp.endDate && !exp.isCurrentlyWorking
+        ? `${exp.startDate} - ${exp.endDate}`
+        : `${exp.startDate} - Present`;
+
+    children.push(
+      new Paragraph({
+        text: `${dateRange} | ${exp.title}`,
+        bold: true,
+        size: 22,
+        color: "4D4D4D",
+        spacing: { after: 30 },
+      }),
+      new Paragraph({
+        text: exp.company,
+        bold: true,
+        size: 22,
+        color: "4D4D4D",
+        spacing: { after: 60 },
+      }),
+    );
+
+    exp.description.forEach((desc) => {
+      children.push(
+        new Paragraph({
+          text: desc,
+          size: 20,
+          spacing: { after: 40 },
+          indent: { left: 360 },
+        }),
+      );
+    });
+
+    children.push(
+      new Paragraph({
+        text: "",
+        spacing: { after: 80 },
+      }),
+    );
+  });
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: {},
+        children: children,
+      },
+    ],
+  });
+
+  return await Packer.toBlob(doc);
+}
+
 // Generate DOCX with template styling
 async function generateTemplateDocx(
   resume: ResumeData,
@@ -58,6 +316,10 @@ async function generateTemplateDocx(
   company: string,
   jobTitle: string,
 ): Promise<Blob> {
+  if (template.id === "entry-level-modern") {
+    return generateEntryLevelModernDocx(resume, template);
+  }
+
   const { contact, summary, skills, experience, education, projects } = resume;
 
   const primaryRgb = hexToRgb(template.colors.primary);
@@ -320,6 +582,403 @@ async function generateTemplateDocx(
   return await Packer.toBlob(doc);
 }
 
+// Section shortcode mapping
+const SECTION_SHORTCODES: Record<string, string> = {
+  experience: "EXP",
+  education: "EDU",
+  projects: "PRO",
+  research: "RES",
+  publications: "PUB",
+  certifications: "CER",
+  awards: "AWD",
+  skills: "SKL",
+};
+
+// Generate Entry Level Modern PDF
+async function generateEntryLevelModernPDF(
+  resume: ResumeData,
+  template: ResumeTemplate,
+): Promise<Blob> {
+  const { contact, skills, experience, education } = resume;
+
+  const overviewSkills = skills.slice(0, 5);
+  const programmingSkills = skills.slice(5);
+
+  // Build skill bubbles HTML
+  const skillBubblesHtml = overviewSkills
+    .map(
+      (skill) => `<div class="skill-bubble" data-edit="skill">${skill}</div>`,
+    )
+    .join("");
+
+  // Build programming bars HTML
+  const programmingBarsHtml = programmingSkills
+    .map(
+      (skill) =>
+        `<div class="programming-item">
+          <div class="programming-label" data-edit="skill">${skill}</div>
+          <div class="programming-bar">
+            <div class="programming-bar-fill"></div>
+          </div>
+        </div>`,
+    )
+    .join("");
+
+  // Build education items HTML
+  const educationHtml = education
+    .map(
+      (edu) =>
+        `<div class="education-item">
+          <div class="education-degree" data-edit="degree">${edu.degree} in ${edu.field}</div>
+          <div class="education-school" data-edit="institution">${edu.institution}</div>
+          ${edu.gpa ? `<div class="education-date">GPA: ${edu.gpa}</div>` : ""}
+          <div class="education-date" data-edit="date">${edu.graduationDate}</div>
+        </div>`,
+    )
+    .join("");
+
+  // Build experience entries HTML
+  const experienceHtml = experience
+    .map((exp) => {
+      const dateRange =
+        exp.endDate && !exp.isCurrentlyWorking
+          ? `${exp.startDate} - ${exp.endDate}`
+          : `${exp.startDate} - Present`;
+      return `
+        <div class="experience-entry">
+          <div class="experience-meta">
+            <span class="experience-date" data-edit="date">${dateRange}</span>
+            <span class="experience-company" data-edit="company">${exp.company}</span>
+          </div>
+          <div class="experience-title" data-edit="title">${exp.title}</div>
+          <ul class="experience-descriptions">
+            ${exp.description
+              .map((desc) => `<li data-edit="description">${desc}</li>`)
+              .join("")}
+          </ul>
+        </div>
+      `;
+    })
+    .join("");
+
+  const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    /* Complete inline styles for PDF rendering - NO external stylesheets */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; }
+    body {
+      font-family: "ClearSans", "Segoe UI", Arial, sans-serif;
+      color: #4d4d4d;
+      background: white;
+      line-height: 1.4;
+    }
+    .container {
+      display: flex;
+      width: 210mm;
+      height: auto;
+      min-height: 297mm;
+      background: white;
+      margin: 0;
+      padding: 0;
+    }
+    .sidebar {
+      width: 85mm;
+      flex-shrink: 0;
+      background-color: #e7e7e7;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .main {
+      flex: 1;
+      padding: 20px 25px;
+      background-color: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .sidebar-name {
+      font-size: 22px;
+      font-weight: 700;
+      color: #0395de;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+    .sidebar-jobtitle {
+      font-size: 13px;
+      font-weight: 600;
+      color: #4d4d4d;
+    }
+    .sidebar-section {
+      padding-top: 12px;
+      border-top: 1px solid #ccc;
+    }
+    .sidebar-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      color: #4d4d4d;
+    }
+    .contact-item {
+      font-size: 9px;
+      margin-bottom: 6px;
+      line-height: 1.4;
+      color: #4d4d4d;
+    }
+    .contact-icon { margin-right: 4px; }
+    .skills-bubbles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+    }
+    .skill-bubble {
+      width: 55px;
+      height: 55px;
+      border-radius: 50%;
+      border: 2px solid #0395de;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: 700;
+      text-align: center;
+      padding: 4px;
+      flex-shrink: 0;
+      color: #4d4d4d;
+    }
+    .programming-item {
+      margin-bottom: 8px;
+    }
+    .programming-label {
+      font-size: 9px;
+      font-weight: 600;
+      margin-bottom: 2px;
+      color: #4d4d4d;
+    }
+    .programming-bar {
+      background: #d3d3d3;
+      height: 6px;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .programming-bar-fill {
+      background: #0395de;
+      height: 100%;
+      width: 70%;
+    }
+    .education-item {
+      font-size: 8px;
+      margin-bottom: 8px;
+      line-height: 1.3;
+      color: #4d4d4d;
+    }
+    .education-degree {
+      font-weight: 600;
+      color: #4d4d4d;
+    }
+    .education-school {
+      color: #666;
+      font-size: 8px;
+    }
+    .education-date {
+      color: #666;
+      font-size: 8px;
+    }
+    .section {
+      margin-bottom: 12px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+    .section-shortcode {
+      background: #0395de;
+      color: #fff;
+      font-weight: 700;
+      font-size: 10px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      min-width: 32px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0395de;
+      text-transform: uppercase;
+    }
+    .section-divider {
+      width: 100%;
+      height: 2px;
+      background: #0395de;
+      margin-bottom: 8px;
+    }
+    .experience-entry {
+      margin-bottom: 12px;
+    }
+    .experience-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #4d4d4d;
+    }
+    .experience-date {
+      font-weight: 600;
+    }
+    .experience-company {
+      font-weight: 600;
+    }
+    .experience-title {
+      font-size: 10px;
+      font-weight: 600;
+      color: #4d4d4d;
+      margin-bottom: 4px;
+    }
+    .experience-descriptions {
+      font-size: 9px;
+      margin-top: 4px;
+      margin-left: 12px;
+      color: #4d4d4d;
+      list-style-position: inside;
+    }
+    .experience-descriptions li {
+      margin-bottom: 2px;
+      line-height: 1.3;
+    }
+    @media print {
+      body { margin: 0; padding: 0; }
+      .container { page-break-after: avoid; }
+      .sidebar { page-break-inside: avoid; }
+      .section { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background: white;">
+<div class="container">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-name" data-edit="name">${contact.name.toUpperCase()}</div>
+    <div class="sidebar-jobtitle" data-edit="title">${contact.location || "Professional"}</div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Contact</div>
+      ${contact.phone ? `<div class="contact-item"><span class="contact-icon">📱</span>${contact.phone}</div>` : ""}
+      ${contact.website ? `<div class="contact-item"><span class="contact-icon">🌐</span>${contact.website}</div>` : ""}
+      ${contact.email ? `<div class="contact-item"><span class="contact-icon">✉️</span>${contact.email}</div>` : ""}
+      ${contact.linkedin ? `<div class="contact-item"><span class="contact-icon">🔗</span>${contact.linkedin}</div>` : ""}
+      ${contact.github ? `<div class="contact-item"><span class="contact-icon">💻</span>${contact.github}</div>` : ""}
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Skills - Overview</div>
+      <div class="skills-bubbles">
+        ${skillBubblesHtml}
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Skills - Programming</div>
+      ${programmingBarsHtml}
+    </div>
+
+    ${
+      education.length > 0
+        ? `<div class="sidebar-section">
+        <div class="sidebar-section-title">Education</div>
+        ${educationHtml}
+      </div>`
+        : ""
+    }
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+    <!-- Experience Section -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-shortcode">${SECTION_SHORTCODES.experience}</div>
+        <div class="section-title">Experience</div>
+      </div>
+      <div class="section-divider"></div>
+      ${experienceHtml || '<div style="font-size: 10px; color: #999;">No experience added</div>'}
+    </div>
+  </div>
+</div>
+</body>
+</html>`;
+
+  const element = document.createElement("div");
+  element.innerHTML = htmlContent;
+  element.style.position = "fixed";
+  element.style.top = "0";
+  element.style.left = "0";
+  element.style.width = "210mm";
+  element.style.backgroundColor = "white";
+  element.style.zIndex = "-9999";
+  element.style.visibility = "hidden";
+  document.body.appendChild(element);
+
+  try {
+    const html2pdf = await loadHtml2Pdf();
+
+    // Add delay to allow content to render
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    return new Promise((resolve, reject) => {
+      const htmlElement = element.querySelector("html") || element;
+
+      html2pdf()
+        .set({
+          margin: [0, 0, 0, 0],
+          filename: "Resume_Entry_Level_Modern.pdf",
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: "#ffffff",
+          },
+          jsPDF: {
+            orientation: "portrait",
+            unit: "mm",
+            format: "a4",
+            compress: true,
+          },
+        })
+        .from(element.querySelector(".container") || element)
+        .toPdf()
+        .output("blob")
+        .then((blob: Blob) => {
+          document.body.removeChild(element);
+          resolve(blob);
+        })
+        .catch((err: Error) => {
+          document.body.removeChild(element);
+          reject(err);
+        });
+    });
+  } catch (error) {
+    if (document.body.contains(element)) {
+      document.body.removeChild(element);
+    }
+    throw error;
+  }
+}
+
 // Generate PDF with template styling
 async function generateTemplatePDF(
   resume: ResumeData,
@@ -327,6 +986,10 @@ async function generateTemplatePDF(
   company: string,
   jobTitle: string,
 ): Promise<Blob> {
+  if (template.id === "entry-level-modern") {
+    return generateEntryLevelModernPDF(resume, template);
+  }
+
   const { contact, summary, skills, experience, education, projects } = resume;
 
   const htmlContent = `

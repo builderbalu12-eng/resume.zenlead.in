@@ -58,10 +58,44 @@ export const TemplatesShowcase: React.FC = () => {
           {filteredTemplates.map((template) => (
             <div
               key={template.id}
-              className="group bg-card border border-border rounded-lg p-5 hover:shadow-glow hover:border-primary transition-all cursor-pointer"
+              className="group bg-card border border-border rounded-lg overflow-hidden hover:shadow-glow hover:border-primary transition-all cursor-pointer flex flex-col"
             >
-              {/* Color Swatches */}
-              <div className="flex gap-2 mb-4">
+              {/* Template Preview for Entry Level Modern */}
+              {template.id === "entry-level-modern" && (
+                <div className="w-full h-48 bg-gradient-to-b from-gray-100 to-gray-50 flex p-2">
+                  {/* Sidebar */}
+                  <div className="w-1/3 bg-gray-300 p-2 rounded">
+                    <div className="text-xs font-bold text-blue-600 mb-1">HARSH</div>
+                    <div className="text-xs text-gray-700 mb-2 font-medium">Engineer</div>
+                    <div className="flex gap-1 flex-wrap mb-2">
+                      {["A", "B", "C"].map((s) => (
+                        <div
+                          key={s}
+                          className="w-5 h-5 rounded-full border-2 border-blue-600 flex items-center justify-center text-xs font-bold text-gray-700"
+                        >
+                          {s}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-xs font-semibold text-gray-700">Edu</div>
+                  </div>
+                  {/* Main Content */}
+                  <div className="flex-1 bg-white p-2 ml-1 rounded">
+                    <div className="text-xs font-bold text-blue-600 mb-1">Exp</div>
+                    <div className="h-px bg-blue-600 mb-2"></div>
+                    <div className="text-xs font-semibold text-gray-700">2017</div>
+                    <div className="text-xs text-gray-600 space-y-1">
+                      <div>• Item 1</div>
+                      <div>• Item 2</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Card Content */}
+              <div className="p-5 flex-1 flex flex-col">
+                {/* Color Swatches */}
+                <div className="flex gap-2 mb-4">
                 <div
                   className="w-5 h-5 rounded-full shadow-sm"
                   style={{ backgroundColor: template.colors.primary }}
@@ -113,7 +147,7 @@ export const TemplatesShowcase: React.FC = () => {
               </p>
 
               {/* Formats & CTA */}
-              <div className="flex items-center justify-between pt-4 border-t border-border">
+              <div className="flex items-center justify-between pt-4 border-t border-border mt-auto">
                 <div className="flex gap-1">
                   {template.formats.map((format) => (
                     <span
@@ -127,6 +161,7 @@ export const TemplatesShowcase: React.FC = () => {
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
               </div>
+            </div>
             </div>
           ))}
         </div>
