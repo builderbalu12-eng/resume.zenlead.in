@@ -675,31 +675,28 @@ async function generateEntryLevelModernPDF(
       background: white;
       line-height: 1.4;
     }
-    .container {
-      display: flex;
+    table {
       width: 210mm;
-      height: auto;
-      min-height: 297mm;
-      background: white;
+      border-collapse: collapse;
       margin: 0;
       padding: 0;
     }
+    td {
+      padding: 0;
+      margin: 0;
+      vertical-align: top;
+    }
     .sidebar {
       width: 85mm;
-      flex-shrink: 0;
       background-color: #e7e7e7;
       padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
+      vertical-align: top;
     }
     .main {
-      flex: 1;
+      width: 125mm;
       padding: 20px 25px;
       background-color: #fff;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
+      vertical-align: top;
     }
     .sidebar-name {
       font-size: 22px;
@@ -707,15 +704,18 @@ async function generateEntryLevelModernPDF(
       color: #0395de;
       line-height: 1.2;
       word-break: break-word;
+      margin-bottom: 10px;
     }
     .sidebar-jobtitle {
       font-size: 13px;
       font-weight: 600;
       color: #4d4d4d;
+      margin-bottom: 12px;
     }
     .sidebar-section {
       padding-top: 12px;
       border-top: 1px solid #ccc;
+      margin-bottom: 12px;
     }
     .sidebar-section-title {
       font-size: 11px;
@@ -860,64 +860,64 @@ async function generateEntryLevelModernPDF(
     }
     @media print {
       body { margin: 0; padding: 0; }
-      .container { page-break-after: avoid; }
-      .sidebar { page-break-inside: avoid; }
+      table { page-break-inside: avoid; }
       .section { page-break-inside: avoid; }
     }
   </style>
 </head>
 <body style="margin: 0; padding: 0; background: white;">
-<div class="container">
+<table>
+  <tr>
+    <!-- Sidebar -->
+    <td class="sidebar">
+      <div class="sidebar-name" data-edit="name">${contact.name.toUpperCase()}</div>
+      <div class="sidebar-jobtitle" data-edit="title">${contact.location || "Professional"}</div>
 
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="sidebar-name" data-edit="name">${contact.name.toUpperCase()}</div>
-    <div class="sidebar-jobtitle" data-edit="title">${contact.location || "Professional"}</div>
-
-    <div class="sidebar-section">
-      <div class="sidebar-section-title">Contact</div>
-      ${contact.phone ? `<div class="contact-item"><span class="contact-icon">📱</span>${contact.phone}</div>` : ""}
-      ${contact.website ? `<div class="contact-item"><span class="contact-icon">🌐</span>${contact.website}</div>` : ""}
-      ${contact.email ? `<div class="contact-item"><span class="contact-icon">✉️</span>${contact.email}</div>` : ""}
-      ${contact.linkedin ? `<div class="contact-item"><span class="contact-icon">🔗</span>${contact.linkedin}</div>` : ""}
-      ${contact.github ? `<div class="contact-item"><span class="contact-icon">💻</span>${contact.github}</div>` : ""}
-    </div>
-
-    <div class="sidebar-section">
-      <div class="sidebar-section-title">Skills - Overview</div>
-      <div class="skills-bubbles">
-        ${skillBubblesHtml}
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Contact</div>
+        ${contact.phone ? `<div class="contact-item"><span class="contact-icon">📱</span>${contact.phone}</div>` : ""}
+        ${contact.website ? `<div class="contact-item"><span class="contact-icon">🌐</span>${contact.website}</div>` : ""}
+        ${contact.email ? `<div class="contact-item"><span class="contact-icon">✉️</span>${contact.email}</div>` : ""}
+        ${contact.linkedin ? `<div class="contact-item"><span class="contact-icon">🔗</span>${contact.linkedin}</div>` : ""}
+        ${contact.github ? `<div class="contact-item"><span class="contact-icon">💻</span>${contact.github}</div>` : ""}
       </div>
-    </div>
 
-    <div class="sidebar-section">
-      <div class="sidebar-section-title">Skills - Programming</div>
-      ${programmingBarsHtml}
-    </div>
-
-    ${
-      education.length > 0
-        ? `<div class="sidebar-section">
-        <div class="sidebar-section-title">Education</div>
-        ${educationHtml}
-      </div>`
-        : ""
-    }
-  </div>
-
-  <!-- Main Content -->
-  <div class="main">
-    <!-- Experience Section -->
-    <div class="section">
-      <div class="section-header">
-        <div class="section-shortcode">${SECTION_SHORTCODES.experience}</div>
-        <div class="section-title">Experience</div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Skills - Overview</div>
+        <div class="skills-bubbles">
+          ${skillBubblesHtml}
+        </div>
       </div>
-      <div class="section-divider"></div>
-      ${experienceHtml || '<div style="font-size: 10px; color: #999;">No experience added</div>'}
-    </div>
-  </div>
-</div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Skills - Programming</div>
+        ${programmingBarsHtml}
+      </div>
+
+      ${
+        education.length > 0
+          ? `<div class="sidebar-section">
+          <div class="sidebar-section-title">Education</div>
+          ${educationHtml}
+        </div>`
+          : ""
+      }
+    </td>
+
+    <!-- Main Content -->
+    <td class="main">
+      <!-- Experience Section -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-shortcode">${SECTION_SHORTCODES.experience}</div>
+          <div class="section-title">Experience</div>
+        </div>
+        <div class="section-divider"></div>
+        ${experienceHtml || '<div style="font-size: 10px; color: #999;">No experience added</div>'}
+      </div>
+    </td>
+  </tr>
+</table>
 </body>
 </html>`;
 
@@ -939,8 +939,6 @@ async function generateEntryLevelModernPDF(
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     return new Promise((resolve, reject) => {
-      const htmlElement = element.querySelector("html") || element;
-
       html2pdf()
         .set({
           margin: [0, 0, 0, 0],
@@ -959,7 +957,7 @@ async function generateEntryLevelModernPDF(
             compress: true,
           },
         })
-        .from(element.querySelector(".container") || element)
+        .from(element.querySelector("table") || element)
         .toPdf()
         .output("blob")
         .then((blob: Blob) => {
