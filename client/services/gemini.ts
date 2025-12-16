@@ -228,6 +228,15 @@ export function calculateATSScore(
     projectsScore = Math.min(5, resume.projects.length * 2);
   }
 
+  // Custom sections score (5% of total) - bonus for tailored resumes
+  let customSectionsScore = 0;
+  if (resume.customSections && Object.keys(resume.customSections).length > 0) {
+    const nonEmptySections = Object.values(resume.customSections).filter(
+      (content) => content && content.trim().length > 0,
+    ).length;
+    customSectionsScore = Math.min(5, nonEmptySections * 1.5);
+  }
+
   // Calculate total score
   const totalScore = Math.min(
     100,
@@ -237,7 +246,8 @@ export function calculateATSScore(
         experienceScore +
         educationScore +
         summaryScore +
-        projectsScore,
+        projectsScore +
+        customSectionsScore,
     ),
   );
 
