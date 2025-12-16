@@ -52,49 +52,51 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
 }
 
 // Generate Entry Level Modern DOCX
-async function generateEntryLevelModernDocx(
-  resume: ResumeData,
-  template: ResumeTemplate,
-): Promise<Blob> {
-  const {
-    contact,
-    summary,
-    skills,
-    experience,
-    education,
-    projects,
-    certifications,
-    achievements,
-    publications,
-    customSections,
-  } = resume;
+// ===== MODULAR TEMPLATE HELPER FUNCTIONS =====
 
-  const children: Paragraph[] = [];
+interface ParagraphConfig {
+  text: string;
+  bold?: boolean;
+  italics?: boolean;
+  size: number;
+  color?: string;
+  spacing: { before?: number; after: number; line?: number };
+  alignment?: AlignmentType;
+  border?: any;
+  indent?: any;
+  shading?: any;
+}
 
-  // Header - Name
+// Helper: Add section header with blue underline
+function addSectionHeader(
+  children: Paragraph[],
+  title: string,
+  color: string = "0395DE",
+): void {
   children.push(
     new Paragraph({
-      text: contact.name.toUpperCase(),
+      text: title.toUpperCase(),
       bold: true,
-      size: 52,
-      color: "0395DE",
-      spacing: { line: 240, after: 100 },
+      size: 22,
+      color: color,
+      spacing: { before: 0, after: 50, line: 200 },
+      border: {
+        bottom: {
+          color: color,
+          space: 1,
+          style: BorderStyle.SINGLE,
+          size: 12,
+        },
+      },
     }),
   );
+}
 
-  // Job Title / Location
-  if (contact.location) {
-    children.push(
-      new Paragraph({
-        text: contact.location,
-        size: 24,
-        color: "4D4D4D",
-        spacing: { after: 150 },
-      }),
-    );
-  }
-
-  // Contact Section - Reduced spacing
+// Helper: Add contact information
+function addContactSection(
+  children: Paragraph[],
+  contact: any,
+): void {
   const contactLines = [
     contact.phone ? `📱 ${contact.phone}` : "",
     contact.website ? `🌐 ${contact.website}` : "",
@@ -104,23 +106,7 @@ async function generateEntryLevelModernDocx(
   ].filter(Boolean);
 
   if (contactLines.length > 0) {
-    children.push(
-      new Paragraph({
-        text: "CONTACT",
-        bold: true,
-        size: 22,
-        color: "0395DE",
-        spacing: { before: 0, after: 60, line: 200 },
-        border: {
-          bottom: {
-            color: "0395DE",
-            space: 1,
-            style: BorderStyle.SINGLE,
-            size: 12,
-          },
-        },
-      }),
-    );
+    addSectionHeader(children, "CONTACT");
 
     contactLines.forEach((line) => {
       children.push(
@@ -128,7 +114,7 @@ async function generateEntryLevelModernDocx(
           text: line,
           size: 20,
           color: "4D4D4D",
-          spacing: { after: 30, line: 200 },
+          spacing: { after: 25, line: 200 },
         }),
       );
     });
@@ -136,87 +122,106 @@ async function generateEntryLevelModernDocx(
     children.push(
       new Paragraph({
         text: "",
-        spacing: { after: 80 },
+        spacing: { after: 60 },
       }),
     );
   }
+}
 
-  // Professional Summary
+// Helper: Add professional summary
+function addSummarySection(
+  children: Paragraph[],
+  summary: string | undefined,
+): void {
   if (summary && summary.trim()) {
+    addSectionHeader(children, "SUMMARY");
     children.push(
-      new Paragraph({
-        text: "SUMMARY",
-        bold: true,
-        size: 22,
-        color: "0395DE",
-        spacing: { before: 0, after: 60, line: 200 },
-        border: {
-          bottom: {
-            color: "0395DE",
-            space: 1,
-            style: BorderStyle.SINGLE,
-            size: 12,
-          },
-        },
-      }),
       new Paragraph({
         text: summary,
         size: 20,
-        spacing: { after: 80, line: 220 },
+        spacing: { after: 70, line: 220 },
         alignment: AlignmentType.JUSTIFIED,
       }),
     );
   }
+}
 
-  // Technical Skills - improved layout
+// Helper: Add skills with smart limiting (top 8-10)
+function addSkillsSection(children: Paragraph[], skills: string[]): void {
   if (skills.length > 0) {
-    children.push(
-      new Paragraph({
-        text: "SKILLS",
-        bold: true,
-        size: 22,
-        color: "0395DE",
-        spacing: { before: 0, after: 60, line: 200 },
-        border: {
-          bottom: {
-            color: "0395DE",
-            space: 1,
-            style: BorderStyle.SINGLE,
-            size: 12,
-          },
-        },
-      }),
-    );
+    addSectionHeader(children, "SKILLS");
 
-    // Display all skills in a single line, wrapping if needed
+    // Limit to top 8-10 skills for compact display
+    const displaySkills = skills.slice(0, 10);
     children.push(
       new Paragraph({
-        text: skills.join(" • "),
+        text: displaySkills.join(" • "),
         size: 20,
-        spacing: { after: 100, line: 220 },
+        spacing: { after: 80, line: 220 },
       }),
     );
   }
+}
 
-  // Education
+// Helper: Add experience section
+function addExperienceSection(
+  children: Paragraph[],
+  experience: any[],
+): void {
+  if (experience.length > 0) {
+    addSectionHeader(children, "EXPERIENCE");
+
+    experience.forEach((exp) => {
+      const dateRange =
+        exp.endDate && !exp.isCurrentlyWorking
+          ? `${exp.startDate} - ${exp.endDate}`
+          : `${exp.startDate} - Present`;
+
+      children.push(
+        new Paragraph({
+          text: exp.title,
+          bold: true,
+          size: 21,
+          color: "4D4D4D",
+          spacing: { after: 15, line: 200 },
+        }),
+        new Paragraph({
+          text: `${exp.company} | ${dateRange}`,
+          italics: true,
+          size: 19,
+          color: "666666",
+          spacing: { after: 35, line: 200 },
+        }),
+      );
+
+      exp.description.forEach((desc: string) => {
+        children.push(
+          new Paragraph({
+            text: desc,
+            size: 19,
+            spacing: { after: 25, line: 220 },
+            indent: { left: 360 },
+          }),
+        );
+      });
+
+      children.push(
+        new Paragraph({
+          text: "",
+          spacing: { after: 45 },
+        }),
+      );
+    });
+  }
+}
+
+// Helper: Add education section
+function addEducationSection(
+  children: Paragraph[],
+  education: any[],
+): void {
   if (education.length > 0) {
-    children.push(
-      new Paragraph({
-        text: "EDUCATION",
-        bold: true,
-        size: 22,
-        color: "0395DE",
-        spacing: { before: 0, after: 60, line: 200 },
-        border: {
-          bottom: {
-            color: "0395DE",
-            space: 1,
-            style: BorderStyle.SINGLE,
-            size: 12,
-          },
-        },
-      }),
-    );
+    addSectionHeader(children, "EDUCATION");
 
     education.forEach((edu) => {
       children.push(
@@ -224,7 +229,7 @@ async function generateEntryLevelModernDocx(
           text: `${edu.degree} in ${edu.field}`,
           bold: true,
           size: 20,
-          spacing: { after: 20, line: 200 },
+          spacing: { after: 15, line: 200 },
         }),
         new Paragraph({
           text: edu.institution,
@@ -249,95 +254,21 @@ async function generateEntryLevelModernDocx(
         new Paragraph({
           text: edu.graduationDate,
           size: 18,
-          spacing: { after: 60, line: 200 },
+          spacing: { after: 50, line: 200 },
           color: "666666",
         }),
       );
     });
   }
+}
 
-  // Experience Section
-  if (experience.length > 0) {
-    children.push(
-      new Paragraph({
-        text: "EXPERIENCE",
-        bold: true,
-        size: 22,
-        color: "0395DE",
-        spacing: { before: 0, after: 60, line: 200 },
-        border: {
-          bottom: {
-            color: "0395DE",
-            space: 1,
-            style: BorderStyle.SINGLE,
-            size: 12,
-          },
-        },
-      }),
-    );
-
-    experience.forEach((exp) => {
-      const dateRange =
-        exp.endDate && !exp.isCurrentlyWorking
-          ? `${exp.startDate} - ${exp.endDate}`
-          : `${exp.startDate} - Present`;
-
-      children.push(
-        new Paragraph({
-          text: exp.title,
-          bold: true,
-          size: 21,
-          color: "4D4D4D",
-          spacing: { after: 15, line: 200 },
-        }),
-        new Paragraph({
-          text: `${exp.company} | ${dateRange}`,
-          italics: true,
-          size: 19,
-          color: "666666",
-          spacing: { after: 40, line: 200 },
-        }),
-      );
-
-      exp.description.forEach((desc) => {
-        children.push(
-          new Paragraph({
-            text: desc,
-            size: 19,
-            spacing: { after: 30, line: 220 },
-            indent: { left: 360 },
-          }),
-        );
-      });
-
-      children.push(
-        new Paragraph({
-          text: "",
-          spacing: { after: 50 },
-        }),
-      );
-    });
-  }
-
-  // Projects Section
+// Helper: Add projects section
+function addProjectsSection(
+  children: Paragraph[],
+  projects: any[] | undefined,
+): void {
   if (projects && projects.length > 0) {
-    children.push(
-      new Paragraph({
-        text: "PROJECTS",
-        bold: true,
-        size: 22,
-        color: "0395DE",
-        spacing: { before: 0, after: 60, line: 200 },
-        border: {
-          bottom: {
-            color: "0395DE",
-            space: 1,
-            style: BorderStyle.SINGLE,
-            size: 12,
-          },
-        },
-      }),
-    );
+    addSectionHeader(children, "PROJECTS");
 
     projects.forEach((proj) => {
       children.push(
@@ -345,7 +276,7 @@ async function generateEntryLevelModernDocx(
           text: proj.title,
           bold: true,
           size: 20,
-          spacing: { after: 15, line: 200 },
+          spacing: { after: 12, line: 200 },
         }),
       );
 
@@ -356,7 +287,7 @@ async function generateEntryLevelModernDocx(
             italics: true,
             size: 18,
             color: "666666",
-            spacing: { after: 20, line: 200 },
+            spacing: { after: 18, line: 200 },
           }),
         );
       }
@@ -365,151 +296,96 @@ async function generateEntryLevelModernDocx(
         new Paragraph({
           text: proj.description,
           size: 19,
-          spacing: { after: 50, line: 220 },
+          spacing: { after: 45, line: 220 },
           indent: { left: 360 },
         }),
       );
     });
   }
+}
 
-  // Custom Sections
+// Helper: Add custom sections
+function addCustomSections(
+  children: Paragraph[],
+  customSections: Record<string, string> | undefined,
+): void {
   if (customSections && Object.keys(customSections).length > 0) {
     for (const [sectionName, content] of Object.entries(customSections)) {
       if (content && content.trim()) {
+        addSectionHeader(children, sectionName);
         children.push(
-          new Paragraph({
-            text: sectionName.toUpperCase(),
-            bold: true,
-            size: 22,
-            color: "0395DE",
-            spacing: { before: 0, after: 60, line: 200 },
-            border: {
-              bottom: {
-                color: "0395DE",
-                space: 1,
-                style: BorderStyle.SINGLE,
-                size: 12,
-              },
-            },
-          }),
           new Paragraph({
             text: content,
             size: 19,
-            spacing: { after: 80, line: 220 },
+            spacing: { after: 75, line: 220 },
             alignment: AlignmentType.JUSTIFIED,
           }),
         );
       }
     }
   }
+}
 
-  // Certifications
-  if (certifications && certifications.length > 0) {
+// ===== ENTRY LEVEL MODERN TEMPLATE =====
+async function generateEntryLevelModernDocx(
+  resume: ResumeData,
+  template: ResumeTemplate,
+): Promise<Blob> {
+  const {
+    contact,
+    summary,
+    skills,
+    experience,
+    education,
+    projects,
+    customSections,
+  } = resume;
+
+  const children: Paragraph[] = [];
+
+  // Header - Name (reduced top spacing)
+  children.push(
+    new Paragraph({
+      text: contact.name.toUpperCase(),
+      bold: true,
+      size: 48,
+      color: "0395DE",
+      spacing: { before: 0, after: 50, line: 220 },
+    }),
+  );
+
+  // Location
+  if (contact.location) {
     children.push(
       new Paragraph({
-        text: "CERTIFICATIONS",
-        bold: true,
+        text: contact.location,
         size: 22,
-        color: "0395DE",
-        spacing: { before: 0, after: 60, line: 200 },
-        border: {
-          bottom: {
-            color: "0395DE",
-            space: 1,
-            style: BorderStyle.SINGLE,
-            size: 12,
-          },
-        },
-      }),
-    );
-
-    certifications.forEach((cert) => {
-      children.push(
-        new Paragraph({
-          text: `• ${cert}`,
-          size: 19,
-          spacing: { after: 30, line: 200 },
-        }),
-      );
-    });
-
-    children.push(
-      new Paragraph({
-        text: "",
-        spacing: { after: 50 },
+        color: "4D4D4D",
+        spacing: { after: 100, line: 200 },
       }),
     );
   }
 
-  // Achievements
-  if (achievements && achievements.length > 0) {
-    children.push(
-      new Paragraph({
-        text: "ACHIEVEMENTS",
-        bold: true,
-        size: 22,
-        color: "0395DE",
-        spacing: { before: 0, after: 60, line: 200 },
-        border: {
-          bottom: {
-            color: "0395DE",
-            space: 1,
-            style: BorderStyle.SINGLE,
-            size: 12,
-          },
-        },
-      }),
-    );
+  // Contact Info
+  addContactSection(children, contact);
 
-    achievements.forEach((achievement) => {
-      children.push(
-        new Paragraph({
-          text: `• ${achievement}`,
-          size: 19,
-          spacing: { after: 30, line: 200 },
-        }),
-      );
-    });
+  // Professional Summary
+  addSummarySection(children, summary);
 
-    children.push(
-      new Paragraph({
-        text: "",
-        spacing: { after: 50 },
-      }),
-    );
-  }
+  // Skills (smart limiting to top 10)
+  addSkillsSection(children, skills);
 
-  // Publications
-  if (publications && publications.length > 0) {
-    children.push(
-      new Paragraph({
-        text: "PUBLICATIONS",
-        bold: true,
-        size: 22,
-        color: "0395DE",
-        spacing: { before: 0, after: 60, line: 200 },
-        border: {
-          bottom: {
-            color: "0395DE",
-            space: 1,
-            style: BorderStyle.SINGLE,
-            size: 12,
-          },
-        },
-      }),
-    );
+  // Experience (tailored content)
+  addExperienceSection(children, experience);
 
-    publications.forEach((pub) => {
-      const pubText = typeof pub === "string" ? pub : JSON.stringify(pub);
-      children.push(
-        new Paragraph({
-          text: `• ${pubText}`,
-          size: 19,
-          spacing: { after: 30, line: 200 },
-        }),
-      );
-    });
-  }
+  // Education
+  addEducationSection(children, education);
+
+  // Projects
+  addProjectsSection(children, projects);
+
+  // Custom Sections (from Settings)
+  addCustomSections(children, customSections);
 
   const doc = new Document({
     sections: [
@@ -517,7 +393,7 @@ async function generateEntryLevelModernDocx(
         properties: {
           page: {
             margins: {
-              top: 720,
+              top: 400,
               right: 720,
               bottom: 720,
               left: 720,
