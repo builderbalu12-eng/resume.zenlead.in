@@ -136,7 +136,11 @@ export function calculateATSScore(
   resume: ResumeData,
   jobDescription: JobDescription,
 ): ATSScore {
-  // Build complete resume text
+  // Build complete resume text including custom sections
+  const customSectionsText = Object.values(resume.customSections || {}).join(
+    " ",
+  );
+
   const resumeText = `${resume.summary || ""} ${resume.skills.join(" ")} ${
     resume.experience
       .map((e) => `${e.title} ${e.company} ${e.description.join(" ")}`)
@@ -145,7 +149,7 @@ export function calculateATSScore(
     resume.projects
       ?.map((p) => `${p.title} ${p.description} ${p.technologies.join(" ")}`)
       .join(" ") || ""
-  } ${Object.values(resume.customSections || {}).join(" ")}`.toLowerCase();
+  } ${customSectionsText}`.toLowerCase();
 
   // Get all keywords from job description
   const jobKeywords = [
