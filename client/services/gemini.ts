@@ -1009,39 +1009,47 @@ export async function analyzeJobAndTailorResume(
     2,
   );
 
-  const prompt = `Extract job details and tailor resume for maximum ATS matching. Return valid JSON:
+  const prompt = `You are an expert resume writer and ATS specialist. Extract job details and tailor resume for maximum impact and ATS compatibility.
+
+Extract job details from the posting and transform the resume to be perfectly tailored for this opportunity.
+
+Return ONLY valid JSON (NO MARKDOWN, NO CODE BLOCKS):
 {
-  "jobTitle": "title",
-  "company": "company",
-  "location": "location or 'Not specified'",
-  "jobDescription": "full job description from page",
-  "requirements": ["requirement1", "requirement2"],
-  "skills": ["skill1", "skill2"],
-  "tailoredSummary": "2-3 sentence summary emphasizing relevant experience for this specific job",
-  "tailoredExperience": [{"position": "original job title", "newBullets": ["bullet1 with metrics", "bullet2 with keywords"]}],
-  "tailoredProjects": [{"title": "project title", "newDescription": "3-4 sentences describing project impact, technologies used relevant to job, and measurable results"}],
-  "tailoredSkillsOrder": ["most relevant skill", "second most relevant"],
-  "atsScore": 0-100,
-  "atsMatchPercentage": 0-100,
-  "matchedKeywords": ["keyword1", "keyword2"],
+  "jobTitle": "official job title from posting",
+  "company": "company name",
+  "location": "location if specified, otherwise 'Not specified'",
+  "jobDescription": "comprehensive job description and responsibilities from the posting",
+  "requirements": ["critical requirement 1", "critical requirement 2", "key requirement 3"],
+  "skills": ["most important skill 1", "key skill 2", "required skill 3"],
+  "tailoredSummary": "2-3 sentence summary that powerfully connects candidate's background to this specific role. Reference 2-3 key required skills. Use results-oriented language.",
+  "tailoredExperience": [{"position": "original job title", "newBullets": ["achievement with specific metrics (%, numbers, improved X by Y)", "accomplishment demonstrating required skills with evidence", "contribution directly relevant to job posting requirements with measurable impact"]}],
+  "tailoredProjects": [{"title": "project title", "newDescription": "3-4 powerful sentences: (1) business problem solved, (2) technologies used from job posting, (3) your specific contribution, (4) measurable outcomes with metrics"}],
+  "tailoredSkillsOrder": ["skill most critical to job posting", "second most important skill", "third most relevant skill"],
+  "atsScore": 75-95,
+  "atsMatchPercentage": 75-95,
+  "matchedKeywords": ["keyword1", "keyword2", "keyword3"],
   "missingKeywords": ["keyword1"],
-  "improvements": ["improvement1"],
-  "jobSummary": "summary with match percentage"
+  "improvements": ["improvement suggestion 1"],
+  "jobSummary": "brief summary with percentage match"
 }
 
-Instructions for ATS Scoring:
-- Extract ALL job skills and requirements from the posting (be thorough, aim for 15+ keywords)
-- Calculate ATS score CAREFULLY:
-  * Base score on skill match percentage (primary factor)
-  * Add bonus points if experience has metrics/numbers (improved, increased, %, $)
-  * Add bonus points for job title relevance in experience
-  * Ensure minimum score of 20 (every tailored resume is better than untailored)
-  * For well-tailored resumes (4+ relevant experience bullets, 2+ custom sections, clear skill alignment): score should be 75-85+
-  * For excellent tailored resumes (5+ experience bullets with metrics, multiple projects, strong summary): score should be 80-90+
-- For tailoredProjects: provide 3-4 detailed sentences describing project impact, relevant technologies, and quantified results
-- For tailoredExperience: write impact-driven bullets with metrics where possible, incorporate job keywords naturally
-- Order skills by relevance to job posting
-- atsMatchPercentage should reflect percentage of job keywords found in tailored resume
+**CRITICAL REQUIREMENTS:**
+1. Extract ALL job skills and requirements from posting (comprehensive extraction - 15+ keywords minimum)
+2. Experience bullets: each MUST include quantifiable impact (%, numbers, improved, achieved, scaled, etc.)
+3. Reorder skills by job posting relevance - most critical first
+4. Incorporate 4-5 important job keywords naturally into experience descriptions
+5. Projects: 3-4 substantive sentences with specific technologies and measurable results
+6. Summary: immediate connection between candidate and job requirements using modern, powerful language
+7. Professional vocabulary: "architected", "engineered", "optimized", "spearheaded", "transformed", "accelerated"
+
+**ATS SCORING GUIDELINES:**
+- Base score primarily on keyword match percentage from comprehensive job analysis
+- Bonus points for metrics/quantifiable results in experience
+- Bonus points for job title relevance
+- Well-tailored resume (strong keyword match + metrics): 75-85%
+- Excellent tailored resume (comprehensive keywords + multiple strong bullets + metrics): 80-95%
+- Minimum score: 20 (every tailored resume improves over untailored)
+- atsMatchPercentage = percentage of job keywords found in tailored resume
 
 Job posting:
 ${cleanHTML}
