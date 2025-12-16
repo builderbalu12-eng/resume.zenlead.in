@@ -1192,29 +1192,43 @@ ${resumeText}`;
       const sectionsTemplate = sectionsToGenerate
         .map(
           (section) =>
-            `"${section}": "3-4 sentences relevant to ${jobData.title}"`,
+            `"${section}": "3-4 substantial sentences demonstrating relevant expertise and achievements for the ${jobData.title} role"`,
         )
         .join(", ");
 
-      const customSectionsPrompt = `Generate compelling resume content for custom sections tailored to this job opportunity.
+      const customSectionsPrompt = `You are an expert resume writer specializing in ATS-optimized, modern professional resumes.
 
-Job: ${jobData.title} at ${jobData.company}
-Skills needed: ${jobSkills}
-Job requirements: ${Array.isArray(jobData.requirements) ? jobData.requirements.join(", ") : ""}
-Candidate: ${masterResume.contact.name}
-Experience: ${masterResume.experience.map((e) => `${e.title} at ${e.company}`).join(" | ")}
-Education: ${masterResume.education.map((e) => `${e.degree} in ${e.field}`).join(" | ")}
+Create compelling, highly targeted custom resume sections that will make this candidate stand out for a specific job opportunity.
 
-Generate 3-4 sentence content for each section that aligns with the job requirements and showcases relevant experience:
+**CANDIDATE PROFILE:**
+Name: ${masterResume.contact.name}
+Target Role: ${jobData.title}
+Company: ${jobData.company}
+Experience: ${masterResume.experience.map((e) => `${e.title} at ${e.company} (${e.startDate}-${e.endDate || "Present"})`).join(" • ")}
+Education: ${masterResume.education.map((e) => `${e.degree} in ${e.field} from ${e.institution}`).join(" • ")}
+Key Skills: ${masterResume.skills.slice(0, 10).join(", ")}
 
-Return ONLY valid JSON:
+**JOB REQUIREMENTS:**
+Role: ${jobData.title}
+Company: ${jobData.company}
+Required Skills: ${jobSkills}
+Key Requirements: ${Array.isArray(jobData.requirements) ? jobData.requirements.join(", ") : ""}
+
+**CRITICAL REQUIREMENTS FOR GENERATED CONTENT:**
+1. Each section must contain 3-4 sentences of substantial, meaningful content (never generic or placeholder text)
+2. Use active, modern business language with strong action verbs
+3. Incorporate 2-3 specific skills/technologies from the job posting naturally
+4. Reference concrete achievements, metrics, or examples from the candidate's background
+5. Directly address job requirements and demonstrate relevant expertise
+6. Be professional yet engaging - show personality while maintaining ATS compatibility
+7. NO generic phrases like "N/A", "Not available", or lorem ipsum text
+
+Return ONLY valid JSON with NO additional text, markdown, or code blocks:
 {
   "sections": {
     ${sectionsTemplate}
   }
-}
-
-Important: Each section content should be specific, substantial (3-4 sentences), and demonstrate how the candidate's background aligns with the job requirements.`;
+}`;
 
       try {
         const customResult = await retryWithBackoff(async () => {
@@ -1242,10 +1256,24 @@ Important: Each section content should be specific, substantial (3-4 sentences),
             customParsed.sections,
           )) {
             const contentStr = String(content).trim();
-            if (contentStr && contentStr.length > 0 && contentStr !== "null") {
+            // Validate content quality - must be substantial, not placeholder
+            const isValidContent =
+              contentStr &&
+              contentStr.length > 100 &&
+              contentStr !== "null" &&
+              !contentStr.includes("N/A") &&
+              !contentStr.includes("Not available") &&
+              !contentStr.includes("Not applicable") &&
+              !contentStr.toLowerCase().includes("lorem ipsum");
+
+            if (isValidContent) {
               customSections[sectionName] = contentStr;
               console.log(
                 `[Gemini] Added custom section "${sectionName}": ${contentStr.substring(0, 100)}...`,
+              );
+            } else {
+              console.warn(
+                `[Gemini] Skipped invalid custom section "${sectionName}": content too short or placeholder`,
               );
             }
           }
