@@ -1301,24 +1301,15 @@ Return ONLY valid JSON with NO additional text, markdown, or code blocks:
             customParsed.sections,
           )) {
             const contentStr = String(content).trim();
-            // Validate content quality - must be substantial, not placeholder
-            const isValidContent =
-              contentStr &&
-              contentStr.length > 100 &&
-              contentStr !== "null" &&
-              !contentStr.includes("N/A") &&
-              !contentStr.includes("Not available") &&
-              !contentStr.includes("Not applicable") &&
-              !contentStr.toLowerCase().includes("lorem ipsum");
 
-            if (isValidContent) {
+            if (isValidCustomSectionContent(contentStr)) {
               customSections[sectionName] = contentStr;
               console.log(
-                `[Gemini] Added custom section "${sectionName}": ${contentStr.substring(0, 100)}...`,
+                `[Gemini] ✓ Added custom section "${sectionName}": ${contentStr.substring(0, 100)}...`,
               );
             } else {
               console.warn(
-                `[Gemini] Skipped invalid custom section "${sectionName}": content too short or placeholder`,
+                `[Gemini] ✗ Skipped invalid custom section "${sectionName}": content failed validation (too short, placeholder, or insufficient sentences)`,
               );
             }
           }
