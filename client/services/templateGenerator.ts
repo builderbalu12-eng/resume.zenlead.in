@@ -93,10 +93,7 @@ function addSectionHeader(
 }
 
 // Helper: Add contact information
-function addContactSection(
-  children: Paragraph[],
-  contact: any,
-): void {
+function addContactSection(children: Paragraph[], contact: any): void {
   const contactLines = [
     contact.phone ? `📱 ${contact.phone}` : "",
     contact.website ? `🌐 ${contact.website}` : "",
@@ -164,10 +161,7 @@ function addSkillsSection(children: Paragraph[], skills: string[]): void {
 }
 
 // Helper: Add experience section
-function addExperienceSection(
-  children: Paragraph[],
-  experience: any[],
-): void {
+function addExperienceSection(children: Paragraph[], experience: any[]): void {
   if (experience.length > 0) {
     addSectionHeader(children, "EXPERIENCE");
 
@@ -216,10 +210,7 @@ function addExperienceSection(
 }
 
 // Helper: Add education section
-function addEducationSection(
-  children: Paragraph[],
-  education: any[],
-): void {
+function addEducationSection(children: Paragraph[], education: any[]): void {
   if (education.length > 0) {
     addSectionHeader(children, "EDUCATION");
 
