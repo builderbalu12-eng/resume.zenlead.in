@@ -56,10 +56,18 @@ async function generateEntryLevelModernDocx(
   resume: ResumeData,
   template: ResumeTemplate,
 ): Promise<Blob> {
-  const { contact, skills, experience, education } = resume;
-
-  const overviewSkills = skills.slice(0, 5);
-  const programmingSkills = skills.slice(5);
+  const {
+    contact,
+    summary,
+    skills,
+    experience,
+    education,
+    projects,
+    certifications,
+    achievements,
+    publications,
+    customSections,
+  } = resume;
 
   const children: Paragraph[] = [];
 
@@ -68,9 +76,9 @@ async function generateEntryLevelModernDocx(
     new Paragraph({
       text: contact.name.toUpperCase(),
       bold: true,
-      size: 48,
+      size: 52,
       color: "0395DE",
-      spacing: { after: 50 },
+      spacing: { line: 240, after: 100 },
     }),
   );
 
@@ -79,14 +87,14 @@ async function generateEntryLevelModernDocx(
     children.push(
       new Paragraph({
         text: contact.location,
-        size: 26,
+        size: 24,
         color: "4D4D4D",
-        spacing: { after: 100 },
+        spacing: { after: 150 },
       }),
     );
   }
 
-  // Contact Section
+  // Contact Section - Reduced spacing
   const contactLines = [
     contact.phone ? `📱 ${contact.phone}` : "",
     contact.website ? `🌐 ${contact.website}` : "",
@@ -102,7 +110,7 @@ async function generateEntryLevelModernDocx(
         bold: true,
         size: 22,
         color: "0395DE",
-        spacing: { before: 0, after: 50 },
+        spacing: { before: 0, after: 60, line: 200 },
         border: {
           bottom: {
             color: "0395DE",
@@ -120,7 +128,7 @@ async function generateEntryLevelModernDocx(
           text: line,
           size: 20,
           color: "4D4D4D",
-          spacing: { after: 40 },
+          spacing: { after: 30, line: 200 },
         }),
       );
     });
@@ -128,20 +136,47 @@ async function generateEntryLevelModernDocx(
     children.push(
       new Paragraph({
         text: "",
-        spacing: { after: 100 },
+        spacing: { after: 80 },
       }),
     );
   }
 
-  // Technical Skills
-  if (overviewSkills.length > 0 || programmingSkills.length > 0) {
+  // Professional Summary
+  if (summary && summary.trim()) {
+    children.push(
+      new Paragraph({
+        text: "SUMMARY",
+        bold: true,
+        size: 22,
+        color: "0395DE",
+        spacing: { before: 0, after: 60, line: 200 },
+        border: {
+          bottom: {
+            color: "0395DE",
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 12,
+          },
+        },
+      }),
+      new Paragraph({
+        text: summary,
+        size: 20,
+        spacing: { after: 80, line: 220 },
+        alignment: AlignmentType.JUSTIFIED,
+      }),
+    );
+  }
+
+  // Technical Skills - improved layout
+  if (skills.length > 0) {
     children.push(
       new Paragraph({
         text: "SKILLS",
         bold: true,
-        size: 24,
+        size: 22,
         color: "0395DE",
-        spacing: { before: 0, after: 50 },
+        spacing: { before: 0, after: 60, line: 200 },
         border: {
           bottom: {
             color: "0395DE",
@@ -153,52 +188,33 @@ async function generateEntryLevelModernDocx(
       }),
     );
 
-    if (overviewSkills.length > 0) {
-      children.push(
-        new Paragraph({
-          text: "Overview:",
-          bold: true,
-          size: 22,
-          spacing: { after: 30 },
-        }),
-        new Paragraph({
-          text: overviewSkills.join(", "),
-          size: 20,
-          spacing: { after: 80 },
-        }),
-      );
-    }
-
-    if (programmingSkills.length > 0) {
-      children.push(
-        new Paragraph({
-          text: "Programming:",
-          bold: true,
-          size: 22,
-          spacing: { after: 30 },
-        }),
-        new Paragraph({
-          text: programmingSkills.join(", "),
-          size: 20,
-          spacing: { after: 100 },
-        }),
-      );
-    }
+    // Display all skills in a single line, wrapping if needed
+    children.push(
+      new Paragraph({
+        text: skills.join(" • "),
+        size: 20,
+        spacing: { after: 100, line: 220 },
+      }),
+    );
   }
 
   // Education
   if (education.length > 0) {
     children.push(
       new Paragraph({
-        text: "EDU",
+        text: "EDUCATION",
         bold: true,
-        size: 20,
-        color: "#FFF",
-        shading: {
-          type: "clear",
-          fill: "0395DE",
+        size: 22,
+        color: "0395DE",
+        spacing: { before: 0, after: 60, line: 200 },
+        border: {
+          bottom: {
+            color: "0395DE",
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 12,
+          },
         },
-        spacing: { before: 0, after: 50 },
       }),
     );
 
@@ -208,12 +224,12 @@ async function generateEntryLevelModernDocx(
           text: `${edu.degree} in ${edu.field}`,
           bold: true,
           size: 20,
-          spacing: { after: 30 },
+          spacing: { after: 20, line: 200 },
         }),
         new Paragraph({
-          text: `${edu.institution}`,
+          text: edu.institution,
           size: 20,
-          spacing: { after: 20 },
+          spacing: { after: 10, line: 200 },
           color: "666666",
         }),
       );
@@ -222,8 +238,8 @@ async function generateEntryLevelModernDocx(
         children.push(
           new Paragraph({
             text: `GPA: ${edu.gpa}`,
-            size: 20,
-            spacing: { after: 20 },
+            size: 18,
+            spacing: { after: 10, line: 200 },
             color: "666666",
           }),
         );
@@ -232,8 +248,8 @@ async function generateEntryLevelModernDocx(
       children.push(
         new Paragraph({
           text: edu.graduationDate,
-          size: 20,
-          spacing: { after: 80 },
+          size: 18,
+          spacing: { after: 60, line: 200 },
           color: "666666",
         }),
       );
@@ -241,50 +257,178 @@ async function generateEntryLevelModernDocx(
   }
 
   // Experience Section
-  children.push(
-    new Paragraph({
-      text: "EXP",
-      bold: true,
-      size: 20,
-      color: "#FFF",
-      shading: {
-        type: "clear",
-        fill: "0395DE",
-      },
-      spacing: { before: 0, after: 50 },
-    }),
-  );
-
-  experience.forEach((exp) => {
-    const dateRange =
-      exp.endDate && !exp.isCurrentlyWorking
-        ? `${exp.startDate} - ${exp.endDate}`
-        : `${exp.startDate} - Present`;
-
+  if (experience.length > 0) {
     children.push(
       new Paragraph({
-        text: `${dateRange} | ${exp.title}`,
+        text: "EXPERIENCE",
         bold: true,
         size: 22,
-        color: "4D4D4D",
-        spacing: { after: 30 },
-      }),
-      new Paragraph({
-        text: exp.company,
-        bold: true,
-        size: 22,
-        color: "4D4D4D",
-        spacing: { after: 60 },
+        color: "0395DE",
+        spacing: { before: 0, after: 60, line: 200 },
+        border: {
+          bottom: {
+            color: "0395DE",
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 12,
+          },
+        },
       }),
     );
 
-    exp.description.forEach((desc) => {
+    experience.forEach((exp) => {
+      const dateRange =
+        exp.endDate && !exp.isCurrentlyWorking
+          ? `${exp.startDate} - ${exp.endDate}`
+          : `${exp.startDate} - Present`;
+
       children.push(
         new Paragraph({
-          text: desc,
+          text: exp.title,
+          bold: true,
+          size: 21,
+          color: "4D4D4D",
+          spacing: { after: 15, line: 200 },
+        }),
+        new Paragraph({
+          text: `${exp.company} | ${dateRange}`,
+          italics: true,
+          size: 19,
+          color: "666666",
+          spacing: { after: 40, line: 200 },
+        }),
+      );
+
+      exp.description.forEach((desc) => {
+        children.push(
+          new Paragraph({
+            text: desc,
+            size: 19,
+            spacing: { after: 30, line: 220 },
+            indent: { left: 360 },
+          }),
+        );
+      });
+
+      children.push(
+        new Paragraph({
+          text: "",
+          spacing: { after: 50 },
+        }),
+      );
+    });
+  }
+
+  // Projects Section
+  if (projects && projects.length > 0) {
+    children.push(
+      new Paragraph({
+        text: "PROJECTS",
+        bold: true,
+        size: 22,
+        color: "0395DE",
+        spacing: { before: 0, after: 60, line: 200 },
+        border: {
+          bottom: {
+            color: "0395DE",
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 12,
+          },
+        },
+      }),
+    );
+
+    projects.forEach((proj) => {
+      children.push(
+        new Paragraph({
+          text: proj.title,
+          bold: true,
           size: 20,
-          spacing: { after: 40 },
+          spacing: { after: 15, line: 200 },
+        }),
+      );
+
+      if (proj.technologies && proj.technologies.length > 0) {
+        children.push(
+          new Paragraph({
+            text: `Technologies: ${proj.technologies.join(", ")}`,
+            italics: true,
+            size: 18,
+            color: "666666",
+            spacing: { after: 20, line: 200 },
+          }),
+        );
+      }
+
+      children.push(
+        new Paragraph({
+          text: proj.description,
+          size: 19,
+          spacing: { after: 50, line: 220 },
           indent: { left: 360 },
+        }),
+      );
+    });
+  }
+
+  // Custom Sections
+  if (customSections && Object.keys(customSections).length > 0) {
+    for (const [sectionName, content] of Object.entries(customSections)) {
+      if (content && content.trim()) {
+        children.push(
+          new Paragraph({
+            text: sectionName.toUpperCase(),
+            bold: true,
+            size: 22,
+            color: "0395DE",
+            spacing: { before: 0, after: 60, line: 200 },
+            border: {
+              bottom: {
+                color: "0395DE",
+                space: 1,
+                style: BorderStyle.SINGLE,
+                size: 12,
+              },
+            },
+          }),
+          new Paragraph({
+            text: content,
+            size: 19,
+            spacing: { after: 80, line: 220 },
+            alignment: AlignmentType.JUSTIFIED,
+          }),
+        );
+      }
+    }
+  }
+
+  // Certifications
+  if (certifications && certifications.length > 0) {
+    children.push(
+      new Paragraph({
+        text: "CERTIFICATIONS",
+        bold: true,
+        size: 22,
+        color: "0395DE",
+        spacing: { before: 0, after: 60, line: 200 },
+        border: {
+          bottom: {
+            color: "0395DE",
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 12,
+          },
+        },
+      }),
+    );
+
+    certifications.forEach((cert) => {
+      children.push(
+        new Paragraph({
+          text: `• ${cert}`,
+          size: 19,
+          spacing: { after: 30, line: 200 },
         }),
       );
     });
@@ -292,15 +436,94 @@ async function generateEntryLevelModernDocx(
     children.push(
       new Paragraph({
         text: "",
-        spacing: { after: 80 },
+        spacing: { after: 50 },
       }),
     );
-  });
+  }
+
+  // Achievements
+  if (achievements && achievements.length > 0) {
+    children.push(
+      new Paragraph({
+        text: "ACHIEVEMENTS",
+        bold: true,
+        size: 22,
+        color: "0395DE",
+        spacing: { before: 0, after: 60, line: 200 },
+        border: {
+          bottom: {
+            color: "0395DE",
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 12,
+          },
+        },
+      }),
+    );
+
+    achievements.forEach((achievement) => {
+      children.push(
+        new Paragraph({
+          text: `• ${achievement}`,
+          size: 19,
+          spacing: { after: 30, line: 200 },
+        }),
+      );
+    });
+
+    children.push(
+      new Paragraph({
+        text: "",
+        spacing: { after: 50 },
+      }),
+    );
+  }
+
+  // Publications
+  if (publications && publications.length > 0) {
+    children.push(
+      new Paragraph({
+        text: "PUBLICATIONS",
+        bold: true,
+        size: 22,
+        color: "0395DE",
+        spacing: { before: 0, after: 60, line: 200 },
+        border: {
+          bottom: {
+            color: "0395DE",
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 12,
+          },
+        },
+      }),
+    );
+
+    publications.forEach((pub) => {
+      const pubText = typeof pub === "string" ? pub : JSON.stringify(pub);
+      children.push(
+        new Paragraph({
+          text: `• ${pubText}`,
+          size: 19,
+          spacing: { after: 30, line: 200 },
+        }),
+      );
+    });
+  }
 
   const doc = new Document({
     sections: [
       {
-        properties: {},
+        properties: {
+          page: {
+            margins: {
+              top: 720,
+              right: 720,
+              bottom: 720,
+              left: 720,
+            },
+          },
+        },
         children: children,
       },
     ],
