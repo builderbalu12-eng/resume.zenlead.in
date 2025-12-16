@@ -872,32 +872,43 @@ TAILORING REQUIREMENTS:
       const sectionsTemplate = configuredSections
         .map(
           (section) =>
-            `"${section}": "3-4 sentences relevant to ${jobDescription.title}"`,
+            `"${section}": "3-4 substantial sentences demonstrating relevant expertise for ${jobDescription.title} role"`,
         )
         .join(", ");
 
-      const customSectionsPrompt = `Generate compelling custom resume sections tailored to this job opportunity.
+      const customSectionsPrompt = `You are an expert resume writer specializing in ATS-optimized resumes.
 
-Job: ${jobDescription.title} at ${jobDescription.company}
+Create compelling, tailored custom resume sections that will make this candidate stand out for a specific job opportunity.
+
+**CANDIDATE PROFILE:**
+Name: ${masterResume.contact.name}
+Target Role: ${jobDescription.title}
+Company: ${jobDescription.company}
+Experience: ${masterResume.experience.map((e) => `${e.title} at ${e.company} (${e.startDate}-${e.endDate || "Present"})`).join(" • ")}
+Education: ${masterResume.education.map((e) => `${e.degree} in ${e.field} from ${e.institution}`).join(" • ")}
+Key Skills: ${masterResume.skills.slice(0, 10).join(", ")}
+
+**JOB REQUIREMENTS:**
+Title: ${jobDescription.title}
+Company: ${jobDescription.company}
 Required Skills: ${jobSkills}
-Candidate: ${masterResume.contact.name}
-Experience: ${masterResume.experience.map((e) => `${e.title} at ${e.company}`).join(" | ")}
-Education: ${masterResume.education.map((e) => `${e.degree} in ${e.field}`).join(" | ")}
+Key Requirements: ${Array.isArray(jobDescription.requirements) ? jobDescription.requirements.join(", ") : ""}
 
-Generate 3-4 sentence content for each section that directly relates to the job requirements and showcases the candidate's relevant strengths:
+**YOUR TASK:**
+Generate professional, impactful content for these custom sections. Each section should:
+1. Be 3-4 sentences of substantial, meaningful content (not generic filler)
+2. Directly address job requirements and demonstrate relevant expertise
+3. Use active, modern business language with strong action verbs
+4. Incorporate specific skills/technologies from the job posting
+5. Reference concrete achievements or experiences from the candidate's background
+6. Be ATS-friendly while remaining compelling
 
-Return ONLY valid JSON:
+Return ONLY valid JSON with NO additional text:
 {
   "sections": {
     ${sectionsTemplate}
   }
-}
-
-Requirements:
-- Each section should contain 3-4 substantial sentences (not generic text)
-- Content must be specific to the candidate's background and the job requirements
-- Use concrete examples from their experience where applicable
-- Avoid placeholder text or generic resume language`;
+}`;
 
       try {
         const customResult = await retryWithBackoff(async () => {
@@ -921,7 +932,15 @@ Requirements:
             customParsed.sections,
           )) {
             const contentStr = String(content).trim();
-            if (contentStr && contentStr.length > 0 && contentStr !== "null") {
+            // Validate content quality - must be at least 100 characters and not placeholder text
+            const isValidContent =
+              contentStr &&
+              contentStr.length > 100 &&
+              contentStr !== "null" &&
+              !contentStr.includes("N/A") &&
+              !contentStr.includes("Not available");
+
+            if (isValidContent) {
               customSections[sectionName] = contentStr;
             }
           }
