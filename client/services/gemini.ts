@@ -136,7 +136,11 @@ export function calculateATSScore(
   resume: ResumeData,
   jobDescription: JobDescription,
 ): ATSScore {
-  // Build complete resume text
+  // Build complete resume text including custom sections
+  const customSectionsText = Object.values(resume.customSections || {}).join(
+    " ",
+  );
+
   const resumeText = `${resume.summary || ""} ${resume.skills.join(" ")} ${
     resume.experience
       .map((e) => `${e.title} ${e.company} ${e.description.join(" ")}`)
@@ -145,7 +149,7 @@ export function calculateATSScore(
     resume.projects
       ?.map((p) => `${p.title} ${p.description} ${p.technologies.join(" ")}`)
       .join(" ") || ""
-  } ${Object.values(resume.customSections || {}).join(" ")}`.toLowerCase();
+  } ${customSectionsText}`.toLowerCase();
 
   // Get all keywords from job description
   const jobKeywords = [
@@ -224,6 +228,15 @@ export function calculateATSScore(
     projectsScore = Math.min(5, resume.projects.length * 2);
   }
 
+  // Custom sections score (5% of total) - bonus for tailored resumes
+  let customSectionsScore = 0;
+  if (resume.customSections && Object.keys(resume.customSections).length > 0) {
+    const nonEmptySections = Object.values(resume.customSections).filter(
+      (content) => content && content.trim().length > 0,
+    ).length;
+    customSectionsScore = Math.min(5, nonEmptySections * 1.5);
+  }
+
   // Calculate total score
   const totalScore = Math.min(
     100,
@@ -233,7 +246,8 @@ export function calculateATSScore(
         experienceScore +
         educationScore +
         summaryScore +
-        projectsScore,
+        projectsScore +
+        customSectionsScore,
     ),
   );
 
@@ -756,6 +770,43 @@ Return ONLY valid JSON:
   };
 }
 
+// Helper function to validate custom section content quality
+function isValidCustomSectionContent(content: string): boolean {
+  if (!content || typeof content !== "string") return false;
+
+  const trimmed = content.trim();
+
+  // Must be substantial (minimum 100 characters)
+  if (trimmed.length < 100) return false;
+
+  // Must not be placeholder text or generic content
+  const placeholders = [
+    "N/A",
+    "Not available",
+    "Not applicable",
+    "lorem ipsum",
+    "placeholder",
+    "TBD",
+    "To be determined",
+    "pending",
+    "unavailable",
+  ];
+
+  const lowerContent = trimmed.toLowerCase();
+  if (placeholders.some((p) => lowerContent.includes(p.toLowerCase()))) {
+    return false;
+  }
+
+  // Must have at least 2 sentences (periods, question marks, or exclamation marks)
+  const sentenceCount =
+    (trimmed.match(/[.!?]+/g) || []).length +
+    (trimmed.split(" ").length > 30 ? 1 : 0); // Assume long single paragraph is at least 1 sentence
+
+  if (sentenceCount < 2) return false;
+
+  return true;
+}
+
 export async function tailorResumeForJob(
   masterResume: ResumeData,
   jobDescription: JobDescription,
@@ -779,36 +830,40 @@ export async function tailorResumeForJob(
       ? jobDescription.description.substring(0, 300)
       : "");
 
-  const prompt = `Tailor this resume for MAXIMUM ATS compatibility and impact for: ${jobDescription.title} at ${jobDescription.company}
+  const prompt = `You are an expert resume writer specializing in ATS-optimized resumes for top-tier positions.
 
-CRITICAL JOB REQUIREMENTS:
+Tailor this resume for MAXIMUM impact and ATS compatibility for a specific job opportunity.
+
+**TARGET POSITION:**
 - Title: ${jobDescription.title}
 - Company: ${jobDescription.company}
 - Required Skills: ${jobSkills}
 - Key Requirements: ${jobRequirements}
 
-CANDIDATE RESUME:
+**CANDIDATE PROFILE:**
 - Name: ${masterResume.contact.name}
-- Skills: ${masterResume.skills.join(", ")}
+- Current Skills: ${masterResume.skills.join(", ")}
 - Experience: ${masterResume.experience.map((e) => `${e.title} at ${e.company}`).join(" | ")}
 ${masterResume.projects && masterResume.projects.length > 0 ? `- Projects: ${masterResume.projects.map((p) => `${p.title} (${p.technologies?.join(", ")})`).join(" | ")}` : ""}
 
-RETURN ONLY VALID JSON:
+**RETURN ONLY VALID JSON (NO MARKDOWN, NO CODE BLOCKS):**
 {
-  "tailoredSummary": "2-3 sentence summary highlighting the candidate's most relevant and directly applicable experience for this specific role. Must mention key skills from job posting.",
-  "tailoredExperience": [{"jobTitle": "original job title", "newBullets": ["highly specific, impact-driven bullet with quantifiable metrics (numbers, %, improved, achieved, etc.)", "second bullet incorporating specific job keywords and demonstrating relevant skill application", "third bullet showing direct alignment with job requirements"]}],
-  "tailoredProjects": [{"title": "project title", "newDescription": "3-4 detailed sentences describing: (1) what problem the project solved, (2) the technologies used especially those matching job requirements, (3) measurable impact/results with specific metrics"}],
-  "recommendedSkillsOrder": ["most relevant skill to job posting", "second most relevant skill", "third most relevant skill"]
+  "tailoredSummary": "2-3 sentence professional summary that immediately connects the candidate's strongest qualifications to this specific role. Mention 2-3 key skills from the job posting. Use powerful, results-oriented language.",
+  "tailoredExperience": [{"jobTitle": "original job title", "newBullets": ["impact-driven achievement with specific metrics (%, numbers, increased, achieved, scaled, improved by X%)", "accomplishment directly leveraging skills needed for this role with evidence of success", "demonstrable contribution showcasing problem-solving in areas relevant to job requirements"]}],
+  "tailoredProjects": [{"title": "project title", "newDescription": "3-4 powerful sentences describing: (1) the specific business problem solved, (2) technologies used (especially those in job posting), (3) your specific role and contribution, (4) measurable outcomes and impact with quantifiable results"}],
+  "recommendedSkillsOrder": ["skill most directly required by job posting", "second most critical skill", "third most important skill"]
 }
 
-TAILORING REQUIREMENTS:
-- Each experience bullet must include quantifiable metrics (%, numbers, improved, achieved, scaled, etc.)
-- Incorporate job keywords naturally into experience descriptions
-- Projects must have 3-4 substantial sentences with specific technologies mentioned in job posting
-- Skills must be ordered by relevance to the job, with most relevant first
-- Summary must clearly connect candidate's experience to job requirements
-- Focus on specific achievements and results, not generic responsibilities
-- Every element should demonstrate direct fit for this specific role`;
+**TAILORING EXCELLENCE STANDARDS:**
+- Every experience bullet MUST include quantifiable impact (%, numbers, improved, achieved, scaled, reduced, optimized, etc.)
+- Reorder skills by job posting relevance - put most critical skills first
+- Incorporate 3-5 important keywords from job posting naturally into experience descriptions
+- Projects: provide 3-4 detailed, powerful sentences with specific technologies from job posting and measurable results
+- Summary: create immediate connection between candidate's background and job requirements
+- Professional tone with action verbs: "architected", "orchestrated", "engineered", "optimized", "spearheaded", "transformed"
+- Focus entirely on relevant achievements - remove generic responsibilities
+- Every phrase should demonstrate direct, specific fit for this role
+- Ensure ATS compatibility while maintaining compelling, modern language`;
 
   try {
     // Main tailor prompt with retry logic
@@ -872,32 +927,43 @@ TAILORING REQUIREMENTS:
       const sectionsTemplate = configuredSections
         .map(
           (section) =>
-            `"${section}": "3-4 sentences relevant to ${jobDescription.title}"`,
+            `"${section}": "3-4 substantial sentences demonstrating relevant expertise for ${jobDescription.title} role"`,
         )
         .join(", ");
 
-      const customSectionsPrompt = `Generate compelling custom resume sections tailored to this job opportunity.
+      const customSectionsPrompt = `You are an expert resume writer specializing in ATS-optimized resumes.
 
-Job: ${jobDescription.title} at ${jobDescription.company}
+Create compelling, tailored custom resume sections that will make this candidate stand out for a specific job opportunity.
+
+**CANDIDATE PROFILE:**
+Name: ${masterResume.contact.name}
+Target Role: ${jobDescription.title}
+Company: ${jobDescription.company}
+Experience: ${masterResume.experience.map((e) => `${e.title} at ${e.company} (${e.startDate}-${e.endDate || "Present"})`).join(" • ")}
+Education: ${masterResume.education.map((e) => `${e.degree} in ${e.field} from ${e.institution}`).join(" • ")}
+Key Skills: ${masterResume.skills.slice(0, 10).join(", ")}
+
+**JOB REQUIREMENTS:**
+Title: ${jobDescription.title}
+Company: ${jobDescription.company}
 Required Skills: ${jobSkills}
-Candidate: ${masterResume.contact.name}
-Experience: ${masterResume.experience.map((e) => `${e.title} at ${e.company}`).join(" | ")}
-Education: ${masterResume.education.map((e) => `${e.degree} in ${e.field}`).join(" | ")}
+Key Requirements: ${Array.isArray(jobDescription.requirements) ? jobDescription.requirements.join(", ") : ""}
 
-Generate 3-4 sentence content for each section that directly relates to the job requirements and showcases the candidate's relevant strengths:
+**YOUR TASK:**
+Generate professional, impactful content for these custom sections. Each section should:
+1. Be 3-4 sentences of substantial, meaningful content (not generic filler)
+2. Directly address job requirements and demonstrate relevant expertise
+3. Use active, modern business language with strong action verbs
+4. Incorporate specific skills/technologies from the job posting
+5. Reference concrete achievements or experiences from the candidate's background
+6. Be ATS-friendly while remaining compelling
 
-Return ONLY valid JSON:
+Return ONLY valid JSON with NO additional text:
 {
   "sections": {
     ${sectionsTemplate}
   }
-}
-
-Requirements:
-- Each section should contain 3-4 substantial sentences (not generic text)
-- Content must be specific to the candidate's background and the job requirements
-- Use concrete examples from their experience where applicable
-- Avoid placeholder text or generic resume language`;
+}`;
 
       try {
         const customResult = await retryWithBackoff(async () => {
@@ -921,8 +987,12 @@ Requirements:
             customParsed.sections,
           )) {
             const contentStr = String(content).trim();
-            if (contentStr && contentStr.length > 0 && contentStr !== "null") {
+            if (isValidCustomSectionContent(contentStr)) {
               customSections[sectionName] = contentStr;
+            } else {
+              console.warn(
+                `[Gemini] Custom section "${sectionName}" failed validation (too short or placeholder)`,
+              );
             }
           }
           if (Object.keys(customSections).length > 0) {
@@ -986,39 +1056,47 @@ export async function analyzeJobAndTailorResume(
     2,
   );
 
-  const prompt = `Extract job details and tailor resume for maximum ATS matching. Return valid JSON:
+  const prompt = `You are an expert resume writer and ATS specialist. Extract job details and tailor resume for maximum impact and ATS compatibility.
+
+Extract job details from the posting and transform the resume to be perfectly tailored for this opportunity.
+
+Return ONLY valid JSON (NO MARKDOWN, NO CODE BLOCKS):
 {
-  "jobTitle": "title",
-  "company": "company",
-  "location": "location or 'Not specified'",
-  "jobDescription": "full job description from page",
-  "requirements": ["requirement1", "requirement2"],
-  "skills": ["skill1", "skill2"],
-  "tailoredSummary": "2-3 sentence summary emphasizing relevant experience for this specific job",
-  "tailoredExperience": [{"position": "original job title", "newBullets": ["bullet1 with metrics", "bullet2 with keywords"]}],
-  "tailoredProjects": [{"title": "project title", "newDescription": "3-4 sentences describing project impact, technologies used relevant to job, and measurable results"}],
-  "tailoredSkillsOrder": ["most relevant skill", "second most relevant"],
-  "atsScore": 0-100,
-  "atsMatchPercentage": 0-100,
-  "matchedKeywords": ["keyword1", "keyword2"],
+  "jobTitle": "official job title from posting",
+  "company": "company name",
+  "location": "location if specified, otherwise 'Not specified'",
+  "jobDescription": "comprehensive job description and responsibilities from the posting",
+  "requirements": ["critical requirement 1", "critical requirement 2", "key requirement 3"],
+  "skills": ["most important skill 1", "key skill 2", "required skill 3"],
+  "tailoredSummary": "2-3 sentence summary that powerfully connects candidate's background to this specific role. Reference 2-3 key required skills. Use results-oriented language.",
+  "tailoredExperience": [{"position": "original job title", "newBullets": ["achievement with specific metrics (%, numbers, improved X by Y)", "accomplishment demonstrating required skills with evidence", "contribution directly relevant to job posting requirements with measurable impact"]}],
+  "tailoredProjects": [{"title": "project title", "newDescription": "3-4 powerful sentences: (1) business problem solved, (2) technologies used from job posting, (3) your specific contribution, (4) measurable outcomes with metrics"}],
+  "tailoredSkillsOrder": ["skill most critical to job posting", "second most important skill", "third most relevant skill"],
+  "atsScore": 75-95,
+  "atsMatchPercentage": 75-95,
+  "matchedKeywords": ["keyword1", "keyword2", "keyword3"],
   "missingKeywords": ["keyword1"],
-  "improvements": ["improvement1"],
-  "jobSummary": "summary with match percentage"
+  "improvements": ["improvement suggestion 1"],
+  "jobSummary": "brief summary with percentage match"
 }
 
-Instructions for ATS Scoring:
-- Extract ALL job skills and requirements from the posting (be thorough, aim for 15+ keywords)
-- Calculate ATS score CAREFULLY:
-  * Base score on skill match percentage (primary factor)
-  * Add bonus points if experience has metrics/numbers (improved, increased, %, $)
-  * Add bonus points for job title relevance in experience
-  * Ensure minimum score of 20 (every tailored resume is better than untailored)
-  * For well-tailored resumes (4+ relevant experience bullets, 2+ custom sections, clear skill alignment): score should be 75-85+
-  * For excellent tailored resumes (5+ experience bullets with metrics, multiple projects, strong summary): score should be 80-90+
-- For tailoredProjects: provide 3-4 detailed sentences describing project impact, relevant technologies, and quantified results
-- For tailoredExperience: write impact-driven bullets with metrics where possible, incorporate job keywords naturally
-- Order skills by relevance to job posting
-- atsMatchPercentage should reflect percentage of job keywords found in tailored resume
+**CRITICAL REQUIREMENTS:**
+1. Extract ALL job skills and requirements from posting (comprehensive extraction - 15+ keywords minimum)
+2. Experience bullets: each MUST include quantifiable impact (%, numbers, improved, achieved, scaled, etc.)
+3. Reorder skills by job posting relevance - most critical first
+4. Incorporate 4-5 important job keywords naturally into experience descriptions
+5. Projects: 3-4 substantive sentences with specific technologies and measurable results
+6. Summary: immediate connection between candidate and job requirements using modern, powerful language
+7. Professional vocabulary: "architected", "engineered", "optimized", "spearheaded", "transformed", "accelerated"
+
+**ATS SCORING GUIDELINES:**
+- Base score primarily on keyword match percentage from comprehensive job analysis
+- Bonus points for metrics/quantifiable results in experience
+- Bonus points for job title relevance
+- Well-tailored resume (strong keyword match + metrics): 75-85%
+- Excellent tailored resume (comprehensive keywords + multiple strong bullets + metrics): 80-95%
+- Minimum score: 20 (every tailored resume improves over untailored)
+- atsMatchPercentage = percentage of job keywords found in tailored resume
 
 Job posting:
 ${cleanHTML}
@@ -1173,29 +1251,43 @@ ${resumeText}`;
       const sectionsTemplate = sectionsToGenerate
         .map(
           (section) =>
-            `"${section}": "3-4 sentences relevant to ${jobData.title}"`,
+            `"${section}": "3-4 substantial sentences demonstrating relevant expertise and achievements for the ${jobData.title} role"`,
         )
         .join(", ");
 
-      const customSectionsPrompt = `Generate compelling resume content for custom sections tailored to this job opportunity.
+      const customSectionsPrompt = `You are an expert resume writer specializing in ATS-optimized, modern professional resumes.
 
-Job: ${jobData.title} at ${jobData.company}
-Skills needed: ${jobSkills}
-Job requirements: ${Array.isArray(jobData.requirements) ? jobData.requirements.join(", ") : ""}
-Candidate: ${masterResume.contact.name}
-Experience: ${masterResume.experience.map((e) => `${e.title} at ${e.company}`).join(" | ")}
-Education: ${masterResume.education.map((e) => `${e.degree} in ${e.field}`).join(" | ")}
+Create compelling, highly targeted custom resume sections that will make this candidate stand out for a specific job opportunity.
 
-Generate 3-4 sentence content for each section that aligns with the job requirements and showcases relevant experience:
+**CANDIDATE PROFILE:**
+Name: ${masterResume.contact.name}
+Target Role: ${jobData.title}
+Company: ${jobData.company}
+Experience: ${masterResume.experience.map((e) => `${e.title} at ${e.company} (${e.startDate}-${e.endDate || "Present"})`).join(" • ")}
+Education: ${masterResume.education.map((e) => `${e.degree} in ${e.field} from ${e.institution}`).join(" • ")}
+Key Skills: ${masterResume.skills.slice(0, 10).join(", ")}
 
-Return ONLY valid JSON:
+**JOB REQUIREMENTS:**
+Role: ${jobData.title}
+Company: ${jobData.company}
+Required Skills: ${jobSkills}
+Key Requirements: ${Array.isArray(jobData.requirements) ? jobData.requirements.join(", ") : ""}
+
+**CRITICAL REQUIREMENTS FOR GENERATED CONTENT:**
+1. Each section must contain 3-4 sentences of substantial, meaningful content (never generic or placeholder text)
+2. Use active, modern business language with strong action verbs
+3. Incorporate 2-3 specific skills/technologies from the job posting naturally
+4. Reference concrete achievements, metrics, or examples from the candidate's background
+5. Directly address job requirements and demonstrate relevant expertise
+6. Be professional yet engaging - show personality while maintaining ATS compatibility
+7. NO generic phrases like "N/A", "Not available", or lorem ipsum text
+
+Return ONLY valid JSON with NO additional text, markdown, or code blocks:
 {
   "sections": {
     ${sectionsTemplate}
   }
-}
-
-Important: Each section content should be specific, substantial (3-4 sentences), and demonstrate how the candidate's background aligns with the job requirements.`;
+}`;
 
       try {
         const customResult = await retryWithBackoff(async () => {
@@ -1223,10 +1315,15 @@ Important: Each section content should be specific, substantial (3-4 sentences),
             customParsed.sections,
           )) {
             const contentStr = String(content).trim();
-            if (contentStr && contentStr.length > 0 && contentStr !== "null") {
+
+            if (isValidCustomSectionContent(contentStr)) {
               customSections[sectionName] = contentStr;
               console.log(
-                `[Gemini] Added custom section "${sectionName}": ${contentStr.substring(0, 100)}...`,
+                `[Gemini] ✓ Added custom section "${sectionName}": ${contentStr.substring(0, 100)}...`,
+              );
+            } else {
+              console.warn(
+                `[Gemini] ✗ Skipped invalid custom section "${sectionName}": content failed validation (too short, placeholder, or insufficient sentences)`,
               );
             }
           }
