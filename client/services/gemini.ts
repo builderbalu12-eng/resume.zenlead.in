@@ -973,16 +973,12 @@ Return ONLY valid JSON with NO additional text:
             customParsed.sections,
           )) {
             const contentStr = String(content).trim();
-            // Validate content quality - must be at least 100 characters and not placeholder text
-            const isValidContent =
-              contentStr &&
-              contentStr.length > 100 &&
-              contentStr !== "null" &&
-              !contentStr.includes("N/A") &&
-              !contentStr.includes("Not available");
-
-            if (isValidContent) {
+            if (isValidCustomSectionContent(contentStr)) {
               customSections[sectionName] = contentStr;
+            } else {
+              console.warn(
+                `[Gemini] Custom section "${sectionName}" failed validation (too short or placeholder)`,
+              );
             }
           }
           if (Object.keys(customSections).length > 0) {
