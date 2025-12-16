@@ -756,6 +756,43 @@ Return ONLY valid JSON:
   };
 }
 
+// Helper function to validate custom section content quality
+function isValidCustomSectionContent(content: string): boolean {
+  if (!content || typeof content !== "string") return false;
+
+  const trimmed = content.trim();
+
+  // Must be substantial (minimum 100 characters)
+  if (trimmed.length < 100) return false;
+
+  // Must not be placeholder text or generic content
+  const placeholders = [
+    "N/A",
+    "Not available",
+    "Not applicable",
+    "lorem ipsum",
+    "placeholder",
+    "TBD",
+    "To be determined",
+    "pending",
+    "unavailable",
+  ];
+
+  const lowerContent = trimmed.toLowerCase();
+  if (placeholders.some((p) => lowerContent.includes(p.toLowerCase()))) {
+    return false;
+  }
+
+  // Must have at least 2 sentences (periods, question marks, or exclamation marks)
+  const sentenceCount =
+    (trimmed.match(/[.!?]+/g) || []).length +
+    (trimmed.split(" ").length > 30 ? 1 : 0); // Assume long single paragraph is at least 1 sentence
+
+  if (sentenceCount < 2) return false;
+
+  return true;
+}
+
 export async function tailorResumeForJob(
   masterResume: ResumeData,
   jobDescription: JobDescription,
