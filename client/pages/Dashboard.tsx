@@ -12,7 +12,6 @@ import { ResumeData, ApplicationRecord } from "@/types";
 import { getApplicationHistory } from "@/services/mongodb";
 import { getMasterResume } from "@/utils/storage";
 import { TemplatesShowcase } from "@/components/TemplatesShowcase";
-import { Header } from "@/components/Header";
 
 export const Dashboard: React.FC = () => {
   const [masterResume, setMasterResume] = useState<ResumeData | null>(null);
@@ -97,9 +96,7 @@ export const Dashboard: React.FC = () => {
   }, []);
 
   return (
-    <>
-      <Header />
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-blue-950 dark:to-purple-950">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-blue-950 dark:to-purple-950">
       {/* Hero Section - Modern Design */}
       <div className="relative overflow-hidden">
         {/* Animated Background Elements */}
@@ -492,6 +489,5 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
     </div>
-    </>
   );
 };

@@ -17,12 +17,14 @@ function AppContent() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <Header />
+
       {/* Settings Button - only show when authenticated */}
       {isAuthenticated && (
         <button
           onClick={() => setSettingsOpen(true)}
-          className="fixed top-4 right-4 z-40 p-2 rounded-lg bg-muted hover:bg-muted/80 border border-border transition-colors"
+          className="fixed top-16 right-4 z-40 p-2 rounded-lg bg-muted hover:bg-muted/80 border border-border transition-colors"
           title="Settings"
         >
           <SettingsIcon className="h-5 w-5" />
@@ -40,15 +42,10 @@ function AppContent() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Protected App Routes */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
+        {/* Public Landing Page - No Auth Required */}
+        <Route path="/" element={<Dashboard />} />
+
+        {/* Protected Feature Routes */}
         <Route
           path="/upload"
           element={

@@ -53,7 +53,8 @@ export const Header: React.FC = () => {
 
           {/* User Info and Logout */}
           <div className="flex items-center space-x-4">
-            {user && (
+            {user ? (
+            <>
               <div className="hidden sm:flex items-center space-x-3">
                 <div className="text-right">
                   <p className="text-sm font-medium text-foreground">
@@ -67,17 +68,35 @@ export const Header: React.FC = () => {
                   {user.firstName.charAt(0)}{user.lastName.charAt(0)}
                 </div>
               </div>
-            )}
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Logout</span>
-            </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Logout</span>
+              </Button>
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/login')}
+              >
+                Sign In
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => navigate('/register')}
+                className="hidden sm:inline-flex"
+              >
+                Sign Up
+              </Button>
+            </div>
+          )}
 
             {/* Mobile Menu Toggle */}
             <button

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/Header";
 import { ApplicationList } from "@/components/ApplicationList";
 import { ApplicationRecord } from "@/types";
 import {
@@ -101,9 +100,7 @@ export const History: React.FC = () => {
   };
 
   return (
-    <>
-      <Header />
-      <div className="min-h-screen bg-background py-12">
+    <div className="min-h-screen bg-background py-12">
       <div className="max-w-5xl mx-auto px-4">
         <button
           onClick={() => navigate("/")}
@@ -183,6 +180,5 @@ export const History: React.FC = () => {
         )}
       </div>
     </div>
-    </>
   );
 };
