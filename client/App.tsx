@@ -8,6 +8,7 @@ import { History } from "./pages/History";
 import { NotFound } from "./pages/NotFound";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
+import { AuthCallback } from "./pages/AuthCallback";
 import { Header } from "./components/Header";
 import { Settings } from "./components/Settings";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -42,6 +43,7 @@ function AppContent() {
         {/* Public Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
 
         {/* Public Landing Page - No Auth Required */}
         <Route path="/" element={<Dashboard />} />

@@ -10,6 +10,8 @@ interface AuthContextType {
   logout: () => void;
   error: string | null;
   clearError: () => void;
+  getGoogleAuthUrl: () => Promise<string>;
+  setAuthData: (user: User, token: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -95,6 +97,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
   };
 
+  const getGoogleAuthUrl = async (): Promise<string> => {
+    try {
+      const response = await apiClient.getGoogleAuthUrl();
+      return response.auth_url;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to get Google auth URL';
+      setError(message);
+      throw err;
+    }
+  };
+
+  const setAuthData = (userData: User, token: string) => {
+    localStorage.setItem('auth_token', token);
+    setUser(userData);
+    setError(null);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -106,6 +125,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         error,
         clearError,
+        getGoogleAuthUrl,
+        setAuthData,
       }}
     >
       {children}
