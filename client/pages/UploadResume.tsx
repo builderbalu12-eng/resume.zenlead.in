@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle } from "lucide-react";
 import { ResumeUpload } from "@/components/ResumeUpload";
 import { Settings } from "@/components/Settings";
+import { Header } from "@/components/Header";
 import { ResumeData } from "@/types";
 import {
   setMasterResume,
@@ -343,7 +344,9 @@ export const UploadResume: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background py-12">
+    <>
+      <Header />
+      <div className="min-h-screen bg-background py-12">
       <div className="max-w-2xl mx-auto px-4">
         <button
           onClick={() => navigate("/")}
@@ -410,5 +413,6 @@ export const UploadResume: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };

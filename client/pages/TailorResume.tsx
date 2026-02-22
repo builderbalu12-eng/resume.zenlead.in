@@ -8,6 +8,7 @@ import {
   getSettings,
 } from "@/utils/storage";
 import { Settings } from "@/components/Settings";
+import { Header } from "@/components/Header";
 import { TemplateSelector } from "@/components/TemplateSelector";
 import {
   tailorResumeForJob,
@@ -337,7 +338,9 @@ export const TailorResume: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background py-12">
+    <>
+      <Header />
+      <div className="min-h-screen bg-background py-12">
       {/* Settings Modal */}
       <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
@@ -783,5 +786,6 @@ export const TailorResume: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
