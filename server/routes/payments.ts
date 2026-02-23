@@ -63,10 +63,12 @@ export const listPlans: RequestHandler = async (req, res) => {
     const total = await SubscriptionPlan.countDocuments(query);
 
     res.json({
-      plans,
-      total,
-      skip,
-      limit,
+      data: {
+        items: plans,
+        total,
+        skip,
+        limit,
+      },
     });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -199,11 +201,30 @@ export const listSubscriptions: RequestHandler = async (req, res) => {
 
     const total = await Subscription.countDocuments(query);
 
+    // Format response with populated data
+    const formattedSubscriptions = subscriptions.map(sub => ({
+      _id: sub._id,
+      user_id: sub.user_id,
+      plan: sub.plan_id, // Include full plan object
+      plan_id: sub.plan_id?._id, // Also include plan_id for compatibility
+      razorpay_subscription_id: sub.razorpay_subscription_id,
+      status: sub.status,
+      current_period_start: sub.current_period_start,
+      current_period_end: sub.current_period_end,
+      pause_until: sub.pause_until,
+      cancelled_at: sub.cancelled_at,
+      next_billing_date: sub.next_billing_date,
+      createdAt: sub.createdAt,
+      updatedAt: sub.updatedAt,
+    }));
+
     res.json({
-      subscriptions,
-      total,
-      skip,
-      limit,
+      data: {
+        items: formattedSubscriptions,
+        total,
+        skip,
+        limit,
+      },
     });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -221,7 +242,24 @@ export const getSubscription: RequestHandler = async (req, res) => {
       return;
     }
 
-    res.json(subscription);
+    // Format response with populated data
+    const formatted = {
+      _id: subscription._id,
+      user_id: subscription.user_id,
+      plan: subscription.plan_id, // Include full plan object
+      plan_id: subscription.plan_id?._id, // Also include plan_id for compatibility
+      razorpay_subscription_id: subscription.razorpay_subscription_id,
+      status: subscription.status,
+      current_period_start: subscription.current_period_start,
+      current_period_end: subscription.current_period_end,
+      pause_until: subscription.pause_until,
+      cancelled_at: subscription.cancelled_at,
+      next_billing_date: subscription.next_billing_date,
+      createdAt: subscription.createdAt,
+      updatedAt: subscription.updatedAt,
+    };
+
+    res.json(formatted);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
@@ -430,10 +468,12 @@ export const listCoupons: RequestHandler = async (req, res) => {
     const total = await Coupon.countDocuments(query);
 
     res.json({
-      coupons,
-      total,
-      skip,
-      limit,
+      data: {
+        items: coupons,
+        total,
+        skip,
+        limit,
+      },
     });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -506,10 +546,12 @@ export const listPaymentLogs: RequestHandler = async (req, res) => {
     const total = await PaymentLog.countDocuments(query);
 
     res.json({
-      logs,
-      total,
-      skip,
-      limit,
+      data: {
+        items: logs,
+        total,
+        skip,
+        limit,
+      },
     });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
