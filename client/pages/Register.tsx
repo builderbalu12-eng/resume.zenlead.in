@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Loader } from 'lucide-react';
+import { Loader, User, Mail, Lock, ArrowRight, ShieldCheck, Sparkles, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,11 +18,13 @@ export const GoogleSignUpButton = ({ onClick, isLoading }: { onClick: () => void
   <button
     onClick={onClick}
     disabled={isLoading}
-    className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+    className="w-full flex items-center justify-center gap-3 px-4 py-3.5 rounded-xl border-2 border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group shadow-sm"
   >
-    <GoogleIcon />
-    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-      {isLoading ? 'Redirecting...' : 'Sign up with Google'}
+    <div className="group-hover:scale-110 transition-transform duration-300">
+      <GoogleIcon />
+    </div>
+    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+      {isLoading ? 'Connecting...' : 'Sign up with Google'}
     </span>
   </button>
 );
@@ -95,158 +97,214 @@ export const Register: React.FC = () => {
   const displayError = localError || error;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Card */}
-        <div className="bg-card border border-border rounded-lg shadow-lg p-8">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Create Account
+    <div className="min-h-screen grid lg:grid-cols-2">
+      {/* Left Side - Visual/Branding (Hidden on mobile) */}
+      <div className="hidden lg:flex relative bg-slate-950 items-center justify-center p-12 overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-500/10 blur-[120px] rounded-full animate-pulse" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/10 blur-[120px] rounded-full animate-pulse delay-700" />
+        </div>
+
+        <div className="relative z-10 max-w-lg">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-bold mb-8">
+            <Zap className="h-4 w-4" />
+            Fast-Track Your Application
+          </div>
+          
+          <h2 className="text-5xl font-black text-white leading-tight mb-6">
+            Build a <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-500">winning resume</span> in minutes.
+          </h2>
+          
+          <p className="text-xl text-slate-400 leading-relaxed mb-12">
+            Get instant AI suggestions, keyword optimization, and professional templates that get you noticed.
+          </p>
+
+          <div className="grid grid-cols-2 gap-6">
+            {[
+              { icon: ShieldCheck, title: "Secure Data", desc: "Your info is safe" },
+              { icon: Sparkles, title: "Smart Matching", desc: "AI-driven insights" }
+            ].map((feature, i) => (
+              <div key={i} className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                <feature.icon className="h-8 w-8 text-purple-400 mb-4" />
+                <h3 className="text-lg font-bold text-white mb-1">{feature.title}</h3>
+                <p className="text-sm text-slate-500">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side - Register Form */}
+      <div className="flex items-center justify-center p-8 bg-white dark:bg-slate-950">
+        <div className="w-full max-w-md">
+          {/* Logo/Brand for Mobile */}
+          <div className="lg:hidden text-center mb-10">
+            <h1 className="text-3xl font-black text-slate-900 dark:text-white">
+              Resume<span className="text-purple-600">Match</span>
             </h1>
-            <p className="text-muted-foreground">
-              Join ResumeMatch and start tailoring your resumes
+          </div>
+
+          <div className="mb-10 text-center lg:text-left">
+            <h2 className="text-4xl font-black text-slate-900 dark:text-white mb-3">
+              Create account
+            </h2>
+            <p className="text-slate-600 dark:text-slate-400 font-medium">
+              Join us today and start your journey
             </p>
           </div>
 
           {/* Error Message */}
           {displayError && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-lg">
-              <p className="text-red-700 dark:text-red-400 text-sm font-medium">{displayError}</p>
+            <div className="mb-8 p-4 bg-red-50 dark:bg-red-950/30 border-l-4 border-red-500 rounded-r-xl animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center gap-3">
+                <div className="h-2 w-2 rounded-full bg-red-500" />
+                <p className="text-red-700 dark:text-red-400 text-sm font-bold">{displayError}</p>
+              </div>
             </div>
           )}
 
-          {/* Google Sign Up Button */}
+          {/* Google Sign Up */}
           <GoogleSignUpButton onClick={handleGoogleSignUp} isLoading={googleLoading} />
 
-          {/* Divider */}
-          <div className="my-6 relative">
+          <div className="relative my-10">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
+              <div className="w-full border-t border-slate-100 dark:border-slate-800"></div>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 font-medium">
-                Or register with email
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="px-4 bg-white dark:bg-slate-950 text-slate-400 font-bold tracking-widest">
+                Or with email
               </span>
             </div>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">
                   First Name
                 </label>
-                <Input
-                  type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  placeholder="John"
-                  disabled={isLoading}
-                  required
-                />
+                <div className="relative group">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-purple-500 transition-colors" />
+                  <Input
+                    type="text"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    placeholder="John"
+                    disabled={isLoading}
+                    required
+                    className="pl-12 py-6 rounded-xl border-2 border-slate-100 dark:border-slate-800 focus:border-purple-500 dark:focus:border-purple-500 bg-slate-50/50 dark:bg-slate-900/50 transition-all font-medium"
+                  />
+                </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">
                   Last Name
                 </label>
+                <div className="relative group">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-purple-500 transition-colors" />
+                  <Input
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    placeholder="Doe"
+                    disabled={isLoading}
+                    required
+                    className="pl-12 py-6 rounded-xl border-2 border-slate-100 dark:border-slate-800 focus:border-purple-500 dark:focus:border-purple-500 bg-slate-50/50 dark:bg-slate-900/50 transition-all font-medium"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">
+                Email Address
+              </label>
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-purple-500 transition-colors" />
                 <Input
-                  type="text"
-                  name="lastName"
-                  value={formData.lastName}
+                  type="email"
+                  name="email"
+                  value={formData.email}
                   onChange={handleChange}
-                  placeholder="Doe"
+                  placeholder="name@company.com"
                   disabled={isLoading}
                   required
+                  className="pl-12 py-6 rounded-xl border-2 border-slate-100 dark:border-slate-800 focus:border-purple-500 dark:focus:border-purple-500 bg-slate-50/50 dark:bg-slate-900/50 transition-all font-medium"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Email
-              </label>
-              <Input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="you@example.com"
-                disabled={isLoading}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">
                 Password
               </label>
-              <Input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                disabled={isLoading}
-                required
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Must be at least 8 characters
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-purple-500 transition-colors" />
+                <Input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  disabled={isLoading}
+                  required
+                  className="pl-12 py-6 rounded-xl border-2 border-slate-100 dark:border-slate-800 focus:border-purple-500 dark:focus:border-purple-500 bg-slate-50/50 dark:bg-slate-900/50 transition-all font-medium"
+                />
+              </div>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">
+                Minimum 8 characters
               </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">
                 Confirm Password
               </label>
-              <Input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                placeholder="••••••••"
-                disabled={isLoading}
-                required
-              />
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-purple-500 transition-colors" />
+                <Input
+                  type="password"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  disabled={isLoading}
+                  required
+                  className="pl-12 py-6 rounded-xl border-2 border-slate-100 dark:border-slate-800 focus:border-purple-500 dark:focus:border-purple-500 bg-slate-50/50 dark:bg-slate-900/50 transition-all font-medium"
+                />
+              </div>
             </div>
 
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full"
+              className="w-full py-7 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 font-black text-lg shadow-xl shadow-slate-200 dark:shadow-none transition-all hover:-translate-y-0.5 mt-4"
             >
               {isLoading ? (
-                <>
-                  <Loader className="h-4 w-4 mr-2 animate-spin" />
-                  Creating account...
-                </>
+                <Loader className="h-6 w-6 animate-spin" />
               ) : (
-                'Sign Up'
+                <div className="flex items-center gap-2">
+                  Create Account <ArrowRight className="h-5 w-5" />
+                </div>
               )}
             </Button>
           </form>
 
-          {/* Sign In Link */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-700 text-center">
-            <p className="text-slate-600 dark:text-slate-400 text-sm">
-              Already have an account?{' '}
-              <Link
-                to="/login"
-                className="font-semibold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors"
-              >
-                Sign In
-              </Link>
-            </p>
-          </div>
+          {/* Footer */}
+          <p className="mt-8 text-center text-slate-600 dark:text-slate-400 font-medium">
+            Already have an account?{' '}
+            <Link
+              to="/login"
+              className="text-purple-600 hover:text-purple-700 font-black decoration-2 underline-offset-4 hover:underline transition-all"
+            >
+              Sign in here
+            </Link>
+          </p>
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          © 2024 ResumeMatch Pro. All rights reserved.
-        </p>
       </div>
     </div>
   );

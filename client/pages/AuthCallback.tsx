@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader } from 'lucide-react';
+import { Loader, AlertCircle, CheckCircle2, ShieldCheck, Sparkles } from 'lucide-react';
 
 export const AuthCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -34,65 +34,88 @@ export const AuthCallback: React.FC = () => {
           return;
         }
 
-        // Decode base64 auth data
         const authDataJson = atob(authDataB64);
         const authData = JSON.parse(authDataJson);
 
-        // Store auth data
         localStorage.setItem('auth_token', authData.access_token);
-        
-        // Update auth context
         setAuthData(authData.user, authData.access_token);
 
-        // Redirect to dashboard
-        setTimeout(() => navigate('/'), 500);
+        setTimeout(() => navigate('/'), 800);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Authentication error';
         setError(message);
         setTimeout(() => navigate('/login'), 3000);
       }
     };
-
     handleCallback();
   }, [searchParams, navigate, setAuthData]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-blue-950 dark:to-purple-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-8 text-center space-y-6">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 overflow-hidden relative">
+      {/* Background Blobs */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+        <div className="absolute top-[20%] left-[10%] w-[30%] h-[30%] bg-cyan-500/5 blur-[120px] rounded-full animate-pulse" />
+        <div className="absolute bottom-[20%] right-[10%] w-[30%] h-[30%] bg-purple-500/5 blur-[120px] rounded-full animate-pulse delay-700" />
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
+        <div className="bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[2.5rem] shadow-2xl p-10 text-center space-y-10 overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-8 opacity-5">
+             <ShieldCheck className="h-32 w-32" />
+          </div>
+
           {error ? (
-            <>
-              <div className="w-16 h-16 mx-auto rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                <span className="text-3xl">❌</span>
+            <div className="space-y-8 animate-in zoom-in-95 duration-300">
+              <div className="w-20 h-20 mx-auto rounded-3xl bg-rose-500/10 flex items-center justify-center border-2 border-rose-500/20">
+                <AlertCircle className="h-10 w-10 text-rose-500" />
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-                  Authentication Failed
+              <div className="space-y-4">
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                  Auth Error
                 </h2>
-                <p className="text-red-600 dark:text-red-400 text-sm mb-4">
-                  {error}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Redirecting you back to login...
+                <div className="p-4 bg-rose-50 dark:bg-rose-950/20 rounded-2xl border border-rose-200 dark:border-rose-900/50">
+                  <p className="text-rose-600 dark:text-rose-400 text-xs font-black uppercase tracking-widest">
+                    {error}
+                  </p>
+                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] animate-pulse">
+                  Redirecting to Login...
                 </p>
               </div>
-            </>
+            </div>
           ) : (
-            <>
-              <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-cyan-100 to-blue-100 dark:from-cyan-900/30 dark:to-blue-900/30 flex items-center justify-center">
-                <Loader className="h-8 w-8 text-cyan-600 dark:text-cyan-400 animate-spin" />
+            <div className="space-y-8">
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-cyan-500/20 blur-2xl rounded-full animate-pulse scale-150" />
+                <div className="relative w-24 h-24 mx-auto rounded-[2rem] bg-slate-50 dark:bg-slate-800 flex items-center justify-center border-2 border-slate-100 dark:border-slate-700">
+                  <Loader className="h-10 w-10 text-cyan-500 animate-spin" />
+                </div>
+                <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-xl bg-slate-900 dark:bg-white flex items-center justify-center text-white dark:text-slate-900">
+                  <Sparkles className="h-4 w-4" />
+                </div>
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-                  Completing Sign In
+              <div className="space-y-4">
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                  Verifying
                 </h2>
-                <p className="text-slate-600 dark:text-slate-400 text-sm">
-                  Please wait while we authenticate your account...
+                <p className="text-slate-500 font-medium leading-relaxed">
+                  Finalizing your secure session. Please wait while we sync your professional profile.
                 </p>
+                <div className="flex justify-center gap-1.5 pt-4">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="h-1.5 w-6 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                       <div className="h-full bg-cyan-500 rounded-full animate-loading-bar" style={{ animationDelay: `${i * 0.2}s` }} />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </>
+            </div>
           )}
         </div>
+        
+        <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-8">
+          ResumeMatch Pro © 2024
+        </p>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Loader } from 'lucide-react';
+import { Loader, Mail, Lock, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,11 +18,13 @@ export const GoogleSignInButton = ({ onClick, isLoading }: { onClick: () => void
   <button
     onClick={onClick}
     disabled={isLoading}
-    className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+    className="w-full flex items-center justify-center gap-3 px-4 py-3.5 rounded-xl border-2 border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group shadow-sm"
   >
-    <GoogleIcon />
-    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-      {isLoading ? 'Redirecting...' : 'Sign in with Google'}
+    <div className="group-hover:scale-110 transition-transform duration-300">
+      <GoogleIcon />
+    </div>
+    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+      {isLoading ? 'Connecting...' : 'Sign in with Google'}
     </span>
   </button>
 );
@@ -76,108 +78,158 @@ export const Login: React.FC = () => {
   const displayError = localError || error;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Card */}
-        <div className="bg-card border border-border rounded-lg shadow-lg p-8">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Welcome Back
+    <div className="min-h-screen grid lg:grid-cols-2">
+      {/* Left Side - Visual/Branding (Hidden on mobile) */}
+      <div className="hidden lg:flex relative bg-slate-950 items-center justify-center p-12 overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-500/10 blur-[120px] rounded-full animate-pulse" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full animate-pulse delay-700" />
+        </div>
+
+        <div className="relative z-10 max-w-lg">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-bold mb-8">
+            <Sparkles className="h-4 w-4" />
+            AI-Powered Career Growth
+          </div>
+          
+          <h2 className="text-5xl font-black text-white leading-tight mb-6">
+            Land your <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">dream job</span> with precision.
+          </h2>
+          
+          <p className="text-xl text-slate-400 leading-relaxed mb-12">
+            Join thousands of professionals using ResumeMatch to tailor their resumes and beat the ATS systems.
+          </p>
+
+          <div className="grid grid-cols-2 gap-6">
+            {[
+              { icon: ShieldCheck, title: "ATS Optimized", desc: "Beat the filters" },
+              { icon: Sparkles, title: "AI Tailoring", desc: "Job-specific matches" }
+            ].map((feature, i) => (
+              <div key={i} className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                <feature.icon className="h-8 w-8 text-cyan-400 mb-4" />
+                <h3 className="text-lg font-bold text-white mb-1">{feature.title}</h3>
+                <p className="text-sm text-slate-500">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side - Login Form */}
+      <div className="flex items-center justify-center p-8 bg-white dark:bg-slate-950">
+        <div className="w-full max-w-md">
+          {/* Logo/Brand for Mobile */}
+          <div className="lg:hidden text-center mb-10">
+            <h1 className="text-3xl font-black text-slate-900 dark:text-white">
+              Resume<span className="text-cyan-600">Match</span>
             </h1>
-            <p className="text-muted-foreground">
-              Sign in to your ResumeMatch account
+          </div>
+
+          <div className="mb-10 text-center lg:text-left">
+            <h2 className="text-4xl font-black text-slate-900 dark:text-white mb-3">
+              Welcome back
+            </h2>
+            <p className="text-slate-600 dark:text-slate-400 font-medium">
+              Please enter your details to sign in
             </p>
           </div>
 
           {/* Error Message */}
           {displayError && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-lg">
-              <p className="text-red-700 dark:text-red-400 text-sm font-medium">{displayError}</p>
+            <div className="mb-8 p-4 bg-red-50 dark:bg-red-950/30 border-l-4 border-red-500 rounded-r-xl animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center gap-3">
+                <div className="h-2 w-2 rounded-full bg-red-500" />
+                <p className="text-red-700 dark:text-red-400 text-sm font-bold">{displayError}</p>
+              </div>
             </div>
           )}
 
-          {/* Google Sign In Button */}
+          {/* Google Sign In */}
           <GoogleSignInButton onClick={handleGoogleSignIn} isLoading={googleLoading} />
 
-          {/* Divider */}
-          <div className="my-6 relative">
+          <div className="relative my-10">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
+              <div className="w-full border-t border-slate-100 dark:border-slate-800"></div>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 font-medium">
-                Or continue with email
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="px-4 bg-white dark:bg-slate-950 text-slate-400 font-bold tracking-widest">
+                Or with email
               </span>
             </div>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Email
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">
+                Email Address
               </label>
-              <Input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="you@example.com"
-                disabled={isLoading}
-                required
-              />
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-cyan-500 transition-colors" />
+                <Input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="name@company.com"
+                  disabled={isLoading}
+                  required
+                  className="pl-12 py-6 rounded-xl border-2 border-slate-100 dark:border-slate-800 focus:border-cyan-500 dark:focus:border-cyan-500 bg-slate-50/50 dark:bg-slate-900/50 transition-all font-medium"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Password
-              </label>
-              <Input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                disabled={isLoading}
-                required
-              />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between ml-1">
+                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                  Password
+                </label>
+                <Link to="#" className="text-xs font-bold text-cyan-600 hover:text-cyan-700">
+                  Forgot?
+                </Link>
+              </div>
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-cyan-500 transition-colors" />
+                <Input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  disabled={isLoading}
+                  required
+                  className="pl-12 py-6 rounded-xl border-2 border-slate-100 dark:border-slate-800 focus:border-cyan-500 dark:focus:border-cyan-500 bg-slate-50/50 dark:bg-slate-900/50 transition-all font-medium"
+                />
+              </div>
             </div>
 
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full"
+              className="w-full py-7 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 font-black text-lg shadow-xl shadow-slate-200 dark:shadow-none transition-all hover:-translate-y-0.5"
             >
               {isLoading ? (
-                <>
-                  <Loader className="h-4 w-4 mr-2 animate-spin" />
-                  Signing in...
-                </>
+                <Loader className="h-6 w-6 animate-spin" />
               ) : (
-                'Sign In'
+                <div className="flex items-center gap-2">
+                  Sign In <ArrowRight className="h-5 w-5" />
+                </div>
               )}
             </Button>
           </form>
 
-          {/* Sign Up Link */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-700 text-center">
-            <p className="text-slate-600 dark:text-slate-400 text-sm">
-              Don't have an account?{' '}
-              <Link
-                to="/register"
-                className="font-semibold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors"
-              >
-                Sign Up
-              </Link>
-            </p>
-          </div>
+          {/* Footer */}
+          <p className="mt-10 text-center text-slate-600 dark:text-slate-400 font-medium">
+            Don't have an account?{' '}
+            <Link
+              to="/register"
+              className="text-cyan-600 hover:text-cyan-700 font-black decoration-2 underline-offset-4 hover:underline transition-all"
+            >
+              Create one for free
+            </Link>
+          </p>
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          © 2024 ResumeMatch Pro. All rights reserved.
-        </p>
       </div>
     </div>
   );
