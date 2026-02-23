@@ -1,6 +1,7 @@
 import express, { Express } from "express";
 import cors from "cors";
 import path from "path";
+import { connectDB } from "./db";
 import {
   getUserResume,
   saveUserResume,
@@ -9,6 +10,28 @@ import {
   saveApplication,
   updateApplicationStatus,
 } from "./routes/resume";
+import {
+  createPlan,
+  listPlans,
+  getPlan,
+  updatePlan,
+  deletePlan,
+  createSubscription,
+  listSubscriptions,
+  getSubscription,
+  updateSubscription,
+  cancelSubscription,
+  createOrder,
+  verifyPayment,
+  createCoupon,
+  listCoupons,
+  getCoupon,
+  updateCoupon,
+  deleteCoupon,
+  listPaymentLogs,
+  applyCoupon,
+  webhookHandler,
+} from "./routes/payments";
 
 export function createServer(): Express {
   const app = express();
@@ -17,6 +40,9 @@ export function createServer(): Express {
   app.use(cors());
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ limit: "10mb", extended: true }));
+
+  // Connect to database
+  connectDB().catch(console.error);
 
   // API Routes
   app.get("/api/health", (req, res) => {
@@ -32,6 +58,36 @@ export function createServer(): Express {
   app.get("/api/applications", getApplicationHistory);
   app.post("/api/applications", saveApplication);
   app.patch("/api/applications/:appId", updateApplicationStatus);
+
+  // Payment routes - Subscription Plans
+  app.post("/api/payments/subscription-plans", createPlan);
+  app.get("/api/payments/subscription-plans", listPlans);
+  app.get("/api/payments/subscription-plans/:plan_id", getPlan);
+  app.put("/api/payments/subscription-plans/:plan_id", updatePlan);
+  app.delete("/api/payments/subscription-plans/:plan_id", deletePlan);
+
+  // Payment routes - Subscriptions
+  app.post("/api/payments/subscriptions", createSubscription);
+  app.get("/api/payments/subscriptions", listSubscriptions);
+  app.get("/api/payments/subscriptions/:subscription_id", getSubscription);
+  app.put("/api/payments/subscriptions/:subscription_id", updateSubscription);
+  app.delete("/api/payments/subscriptions/:subscription_id", cancelSubscription);
+
+  // Payment routes - One-time Orders
+  app.post("/api/payments/create-order", createOrder);
+  app.post("/api/payments/verify", verifyPayment);
+
+  // Payment routes - Coupons
+  app.post("/api/payments/coupons", createCoupon);
+  app.get("/api/payments/coupons", listCoupons);
+  app.get("/api/payments/coupons/:coupon_id", getCoupon);
+  app.put("/api/payments/coupons/:coupon_id", updateCoupon);
+  app.delete("/api/payments/coupons/:coupon_id", deleteCoupon);
+
+  // Payment routes - Logs, Coupons Application, and Webhook
+  app.get("/api/payments/logs", listPaymentLogs);
+  app.post("/api/payments/apply-coupon", applyCoupon);
+  app.post("/api/payments/webhook", webhookHandler);
 
   // Serve SPA in production
   const spa_path = path.join(process.cwd(), "dist/spa");
