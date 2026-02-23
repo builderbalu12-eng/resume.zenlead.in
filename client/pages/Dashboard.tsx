@@ -467,11 +467,11 @@ export const Dashboard: React.FC = () => {
             successful job seekers.
           </p>
 
-          <div className="pt-4">
+          <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-center">
             {!masterResume ? (
               <Link
                 to="/upload"
-                className="inline-flex items-center px-10 py-5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-black text-lg shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 group"
+                className="inline-flex items-center justify-center px-10 py-5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-black text-lg shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 group"
               >
                 Get Started Now
                 <ArrowRight className="h-6 w-6 ml-3 group-hover:translate-x-1 transition-transform" />
@@ -479,12 +479,18 @@ export const Dashboard: React.FC = () => {
             ) : (
               <Link
                 to="/tailor"
-                className="inline-flex items-center px-10 py-5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-black text-lg shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 group"
+                className="inline-flex items-center justify-center px-10 py-5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-black text-lg shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 group"
               >
                 Tailor Your Resume
                 <Zap className="h-6 w-6 ml-3 group-hover:scale-110 transition-transform" />
               </Link>
             )}
+            <Link
+              to="/pricing"
+              className="inline-flex items-center justify-center px-10 py-5 rounded-xl border-2 border-white hover:bg-white hover:text-slate-900 text-white font-black text-lg shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300"
+            >
+              View Pricing Plans
+            </Link>
           </div>
         </div>
       </div>

@@ -23,13 +23,8 @@ export const Header: React.FC = () => {
     { label: 'Upload Resume', path: '/upload', icon: FileText },
     { label: 'Tailor Resume', path: '/tailor', icon: Sparkles },
     { label: 'History', path: '/history', icon: Clock },
+    { label: 'Pricing & Payments', path: '/pricing', icon: null },
   ];
-
-  const authenticatedNavItems = user ? [
-    ...navItems,
-    { label: 'Subscriptions', path: '/subscriptions', icon: null },
-    { label: 'Payments', path: '/payment-history', icon: null },
-  ] : navItems;
 
   return (
     <header className="bg-gradient-to-b from-slate-50 to-slate-50/50 dark:from-slate-950 dark:to-slate-950/50 border-b border-slate-200/50 dark:border-slate-800/50 backdrop-blur-xl sticky top-0 z-30 shadow-sm">

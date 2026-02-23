@@ -9,11 +9,7 @@ import { NotFound } from "./pages/NotFound";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { AuthCallback } from "./pages/AuthCallback";
-import { Pricing } from "./pages/Pricing";
-import { Checkout } from "./pages/Checkout";
-import { OneTimePayment } from "./pages/OneTimePayment";
-import { SubscriptionManagement } from "./pages/SubscriptionManagement";
-import { PaymentHistory } from "./pages/PaymentHistory";
+import { PricingHub } from "./pages/PricingHub";
 import { Header } from "./components/Header";
 import { Settings } from "./components/Settings";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -53,40 +49,8 @@ function AppContent() {
         {/* Public Landing Page - No Auth Required */}
         <Route path="/" element={<Dashboard />} />
 
-        {/* Pricing Routes */}
-        <Route path="/pricing" element={<Pricing />} />
-        <Route
-          path="/checkout"
-          element={
-            <ProtectedRoute>
-              <Checkout />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/one-time-payment"
-          element={
-            <ProtectedRoute>
-              <OneTimePayment />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/subscriptions"
-          element={
-            <ProtectedRoute>
-              <SubscriptionManagement />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/payment-history"
-          element={
-            <ProtectedRoute>
-              <PaymentHistory />
-            </ProtectedRoute>
-          }
-        />
+        {/* Pricing & Payments Hub */}
+        <Route path="/pricing" element={<PricingHub />} />
 
         {/* Protected Feature Routes */}
         <Route
