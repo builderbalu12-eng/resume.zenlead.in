@@ -22,6 +22,45 @@ export interface User {
   auth_provider: string;
 }
 
+export interface SubscriptionPlan {
+  _id: string;
+  plan_name: string;
+  amount: number;
+  currency: string;
+  period: string;
+  interval: number;
+  credits_per_cycle: number;
+  description: string;
+  is_active: boolean;
+  razorpay_plan_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Subscription {
+  _id: string;
+  user_id: string;
+  plan_id: string;
+  razorpay_subscription_id: string;
+  status: string;
+  current_period_start?: string;
+  current_period_end?: string;
+  cancel_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaymentLog {
+  _id: string;
+  user_id: string;
+  transaction_id?: string;
+  amount_paid: number;
+  currency: string;
+  credits_added: number;
+  status: string;
+  created_at: string;
+}
+
 export interface RegisterData {
   firstName: string;
   lastName: string;
@@ -149,6 +188,84 @@ class APIClient {
     return this.request(`/api/resume/${resumeId}/tailor`, {
       method: 'POST',
       body: JSON.stringify({ jobDescription }),
+    });
+  }
+
+  // Payment endpoints
+  async getSubscriptionPlans(skip: number = 0, limit: number = 20, activeOnly: boolean = true): Promise<any> {
+    return this.request(`/api/payments/subscription-plans?skip=${skip}&limit=${limit}&active_only=${activeOnly}`, {
+      method: 'GET',
+    });
+  }
+
+  async getSubscriptionPlan(planId: string): Promise<SubscriptionPlan> {
+    return this.request(`/api/payments/subscription-plans/${planId}`, {
+      method: 'GET',
+    });
+  }
+
+  async createSubscription(planId: string, userId: string): Promise<any> {
+    return this.request('/api/payments/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify({ plan_id: planId, user_id: userId }),
+    });
+  }
+
+  async getSubscriptions(skip: number = 0, limit: number = 20): Promise<any> {
+    return this.request(`/api/payments/subscriptions?skip=${skip}&limit=${limit}`, {
+      method: 'GET',
+    });
+  }
+
+  async getSubscription(subscriptionId: string): Promise<Subscription> {
+    return this.request(`/api/payments/subscriptions/${subscriptionId}`, {
+      method: 'GET',
+    });
+  }
+
+  async cancelSubscription(subscriptionId: string): Promise<any> {
+    return this.request(`/api/payments/subscriptions/${subscriptionId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async createPaymentOrder(amount: number, currency: string, creditsToAdd: number, receipt?: string): Promise<any> {
+    return this.request('/api/payments/create-order', {
+      method: 'POST',
+      body: JSON.stringify({
+        amount,
+        currency,
+        credits_to_add: creditsToAdd,
+        receipt: receipt || `receipt_${Date.now()}`,
+      }),
+    });
+  }
+
+  async verifyPayment(razorpayPaymentId: string, razorpayOrderId: string, razorpaySignature: string): Promise<any> {
+    return this.request('/api/payments/verify', {
+      method: 'POST',
+      body: JSON.stringify({
+        razorpay_payment_id: razorpayPaymentId,
+        razorpay_order_id: razorpayOrderId,
+        razorpay_signature: razorpaySignature,
+      }),
+    });
+  }
+
+  async getPaymentLogs(skip: number = 0, limit: number = 20): Promise<any> {
+    return this.request(`/api/payments/logs?skip=${skip}&limit=${limit}`, {
+      method: 'GET',
+    });
+  }
+
+  async applyCoupon(code: string, amount: number, planId?: string): Promise<any> {
+    return this.request('/api/payments/apply-coupon', {
+      method: 'POST',
+      body: JSON.stringify({
+        code,
+        amount,
+        plan_id: planId,
+      }),
     });
   }
 }
