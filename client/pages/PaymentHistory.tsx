@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Loader, CreditCard, TrendingUp, Calendar } from 'lucide-react';
+import { Loader, CreditCard, TrendingUp, Calendar, ArrowLeft, Download, ShieldCheck, History } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient, PaymentLog } from '@/services/api';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export const PaymentHistory: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [logs, setLogs] = useState<PaymentLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,7 +23,6 @@ export const PaymentHistory: React.FC = () => {
         const items = response.data?.items || response.items || [];
         setLogs(items);
 
-        // Calculate totals
         let spent = 0;
         let credits = 0;
         items.forEach((log: PaymentLog) => {
@@ -36,168 +39,185 @@ export const PaymentHistory: React.FC = () => {
         setIsLoading(false);
       }
     };
-
     loadPaymentLogs();
   }, []);
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
       case 'succeeded':
-        return '✓';
+      case 'success':
+        return 'bg-emerald-500/10 text-emerald-600 border-emerald-200';
       case 'pending':
-        return '⏳';
+        return 'bg-amber-500/10 text-amber-600 border-amber-200';
       case 'failed':
-        return '✗';
+        return 'bg-rose-500/10 text-rose-600 border-rose-200';
       default:
-        return '•';
+        return 'bg-slate-500/10 text-slate-600 border-slate-200';
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'succeeded':
-        return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700';
-      case 'pending':
-        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700';
-      case 'failed':
-        return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700';
-      default:
-        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700';
-    }
+  const handleExportCSV = () => {
+    const headers = ["Date", "Transaction ID", "Amount", "Currency", "Credits", "Status"];
+    const rows = logs.map((log) => [
+      new Date(log.created_at).toLocaleDateString(),
+      log.transaction_id || log._id,
+      log.amount_paid.toFixed(2),
+      log.currency,
+      log.credits_added,
+      log.status,
+    ]);
+    const csv = [headers.join(","), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `payment_history_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-blue-950 dark:to-purple-950 py-12">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center py-20">
-            <Loader className="h-12 w-12 animate-spin text-cyan-600 dark:text-cyan-400 mx-auto mb-4" />
-            <p className="text-slate-600 dark:text-slate-400 font-medium">Loading payment history...</p>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+        <div className="text-center space-y-6">
+          <div className="relative inline-block">
+            <div className="h-24 w-24 border-4 border-slate-100 dark:border-slate-800 rounded-full animate-spin border-t-cyan-500" />
+            <Loader className="h-10 w-10 text-cyan-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
           </div>
+          <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-sm animate-pulse">Fetching Ledger...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-blue-950 dark:to-purple-950 py-12">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-32 pb-20">
+      <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-            Payment History
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400">
-            View all your transactions and credit purchases
-          </p>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
+          <div className="space-y-4">
+            <button
+              onClick={() => navigate("/")}
+              className="group inline-flex items-center gap-2 text-slate-500 hover:text-cyan-600 font-black transition-all uppercase tracking-widest text-xs"
+            >
+               <div className="h-8 w-8 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center group-hover:bg-cyan-50 group-hover:border-cyan-200 transition-all">
+                 <ArrowLeft className="h-4 w-4" />
+               </div>
+               Dashboard
+            </button>
+            <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tight">
+              Payment <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">History</span>
+            </h1>
+            <p className="text-lg text-slate-500 font-medium">
+              Transparent tracking of your career investments and credit balance.
+            </p>
+          </div>
+          <Button
+            onClick={handleExportCSV}
+            disabled={logs.length === 0}
+            className="rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black py-7 px-8 flex items-center gap-2 group shadow-xl transition-all"
+          >
+            <Download className="h-5 w-5" /> Download Statement
+          </Button>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="mb-8 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-lg">
-            <p className="text-red-700 dark:text-red-400 font-medium">{error}</p>
-          </div>
-        )}
-
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          {/* Total Spent */}
-          <div className="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-2xl border-2 border-cyan-200 dark:border-cyan-800 p-6">
-            <div className="flex items-start justify-between">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+           <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between overflow-hidden relative group">
+              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:rotate-12 transition-transform duration-500">
+                <CreditCard className="h-32 w-32" />
+              </div>
               <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400 font-semibold mb-2">
-                  Total Spent
-                </p>
-                <p className="text-3xl font-black text-slate-900 dark:text-slate-100">
-                  ${totalSpent.toFixed(2)}
-                </p>
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Total Career Spent</p>
+                <p className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">${totalSpent.toFixed(2)}</p>
               </div>
-              <div className="p-3 rounded-lg bg-cyan-100 dark:bg-cyan-900/50">
-                <CreditCard className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+              <div className="h-16 w-16 bg-purple-500/10 rounded-2xl flex items-center justify-center border border-purple-500/20">
+                <CreditCard className="h-8 w-8 text-purple-500" />
               </div>
-            </div>
-          </div>
-
-          {/* Total Credits */}
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl border-2 border-purple-200 dark:border-purple-800 p-6">
-            <div className="flex items-start justify-between">
+           </div>
+           <div className="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between overflow-hidden relative group">
+              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:rotate-12 transition-transform duration-500">
+                <TrendingUp className="h-32 w-32" />
+              </div>
               <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400 font-semibold mb-2">
-                  Total Credits Purchased
-                </p>
-                <p className="text-3xl font-black text-slate-900 dark:text-slate-100">
-                  {totalCredits}
-                </p>
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Total Credits Gained</p>
+                <p className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">{totalCredits}</p>
               </div>
-              <div className="p-3 rounded-lg bg-purple-100 dark:bg-purple-900/50">
-                <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              <div className="h-16 w-16 bg-cyan-500/10 rounded-2xl flex items-center justify-center border border-cyan-500/20">
+                <TrendingUp className="h-8 w-8 text-cyan-500" />
               </div>
-            </div>
-          </div>
+           </div>
         </div>
 
-        {/* Transactions Table */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-200 dark:border-slate-800 overflow-hidden">
+        {/* List Section */}
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          {error && (
+            <div className="p-6 bg-rose-50 border-l-4 border-rose-500 m-6 rounded-r-xl">
+              <p className="text-rose-700 font-bold">{error}</p>
+            </div>
+          )}
+
           {logs.length === 0 ? (
-            <div className="p-12 text-center">
-              <CreditCard className="h-16 w-16 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-                No Payment History
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400">
-                You haven't made any payments yet. Start by purchasing credits!
-              </p>
+            <div className="p-32 text-center space-y-8">
+              <div className="h-24 w-24 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto">
+                <History className="h-10 w-10 text-slate-200" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">No transactions yet</h3>
+                <p className="text-slate-500 font-medium">Your investment journey begins with your first credit purchase.</p>
+              </div>
+              <Button
+                onClick={() => navigate("/pricing")}
+                className="rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black px-10 py-6"
+              >
+                View Pricing
+              </Button>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b-2 border-slate-200 dark:border-slate-800">
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-900 dark:text-slate-100 uppercase">
-                      Date
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-900 dark:text-slate-100 uppercase">
-                      Transaction ID
-                    </th>
-                    <th className="px-6 py-4 text-right text-xs font-bold text-slate-900 dark:text-slate-100 uppercase">
-                      Amount
-                    </th>
-                    <th className="px-6 py-4 text-right text-xs font-bold text-slate-900 dark:text-slate-100 uppercase">
-                      Credits
-                    </th>
-                    <th className="px-6 py-4 text-center text-xs font-bold text-slate-900 dark:text-slate-100 uppercase">
-                      Status
-                    </th>
+                  <tr className="bg-slate-50/50 dark:bg-slate-800/50">
+                    <th className="px-10 py-8 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
+                    <th className="px-10 py-8 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Reference</th>
+                    <th className="px-10 py-8 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Investment</th>
+                    <th className="px-10 py-8 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Benefit</th>
+                    <th className="px-10 py-8 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {logs.map((log, idx) => (
-                    <tr
-                      key={log._id}
-                      className={`border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${
-                        idx % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-900/50'
-                      }`}
-                    >
-                      <td className="px-6 py-4 text-sm text-slate-700 dark:text-slate-300 font-medium">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                          {new Date(log.created_at).toLocaleDateString()}
-                        </div>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {logs.map((log) => (
+                    <tr key={log._id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="px-10 py-8">
+                         <div className="flex items-center gap-3">
+                           <Calendar className="h-4 w-4 text-slate-300" />
+                           <span className="text-sm font-black text-slate-900 dark:text-white">
+                             {new Date(log.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                           </span>
+                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-700 dark:text-slate-300 font-mono">
-                        {log.transaction_id
-                          ? log.transaction_id.substring(0, 12) + '...'
-                          : log._id.substring(0, 12) + '...'}
+                      <td className="px-10 py-8">
+                        <span className="text-[10px] font-black text-slate-400 font-mono tracking-tighter uppercase">
+                          {log.transaction_id || log._id}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-right text-slate-900 dark:text-slate-100 font-bold">
-                        {log.amount_paid.toFixed(2)} {log.currency}
+                      <td className="px-10 py-8 text-right">
+                        <span className="text-lg font-black text-slate-900 dark:text-white">
+                          {log.amount_paid.toFixed(2)}
+                        </span>
+                        <span className="ml-1 text-[10px] font-black text-slate-400 uppercase">{log.currency}</span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-right text-slate-900 dark:text-slate-100 font-bold">
-                        +{log.credits_added}
+                      <td className="px-10 py-8 text-right">
+                         <div className="flex items-center justify-end gap-2">
+                           <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                           <span className="text-lg font-black text-slate-900 dark:text-white">+{log.credits_added}</span>
+                         </div>
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`inline-flex px-3 py-1.5 rounded-full font-bold text-xs border-2 capitalize ${getStatusColor(log.status)}`}>
-                          <span className="mr-1">{getStatusIcon(log.status)}</span>
+                      <td className="px-10 py-8 text-center">
+                        <span className={cn(
+                          "inline-flex px-4 py-2 rounded-full font-black text-[10px] border-2 uppercase tracking-widest",
+                          getStatusColor(log.status)
+                        )}>
                           {log.status}
                         </span>
                       </td>
@@ -208,17 +228,6 @@ export const PaymentHistory: React.FC = () => {
             </div>
           )}
         </div>
-
-        {/* Download Statement */}
-        {logs.length > 0 && (
-          <div className="mt-8 text-center">
-            <button
-              className="px-6 py-3 rounded-lg border-2 border-cyan-500 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 font-bold transition-all"
-            >
-              Download Statement (CSV)
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
