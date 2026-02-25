@@ -12,6 +12,7 @@ interface AuthContextType {
   clearError: () => void;
   getGoogleAuthUrl: () => Promise<string>;
   setAuthData: (user: User, token: string) => void;
+  updateCurrentUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -114,6 +115,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
   };
 
+  const updateCurrentUser = (userData: User) => {
+    setUser(userData);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -127,6 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearError,
         getGoogleAuthUrl,
         setAuthData,
+        updateCurrentUser,
       }}
     >
       {children}

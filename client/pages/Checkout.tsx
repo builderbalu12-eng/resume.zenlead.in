@@ -11,6 +11,16 @@ declare global {
   }
 }
 
+const withRedirectUrl = (checkoutUrl: string) => {
+  try {
+    const url = new URL(checkoutUrl);
+    url.searchParams.set('redirect_url', `${window.location.origin}/payment/success?source=subscription`);
+    return url.toString();
+  } catch {
+    return checkoutUrl;
+  }
+};
+
 export const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -56,14 +66,14 @@ export const Checkout: React.FC = () => {
       setError(null);
 
       // Create subscription via backend
-      const response = await apiClient.createSubscription(plan._id, user._id);
+      const response = await apiClient.createSubscription(plan.razorpay_plan_id, user?._id);
 
       if (!response.short_url) {
         throw new Error('Failed to generate payment link');
       }
 
       // Redirect to Razorpay checkout
-      window.location.href = response.short_url;
+      window.location.href = withRedirectUrl(response.short_url);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process subscription');
       setIsProcessing(false);

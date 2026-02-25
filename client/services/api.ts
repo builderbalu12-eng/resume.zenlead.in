@@ -1,6 +1,9 @@
 // API client for ResumeMatch Pro backend
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://localhost:8000' : '')
+).replace(/\/$/, '');
 
 export interface AuthResponse {
   status: number;
@@ -84,22 +87,28 @@ class APIClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<any> {
-    const url = `${this.baseUrl}${endpoint}`;
+    const url = this.baseUrl ? `${this.baseUrl}${endpoint}` : endpoint;
     const token = localStorage.getItem('auth_token');
 
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
-
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
+    const headers = new Headers(options.headers || {});
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    let response: Response;
+
+    try {
+      response = await fetch(url, {
+        ...options,
+        headers,
+      });
+    } catch {
+      throw new Error('Unable to reach payment server. Please try again.');
+    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -204,10 +213,18 @@ class APIClient {
     });
   }
 
-  async createSubscription(planId: string, userId: string): Promise<any> {
+  async createSubscription(planId: string, userId?: string): Promise<any> {
+    const payload: Record<string, string> = {
+      plan_id: planId,
+    };
+
+    if (userId) {
+      payload.user_id = userId;
+    }
+
     return this.request('/api/payments/subscriptions', {
       method: 'POST',
-      body: JSON.stringify({ plan_id: planId, user_id: userId }),
+      body: JSON.stringify(payload),
     });
   }
 
