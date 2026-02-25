@@ -10,7 +10,7 @@ type PaymentSource = 'topup' | 'subscription';
 export const PaymentSuccess: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { updateCurrentUser } = useAuth();
+  const { user, updateCurrentUser } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(true);
   const [statusText, setStatusText] = useState('Syncing your latest payment status...');
 
@@ -22,33 +22,59 @@ export const PaymentSuccess: React.FC = () => {
   useEffect(() => {
     let active = true;
 
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
     const refreshData = async () => {
       try {
-        setStatusText('Syncing your latest payment status...');
+        const baselineCredits = user?.credits ?? 0;
+        let creditsUpdated = false;
 
-        // Refresh user data (credits)
-        const user = await apiClient.getCurrentUser();
-        if (active) {
-          updateCurrentUser(user);
-        }
+        for (let attempt = 1; attempt <= 6; attempt += 1) {
+          if (!active) return;
 
-        // Trigger subscription refresh for backend/webhook propagation
-        if (source === 'subscription') {
-          setStatusText('Checking subscription activation...');
-          await apiClient.getSubscriptions(0, 20);
+          setStatusText(
+            source === 'topup'
+              ? `Confirming credits update... (${attempt}/6)`
+              : `Confirming subscription status... (${attempt}/6)`
+          );
+
+          const latestUser = await apiClient.getCurrentUser();
+          if (active) {
+            updateCurrentUser(latestUser);
+          }
+
+          if (source === 'subscription') {
+            await apiClient.getSubscriptions(0, 20);
+          }
+
+          if (source === 'topup' && latestUser.credits > baselineCredits) {
+            creditsUpdated = true;
+            break;
+          }
+
+          if (source === 'subscription' && attempt >= 2) {
+            break;
+          }
+
+          await wait(2000);
         }
 
         if (!active) return;
 
-        setStatusText('Payment confirmed. Redirecting to your profile...');
+        setStatusText(
+          source === 'topup'
+            ? creditsUpdated
+              ? 'Credits updated successfully. Redirecting to your profile...'
+              : 'Payment confirmed. Credits may take a moment to sync. Redirecting...'
+            : 'Subscription payment confirmed. Redirecting to your profile...'
+        );
+
         setTimeout(() => {
           if (!active) return;
           navigate(source === 'topup' ? '/profile?tab=history' : '/profile?tab=subscriptions');
-        }, 1800);
+        }, 1500);
       } catch {
         if (!active) return;
-
-        // Even if refresh fails (webhook delay/auth refresh lag), allow user to proceed manually.
         setStatusText('Payment received. Your account is syncing. You can continue now.');
       } finally {
         if (active) {
@@ -62,7 +88,7 @@ export const PaymentSuccess: React.FC = () => {
     return () => {
       active = false;
     };
-  }, [navigate, source, updateCurrentUser]);
+  }, [navigate, source, updateCurrentUser, user?.credits]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center px-4">
