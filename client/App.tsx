@@ -12,6 +12,7 @@ import { AuthCallback } from "./pages/AuthCallback";
 import { PricingHub } from "./pages/PricingHub";
 import { Profile } from "./pages/Profile";
 import { PaymentSuccess } from "./pages/PaymentSuccess";
+import { Checkout } from "./pages/Checkout";
 import { Header } from "./components/Header";
 import { Settings } from "./components/Settings";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -85,6 +86,15 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute>
+              <Checkout />
             </ProtectedRoute>
           }
         />
