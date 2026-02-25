@@ -56,7 +56,7 @@ export const Checkout: React.FC = () => {
       setError(null);
 
       // Create subscription via backend
-      const response = await apiClient.createSubscription(plan.razorpay_plan_id, user._id);
+      const response = await apiClient.createSubscription(plan._id, user._id);
 
       if (!response.short_url) {
         throw new Error('Failed to generate payment link');
