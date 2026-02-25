@@ -204,13 +204,18 @@ class APIClient {
     });
   }
 
-  async createSubscription(planId: string, userId: string): Promise<any> {
+  async createSubscription(planId: string, userId?: string): Promise<any> {
+    const payload: Record<string, string> = {
+      plan_id: planId,
+    };
+
+    if (userId) {
+      payload.user_id = userId;
+    }
+
     return this.request('/api/payments/subscriptions', {
       method: 'POST',
-      body: JSON.stringify({
-        plan_id: planId,
-        user_id: userId,
-      }),
+      body: JSON.stringify(payload),
     });
   }
 

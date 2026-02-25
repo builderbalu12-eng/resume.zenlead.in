@@ -113,12 +113,18 @@ export const PricingHub: React.FC = () => {
       setError(null);
       setSubscribingPlanId(plan._id);
 
-      const selectedPlan = await apiClient.getSubscriptionPlan(plan._id);
-      if (!selectedPlan?.razorpay_plan_id) {
+      let razorpayPlanId = plan.razorpay_plan_id;
+
+      if (!razorpayPlanId) {
+        const selectedPlan = await apiClient.getSubscriptionPlan(plan._id);
+        razorpayPlanId = selectedPlan?.razorpay_plan_id;
+      }
+
+      if (!razorpayPlanId) {
         throw new Error('Selected plan is misconfigured. Please contact support.');
       }
 
-      const response = await apiClient.createSubscription(selectedPlan.razorpay_plan_id, user._id);
+      const response = await apiClient.createSubscription(razorpayPlanId, user._id);
       if (response.short_url) {
         window.location.href = withRedirectUrl(response.short_url);
       }
