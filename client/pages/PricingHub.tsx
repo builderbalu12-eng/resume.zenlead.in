@@ -23,15 +23,6 @@ const formatInr = (amount: number): string =>
   }).format(amount);
 
 
-const withRedirectUrl = (checkoutUrl: string) => {
-  try {
-    const url = new URL(checkoutUrl);
-    url.searchParams.set('redirect_url', `${window.location.origin}/payment/success?source=subscription`);
-    return url.toString();
-  } catch {
-    return checkoutUrl;
-  }
-};
 
 export const PricingHub: React.FC = () => {
   const navigate = useNavigate();
@@ -48,7 +39,6 @@ export const PricingHub: React.FC = () => {
   const [customCredits, setCustomCredits] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState<number | null>(null);
 
-  const [subscribingPlanId, setSubscribingPlanId] = useState<string | null>(null);
   const [isOrderProcessing, setIsOrderProcessing] = useState(false);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
@@ -99,40 +89,14 @@ export const PricingHub: React.FC = () => {
     }
   };
 
-  const handleSelectPlan = async (plan: SubscriptionPlan) => {
+  const handleSelectPlan = (plan: SubscriptionPlan) => {
     if (!isAuthenticated || !user) {
       setError('Please sign in to subscribe');
       return;
     }
 
-    if (subscribingPlanId) {
-      return;
-    }
-
-    try {
-      setError(null);
-      setSubscribingPlanId(plan._id);
-
-      let razorpayPlanId = plan.razorpay_plan_id;
-
-      if (!razorpayPlanId) {
-        const selectedPlan = await apiClient.getSubscriptionPlan(plan._id);
-        razorpayPlanId = selectedPlan?.razorpay_plan_id;
-      }
-
-      if (!razorpayPlanId) {
-        throw new Error('Selected plan is misconfigured. Please contact support.');
-      }
-
-      const response = await apiClient.createSubscription(razorpayPlanId, user._id);
-      if (response.short_url) {
-        window.location.href = withRedirectUrl(response.short_url);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process subscription');
-    } finally {
-      setSubscribingPlanId(null);
-    }
+    setError(null);
+    navigate(`/checkout?plan=${plan._id}&currency=INR`);
   };
 
   const handleOneTimePayment = async () => {
@@ -262,14 +226,10 @@ export const PricingHub: React.FC = () => {
                 </ul>
                 <Button
                   className="mt-6"
-                  disabled={subscribingPlanId === plan._id || !isAuthenticated}
+                  disabled={!isAuthenticated}
                   onClick={() => handleSelectPlan(plan)}
                 >
-                  {subscribingPlanId === plan._id
-                    ? 'Opening checkout...'
-                    : isAuthenticated
-                      ? 'Choose plan'
-                      : 'Sign in to subscribe'}
+                  {isAuthenticated ? 'Choose plan' : 'Sign in to subscribe'}
                 </Button>
               </div>
             ))}
