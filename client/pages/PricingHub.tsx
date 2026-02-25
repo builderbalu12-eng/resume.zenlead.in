@@ -39,6 +39,7 @@ export const PricingHub: React.FC = () => {
   const [customCredits, setCustomCredits] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState<number | null>(null);
 
+  const [subscribingPlanId, setSubscribingPlanId] = useState<string | null>(null);
   const [isOrderProcessing, setIsOrderProcessing] = useState(false);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
@@ -89,14 +90,32 @@ export const PricingHub: React.FC = () => {
     }
   };
 
-  const handleSelectPlan = (plan: SubscriptionPlan) => {
+  const handleSelectPlan = async (plan: SubscriptionPlan) => {
     if (!isAuthenticated || !user) {
       setError('Please sign in to subscribe');
       return;
     }
 
-    setError(null);
-    navigate(`/checkout?plan=${plan._id}&currency=INR`);
+    if (subscribingPlanId) {
+      return;
+    }
+
+    try {
+      setError(null);
+      setSubscribingPlanId(plan._id);
+
+      const selectedPlan = await apiClient.getSubscriptionPlan(plan._id);
+      const response = await apiClient.createSubscription(selectedPlan._id, user._id);
+
+      if (!response.short_url) {
+        throw new Error('Failed to generate payment link');
+      }
+
+      window.location.href = response.short_url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to process subscription');
+      setSubscribingPlanId(null);
+    }
   };
 
   const handleOneTimePayment = async () => {
@@ -226,10 +245,14 @@ export const PricingHub: React.FC = () => {
                 </ul>
                 <Button
                   className="mt-6"
-                  disabled={!isAuthenticated}
+                  disabled={subscribingPlanId === plan._id || !isAuthenticated}
                   onClick={() => handleSelectPlan(plan)}
                 >
-                  {isAuthenticated ? 'Choose plan' : 'Sign in to subscribe'}
+                  {subscribingPlanId === plan._id
+                    ? 'Redirecting to Razorpay...'
+                    : isAuthenticated
+                      ? 'Choose plan'
+                      : 'Sign in to subscribe'}
                 </Button>
               </div>
             ))}
