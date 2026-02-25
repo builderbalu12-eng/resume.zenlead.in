@@ -87,15 +87,25 @@ export const PricingHub: React.FC = () => {
   };
 
   const handleSelectPlan = async (plan: SubscriptionPlan) => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user) {
       setError('Please sign in to subscribe');
+      return;
+    }
+
+    if (subscribingPlanId) {
       return;
     }
 
     try {
       setError(null);
       setSubscribingPlanId(plan._id);
-      const response = await apiClient.createSubscription(plan._id);
+
+      const selectedPlan = await apiClient.getSubscriptionPlan(plan._id);
+      if (!selectedPlan?.razorpay_plan_id) {
+        throw new Error('Selected plan is misconfigured. Please contact support.');
+      }
+
+      const response = await apiClient.createSubscription(selectedPlan.razorpay_plan_id, user._id);
       if (response.short_url) {
         window.location.href = response.short_url;
       }
@@ -235,7 +245,7 @@ export const PricingHub: React.FC = () => {
                 </ul>
                 <Button
                   className="mt-6"
-                  disabled={!!subscribingPlanId || !isAuthenticated}
+                  disabled={subscribingPlanId === plan._id || !isAuthenticated}
                   onClick={() => handleSelectPlan(plan)}
                 >
                   {subscribingPlanId === plan._id
