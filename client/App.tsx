@@ -10,6 +10,7 @@ import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { AuthCallback } from "./pages/AuthCallback";
 import { PricingHub } from "./pages/PricingHub";
+import { Profile } from "./pages/Profile";
 import { Header } from "./components/Header";
 import { Settings } from "./components/Settings";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -74,6 +75,14 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <History />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           }
         />

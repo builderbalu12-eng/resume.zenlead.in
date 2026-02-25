@@ -1,82 +1,65 @@
-import React, { useState, useEffect } from 'react';
-import { Loader, CreditCard, Zap, Gift, History, Settings, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AlertCircle, Calendar, Check, CreditCard, Gift, Loader, Settings, Sparkles, TrendingUp, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { apiClient, SubscriptionPlan, Subscription, PaymentLog } from '@/services/api';
+import { apiClient, PaymentLog, SubscriptionPlan } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-const CURRENCIES = ['USD', 'INR', 'EUR', 'GBP', 'CAD'];
 const CREDIT_PACKAGES = [
-  { credits: 50, amount: 2 },
-  { credits: 150, amount: 6, popular: true },
-  { credits: 500, amount: 19 },
-  { credits: 1000, amount: 35 },
+  { credits: 100, amount: 999 },
+  { credits: 250, amount: 1999, popular: true },
+  { credits: 600, amount: 4499 },
+  { credits: 1200, amount: 7999 },
 ];
 
 type TabType = 'plans' | 'subscriptions' | 'one-time' | 'history';
 
+const formatInr = (amount: number): string =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(amount);
+
 export const PricingHub: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('plans');
-  const [currency, setCurrency] = useState('INR');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Plans state
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-
-  // Subscriptions state
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
-  const [cancelingId, setCancelingId] = useState<string | null>(null);
-  const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
+  const [logs, setLogs] = useState<PaymentLog[]>([]);
 
-  // One-time payment state
   const [selectedPackage, setSelectedPackage] = useState(CREDIT_PACKAGES[1]);
   const [customCredits, setCustomCredits] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
 
-  // Payment history state
-  const [logs, setLogs] = useState<PaymentLog[]>([]);
-  const [totalSpent, setTotalSpent] = useState(0);
-  const [totalCredits, setTotalCredits] = useState(0);
-
-  // Coupon state
-  const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
-
-  // Load data based on active tab
   useEffect(() => {
     const loadData = async () => {
       try {
-        setIsLoading(true);
         setError(null);
+        setIsLoading(true);
 
         if (activeTab === 'plans') {
           const response = await apiClient.getSubscriptionPlans(0, 100, true);
           setPlans(response.data?.items || []);
-        } else if (activeTab === 'subscriptions' && isAuthenticated) {
+        }
+
+        if (activeTab === 'subscriptions' && isAuthenticated) {
           const response = await apiClient.getSubscriptions(0, 100);
           setSubscriptions(response.data?.items || []);
-        } else if (activeTab === 'history' && isAuthenticated) {
-          const response = await apiClient.getPaymentLogs(0, 100);
-          const items = response.data?.items || [];
-          setLogs(items);
+        }
 
-          let spent = 0;
-          let credits = 0;
-          items.forEach((log: PaymentLog) => {
-            if (log.status === 'success' || log.status === 'succeeded') {
-              spent += log.amount_paid;
-              credits += log.credits_added;
-            }
-          });
-          setTotalSpent(spent);
-          setTotalCredits(credits);
+        if (activeTab === 'history' && isAuthenticated) {
+          const response = await apiClient.getPaymentLogs(0, 100);
+          setLogs(response.data?.items || []);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load data');
-        console.error(err);
+        setError(err instanceof Error ? err.message : 'Failed to load pricing details');
       } finally {
         setIsLoading(false);
       }
@@ -85,36 +68,31 @@ export const PricingHub: React.FC = () => {
     loadData();
   }, [activeTab, isAuthenticated]);
 
-  const getConvertedAmount = (amount: number): string => {
-    if (currency === 'USD') return amount.toFixed(2);
-    if (currency === 'INR') return (amount * 83).toFixed(0);
-    if (currency === 'EUR') return (amount * 0.92).toFixed(2);
-    if (currency === 'GBP') return (amount * 0.79).toFixed(2);
-    if (currency === 'CAD') return (amount * 1.36).toFixed(2);
-    return amount.toFixed(2);
-  };
+  const totals = useMemo(() => {
+    const successful = logs.filter((log) => ['success', 'succeeded'].includes(log.status.toLowerCase()));
+    return {
+      totalSpent: successful.reduce((sum, log) => sum + log.amount_paid, 0),
+      totalCredits: successful.reduce((sum, log) => sum + log.credits_added, 0),
+    };
+  }, [logs]);
 
-  const handleCancelSubscription = async (subscriptionId: string) => {
-    try {
-      setCancelingId(subscriptionId);
-      await apiClient.cancelSubscription(subscriptionId);
-      setSubscriptions(subs => subs.filter(s => s._id !== subscriptionId));
-      setConfirmCancel(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to cancel subscription');
-    } finally {
-      setCancelingId(null);
+  const handleCustomCredits = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value) || null;
+    setCustomCredits(value);
+    if (value) {
+      setCustomAmount(Math.round(value * 8));
     }
   };
 
   const handleSelectPlan = async (plan: SubscriptionPlan) => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user) {
       setError('Please sign in to subscribe');
       return;
     }
+
     try {
       setIsProcessing(true);
-      const response = await apiClient.createSubscription(plan._id as string, user!._id);
+      const response = await apiClient.createSubscription(plan._id, user._id);
       if (response.short_url) {
         window.location.href = response.short_url;
       }
@@ -125,28 +103,20 @@ export const PricingHub: React.FC = () => {
   };
 
   const handleOneTimePayment = async () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user) {
       setError('Please sign in to purchase credits');
       return;
     }
 
-    const pkg = customCredits
-      ? { credits: customCredits, amount: customAmount || 0 }
-      : selectedPackage;
-
-    if (!pkg || pkg.credits === 0) {
+    const pkg = customCredits ? { credits: customCredits, amount: customAmount || 0 } : selectedPackage;
+    if (!pkg || pkg.credits <= 0) {
       setError('Please select a package');
       return;
     }
 
     try {
       setIsProcessing(true);
-      const response = await apiClient.createPaymentOrder(
-        pkg.amount,
-        currency,
-        pkg.credits,
-        `credits_${user!._id}_${Date.now()}`
-      );
+      const response = await apiClient.createPaymentOrder(pkg.amount, 'INR', pkg.credits, `credits_${user._id}_${Date.now()}`);
 
       if (response.data?.order_id) {
         const options = {
@@ -160,19 +130,18 @@ export const PricingHub: React.FC = () => {
               await apiClient.verifyPayment(
                 razorpayResponse.razorpay_payment_id,
                 razorpayResponse.razorpay_order_id,
-                razorpayResponse.razorpay_signature
+                razorpayResponse.razorpay_signature,
               );
-              // Success
               setError(null);
               alert('Payment successful! Credits added to your account.');
               setActiveTab('history');
-            } catch (err) {
+            } catch {
               setError('Payment verification failed');
             }
           },
           prefill: {
-            email: user?.email,
-            name: `${user?.firstName} ${user?.lastName}`,
+            email: user.email,
+            name: `${user.firstName} ${user.lastName}`,
           },
           theme: { color: '#06B6D4' },
         };
@@ -187,344 +156,121 @@ export const PricingHub: React.FC = () => {
     }
   };
 
-  const handleCustomCredits = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value) || null;
-    setCustomCredits(value);
-    if (value) {
-      const baseAmount = (value / 50) * 2;
-      setCustomAmount(baseAmount);
-    }
-  };
-
-  const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
+  const handleCancelSubscription = async (subscriptionId: string) => {
     try {
-      setAppliedCoupon({ code: couponCode });
+      setCancelingId(subscriptionId);
+      await apiClient.cancelSubscription(subscriptionId);
+      setSubscriptions((subs) => subs.filter((s) => s._id !== subscriptionId));
+      setConfirmCancel(null);
     } catch (err) {
-      setError('Invalid coupon code');
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'active':
-        return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700';
-      case 'success':
-      case 'succeeded':
-        return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700';
-      case 'pending':
-      case 'created':
-        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700';
-      case 'cancelled':
-      case 'failed':
-        return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700';
-      default:
-        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700';
+      setError(err instanceof Error ? err.message : 'Failed to cancel subscription');
+    } finally {
+      setCancelingId(null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 py-12">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-12 text-center">
-          <h1 className="text-6xl font-black text-slate-900 dark:text-white mb-4">
-            Pricing & Payments
-          </h1>
-          <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-            Choose a plan that works for you. Always flexible, always affordable.
-          </p>
+        <div className="rounded-3xl bg-gradient-to-br from-cyan-600 to-blue-700 text-white p-8 md:p-10 shadow-xl mb-8">
+          <p className="text-xs uppercase tracking-[0.2em] text-white/80 mb-3">Simple Pricing</p>
+          <h1 className="text-4xl md:text-5xl font-black mb-3">Scale your resume workflow</h1>
+          <p className="text-white/90 max-w-2xl">Clean pricing inspired by modern SaaS pages: transparent plans, rupee-only checkout, and everything manageable from Profile.</p>
         </div>
 
-        {/* Error Message */}
         {error && (
-          <div className="mb-8 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
-              <p className="text-red-700 dark:text-red-400 font-medium">{error}</p>
-            </div>
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm font-semibold flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" /> {error}
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex flex-wrap gap-3 mb-12 pb-6 border-b-2 border-slate-200 dark:border-slate-800 justify-center sm:justify-start">
+        <div className="mb-7 flex flex-wrap gap-2">
           {[
-            { id: 'plans' as TabType, label: 'Plans', icon: CreditCard },
+            { id: 'plans' as TabType, label: 'Plans', icon: Sparkles },
             { id: 'subscriptions' as TabType, label: 'Subscriptions', icon: Settings },
             { id: 'one-time' as TabType, label: 'Buy Credits', icon: Gift },
-            { id: 'history' as TabType, label: 'History', icon: History },
-          ].map(tab => {
+            { id: 'history' as TabType, label: 'History', icon: CreditCard },
+          ].map((tab) => {
             const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
-                  isActive
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/50'
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold border ${
+                  activeTab === tab.id
+                    ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
+                    : 'bg-white text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800'
                 }`}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-4 w-4" />
                 {tab.label}
               </button>
             );
           })}
         </div>
 
-        {/* Currency Selector (for plans and one-time) */}
-        {(activeTab === 'plans' || activeTab === 'one-time') && (
-          <div className="flex justify-center mb-8">
-            <div className="inline-flex items-center gap-3 p-2 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 px-4">Currency:</span>
-              <div className="flex gap-2">
-                {CURRENCIES.map((curr) => (
-                  <button
-                    key={curr}
-                    onClick={() => setCurrency(curr)}
-                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                      currency === curr
-                        ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    {curr}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Loading State */}
         {isLoading && (
-          <div className="text-center py-20">
-            <Loader className="h-12 w-12 animate-spin text-slate-400 dark:text-slate-600 mx-auto mb-4" />
-            <p className="text-slate-600 dark:text-slate-400 font-medium">Loading...</p>
+          <div className="py-20 text-center">
+            <Loader className="h-10 w-10 mx-auto animate-spin text-slate-500" />
           </div>
         )}
 
-        {/* TAB CONTENT */}
-
-        {/* PLANS TAB */}
         {activeTab === 'plans' && !isLoading && (
-          <div className="space-y-8">
-            {/* Plans Grid */}
-            <div className="grid md:grid-cols-2 gap-8">
-              {plans.length === 0 ? (
-                <div className="col-span-2 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-slate-200 dark:border-slate-800 p-12 text-center">
-                  <p className="text-slate-600 dark:text-slate-400 font-medium">No plans available</p>
-                </div>
-              ) : (
-                plans.map((plan) => (
-                  <div
-                    key={plan._id}
-                    className="group relative rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 overflow-hidden hover:border-slate-400 dark:hover:border-slate-700 transition-all duration-300 hover:shadow-xl"
-                  >
-                    <div className="relative p-8 space-y-6 h-full flex flex-col">
-                      <div>
-                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                          {plan.plan_name}
-                        </h3>
-                        <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-                          {plan.description}
-                        </p>
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-5xl font-black text-slate-900 dark:text-white">
-                            {getConvertedAmount(plan.amount)}
-                          </span>
-                          <span className="text-slate-600 dark:text-slate-400 font-semibold text-lg">
-                            {currency}
-                          </span>
-                        </div>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
-                          Per {plan.period}
-                        </p>
-                      </div>
-
-                      <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Zap className="h-5 w-5 text-slate-700 dark:text-slate-300" />
-                          <span className="font-bold text-slate-900 dark:text-white">
-                            {plan.credits_per_cycle} Credits
-                          </span>
-                        </div>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
-                          Every {plan.period}
-                        </p>
-                      </div>
-
-                      <div className="mt-auto">
-                        <Button
-                          onClick={() => handleSelectPlan(plan)}
-                          disabled={isProcessing || !isAuthenticated}
-                          className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 text-white font-bold py-3 rounded-lg transition-all disabled:opacity-50"
-                        >
-                          {isProcessing ? 'Processing...' : isAuthenticated ? 'Subscribe Now' : 'Sign In'}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Coupon Section */}
-            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-slate-200 dark:border-slate-800 p-8 max-w-md mx-auto">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Have a coupon?</h3>
-              <div className="flex gap-2">
-                <Input
-                  type="text"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                  placeholder="Enter code"
-                  className="flex-1"
-                />
-                <Button
-                  onClick={handleApplyCoupon}
-                  className="bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 text-white font-bold px-6"
-                >
-                  Apply
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {plans.map((plan) => (
+              <div key={plan._id} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 flex flex-col">
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white">{plan.plan_name}</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 min-h-12">{plan.description}</p>
+                <p className="text-4xl font-black text-slate-900 dark:text-white mt-4">{formatInr(plan.amount)}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Per {plan.period}</p>
+                <p className="mt-4 text-sm font-semibold text-cyan-700 dark:text-cyan-300">{plan.credits_per_cycle} credits every cycle</p>
+                <ul className="mt-5 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-cyan-600" /> Optimized ATS scoring support</li>
+                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-cyan-600" /> Fast resume tailoring workflows</li>
+                </ul>
+                <Button className="mt-6" disabled={isProcessing || !isAuthenticated} onClick={() => handleSelectPlan(plan)}>
+                  {isAuthenticated ? 'Choose plan' : 'Sign in to subscribe'}
                 </Button>
               </div>
-              {appliedCoupon && (
-                <p className="text-green-600 dark:text-green-400 text-sm font-medium mt-3">
-                  ✓ Coupon "{appliedCoupon.code}" applied!
-                </p>
-              )}
-            </div>
+            ))}
           </div>
         )}
 
-        {/* SUBSCRIPTIONS TAB */}
         {activeTab === 'subscriptions' && !isLoading && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {!isAuthenticated ? (
-              <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-slate-200 dark:border-slate-800 p-12 text-center">
-                <p className="text-slate-600 dark:text-slate-400 font-medium mb-4">
-                  Please sign in to view your subscriptions
-                </p>
-                <a href="/login" className="text-slate-900 dark:text-white font-bold hover:underline">
-                  Sign In
-                </a>
-              </div>
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-10 text-center text-slate-600 dark:text-slate-400">Please sign in to view subscriptions.</div>
             ) : subscriptions.length === 0 ? (
-              <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-slate-200 dark:border-slate-800 p-12 text-center">
-                <CreditCard className="h-16 w-16 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                  No Active Subscriptions
-                </h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6">
-                  Start a subscription to get recurring credits.
-                </p>
-                <button
-                  onClick={() => setActiveTab('plans')}
-                  className="px-6 py-3 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 text-white font-bold rounded-lg transition-all"
-                >
-                  View Plans
-                </button>
-              </div>
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-10 text-center text-slate-600 dark:text-slate-400">No active subscriptions found.</div>
             ) : (
-              subscriptions.map(subscription => (
-                <div
-                  key={subscription._id}
-                  className="bg-white dark:bg-slate-900/50 rounded-2xl border-2 border-slate-200 dark:border-slate-800 p-6 hover:border-slate-400 dark:hover:border-slate-700 transition-all"
-                >
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                    <div className="flex-1 space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800">
-                          <Zap className="h-6 w-6 text-slate-700 dark:text-slate-300" />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                            {subscription.plan?.plan_name || 'Subscription'}
-                          </h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            {subscription.plan?.credits_per_cycle || 0} credits per {subscription.plan?.period || 'period'}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="grid sm:grid-cols-2 gap-4 pt-4 border-t-2 border-slate-200 dark:border-slate-800">
-                        <div>
-                          <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold uppercase mb-1">
-                            Status
-                          </p>
-                          <div className={`inline-flex px-3 py-1.5 rounded-full font-bold text-sm border-2 capitalize ${getStatusColor(subscription.status)}`}>
-                            {subscription.status}
-                          </div>
-                        </div>
-                        {subscription.current_period_end && (
-                          <div>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold uppercase mb-1 flex items-center gap-1">
-                              <Calendar className="h-4 w-4" />
-                              Renews On
-                            </p>
-                            <p className="text-sm font-bold text-slate-900 dark:text-white">
-                              {new Date(subscription.current_period_end).toLocaleDateString()}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      {subscription.status !== 'cancelled' && (
-                        <>
-                          {confirmCancel === subscription._id ? (
-                            <div className="space-y-2 bg-red-50 dark:bg-red-950/20 p-4 rounded-lg border-2 border-red-200 dark:border-red-800">
-                              <p className="text-sm font-bold text-slate-900 dark:text-white">
-                                Cancel?
-                              </p>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleCancelSubscription(subscription._id)}
-                                  disabled={cancelingId === subscription._id}
-                                  className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold rounded-lg transition-all text-sm"
-                                >
-                                  {cancelingId === subscription._id ? 'Canceling...' : 'Confirm'}
-                                </button>
-                                <button
-                                  onClick={() => setConfirmCancel(null)}
-                                  className="flex-1 px-3 py-2 bg-slate-300 dark:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-lg transition-all text-sm"
-                                >
-                                  Back
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setConfirmCancel(subscription._id)}
-                              className="px-4 py-2 rounded-lg border-2 border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold transition-all"
-                            >
-                              Cancel
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
+              subscriptions.map((subscription) => (
+                <div key={subscription._id} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white">Subscription #{subscription._id.slice(-6)}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 flex items-center gap-2 mt-1"><Calendar className="h-4 w-4" /> Status: {subscription.status}</p>
                   </div>
+                  {confirmCancel === subscription._id ? (
+                    <div className="flex gap-2">
+                      <Button variant="destructive" disabled={cancelingId === subscription._id} onClick={() => handleCancelSubscription(subscription._id)}>
+                        Confirm Cancel
+                      </Button>
+                      <Button variant="outline" onClick={() => setConfirmCancel(null)}>Keep</Button>
+                    </div>
+                  ) : (
+                    <Button variant="outline" onClick={() => setConfirmCancel(subscription._id)}>Cancel Plan</Button>
+                  )}
                 </div>
               ))
             )}
           </div>
         )}
 
-        {/* ONE-TIME PAYMENT TAB */}
         {activeTab === 'one-time' && !isLoading && (
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="md:col-span-2 space-y-6">
-              {/* Preset Packages */}
-              <div className="bg-white dark:bg-slate-900/50 rounded-2xl border-2 border-slate-200 dark:border-slate-800 p-6">
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
-                  Choose a Package
-                </h2>
-                <div className="grid grid-cols-2 gap-4">
+          <div className="grid lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Choose credit package</h2>
+                <div className="grid sm:grid-cols-2 gap-4">
                   {CREDIT_PACKAGES.map((pkg) => (
                     <button
                       key={pkg.credits}
@@ -532,206 +278,85 @@ export const PricingHub: React.FC = () => {
                         setSelectedPackage(pkg);
                         setCustomCredits(null);
                       }}
-                      className={`p-4 rounded-xl border-2 transition-all ${
-                        selectedPackage?.credits === pkg.credits && !customCredits
-                          ? 'border-slate-900 dark:border-white bg-slate-50 dark:bg-slate-800/50'
-                          : 'border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700'
-                      } relative group`}
+                      className={`text-left rounded-xl border p-4 transition ${
+                        selectedPackage.credits === pkg.credits && !customCredits
+                          ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-950/30'
+                          : 'border-slate-200 dark:border-slate-800 hover:border-cyan-400'
+                      }`}
                     >
-                      {pkg.popular && (
-                        <div className="absolute top-0 right-0 bg-slate-900 dark:bg-white dark:text-slate-900 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-xl">
-                          Popular
-                        </div>
-                      )}
-                      <div className="text-left">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Zap className="h-5 w-5 text-slate-700 dark:text-slate-300" />
-                          <span className="font-bold text-slate-900 dark:text-white">
-                            {pkg.credits}
-                          </span>
-                        </div>
-                        <p className="text-lg font-bold text-slate-900 dark:text-white">
-                          {getConvertedAmount(pkg.amount)}
-                        </p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                          {(pkg.amount / pkg.credits * 100).toFixed(1)}¢ per credit
-                        </p>
-                      </div>
+                      <p className="font-bold text-slate-900 dark:text-white">{pkg.credits} credits</p>
+                      <p className="text-2xl font-black text-slate-900 dark:text-white mt-2">{formatInr(pkg.amount)}</p>
+                      {pkg.popular && <p className="text-xs font-semibold text-cyan-700 dark:text-cyan-300 mt-2">Most popular</p>}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Custom Amount */}
-              <div className="bg-white dark:bg-slate-900/50 rounded-2xl border-2 border-slate-200 dark:border-slate-800 p-6">
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
-                  Or Enter Custom Amount
-                </h2>
-                <Input
-                  type="number"
-                  value={customCredits || ''}
-                  onChange={handleCustomCredits}
-                  placeholder="Enter credits"
-                  min="1"
-                  max="50000"
-                />
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Custom credits</h2>
+                <Input type="number" value={customCredits || ''} onChange={handleCustomCredits} min="1" placeholder="Enter credits" />
               </div>
             </div>
 
-            {/* Order Summary */}
-            <div className="md:col-span-1">
-              <div className="sticky top-20 bg-slate-100 dark:bg-slate-800/50 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-6 space-y-6">
-                <div>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 font-semibold mb-2 uppercase">
-                    Order Summary
-                  </p>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-slate-700 dark:text-slate-300">Credits</span>
-                      <span className="font-bold text-slate-900 dark:text-white">
-                        {customCredits || selectedPackage?.credits || 0}
-                      </span>
-                    </div>
-                    <div className="flex justify-between pb-3 border-b-2 border-slate-300 dark:border-slate-700">
-                      <span className="text-slate-700 dark:text-slate-300">Amount</span>
-                      <span className="font-bold text-slate-900 dark:text-white">
-                        {getConvertedAmount(customAmount || selectedPackage?.amount || 0)} {currency}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-lg">
-                      <span className="font-bold text-slate-900 dark:text-white">Total</span>
-                      <span className="font-black text-slate-900 dark:text-white text-xl">
-                        {getConvertedAmount(customAmount || selectedPackage?.amount || 0)} {currency}
-                      </span>
-                    </div>
-                  </div>
+            <div>
+              <div className="sticky top-24 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4">
+                <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Order summary</p>
+                <div className="flex justify-between text-sm"><span>Credits</span><span className="font-bold">{customCredits || selectedPackage.credits}</span></div>
+                <div className="flex justify-between text-sm border-b border-slate-200 dark:border-slate-800 pb-3"><span>Amount</span><span className="font-bold">{formatInr(customAmount || selectedPackage.amount)}</span></div>
+                <div className="flex justify-between text-lg"><span className="font-bold">Total</span><span className="font-black">{formatInr(customAmount || selectedPackage.amount)}</span></div>
+                <Button className="w-full" disabled={isProcessing || !isAuthenticated} onClick={handleOneTimePayment}>{isAuthenticated ? 'Pay now' : 'Sign in to buy'}</Button>
+                <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                  <p>✓ Price displayed only in INR</p>
+                  <p>✓ No hidden charges</p>
                 </div>
-
-                <Button
-                  onClick={handleOneTimePayment}
-                  disabled={isProcessing || !isAuthenticated || (customCredits === null && selectedPackage?.credits === 0)}
-                  className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 text-white font-bold py-3 rounded-lg transition-all disabled:opacity-50"
-                >
-                  {isProcessing ? 'Processing...' : isAuthenticated ? 'Pay Now' : 'Sign In to Buy'}
-                </Button>
-
-                <p className="text-xs text-slate-600 dark:text-slate-400 text-center space-y-1">
-                  <div>✓ Credits never expire</div>
-                  <div>✓ No hidden charges</div>
-                </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* PAYMENT HISTORY TAB */}
         {activeTab === 'history' && !isLoading && (
           <div className="space-y-6">
             {!isAuthenticated ? (
-              <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-slate-200 dark:border-slate-800 p-12 text-center">
-                <p className="text-slate-600 dark:text-slate-400 font-medium mb-4">
-                  Please sign in to view payment history
-                </p>
-                <a href="/login" className="text-slate-900 dark:text-white font-bold hover:underline">
-                  Sign In
-                </a>
-              </div>
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-10 text-center text-slate-600 dark:text-slate-400">Please sign in to view payment history.</div>
             ) : (
               <>
-                {/* Stats */}
-                {logs.length > 0 && (
-                  <div className="grid md:grid-cols-2 gap-6 mb-8">
-                    <div className="bg-slate-100 dark:bg-slate-800/50 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-6">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 font-semibold mb-2 uppercase">
-                            Total Spent
-                          </p>
-                          <p className="text-3xl font-black text-slate-900 dark:text-white">
-                            ${totalSpent.toFixed(2)}
-                          </p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-slate-200 dark:bg-slate-700">
-                          <CreditCard className="h-6 w-6 text-slate-700 dark:text-slate-300" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-100 dark:bg-slate-800/50 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-6">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 font-semibold mb-2 uppercase">
-                            Total Credits
-                          </p>
-                          <p className="text-3xl font-black text-slate-900 dark:text-white">
-                            {totalCredits}
-                          </p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-slate-200 dark:bg-slate-700">
-                          <TrendingUp className="h-6 w-6 text-slate-700 dark:text-slate-300" />
-                        </div>
-                      </div>
-                    </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Total Spent</p>
+                    <p className="text-3xl font-black text-slate-900 dark:text-white">{formatInr(totals.totalSpent)}</p>
                   </div>
-                )}
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Credits Purchased</p>
+                    <p className="text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2">{totals.totalCredits} <TrendingUp className="h-5 w-5 text-cyan-600" /></p>
+                  </div>
+                </div>
 
-                {/* Transactions */}
-                <div className="bg-white dark:bg-slate-900/50 rounded-2xl border-2 border-slate-200 dark:border-slate-800 overflow-hidden">
-                  {logs.length === 0 ? (
-                    <div className="p-12 text-center">
-                      <CreditCard className="h-16 w-16 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
-                      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                        No Payment History
-                      </h3>
-                      <p className="text-slate-600 dark:text-slate-400">
-                        You haven't made any payments yet.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-900 dark:text-white uppercase">
-                              Date
-                            </th>
-                            <th className="px-6 py-4 text-right text-xs font-bold text-slate-900 dark:text-white uppercase">
-                              Amount
-                            </th>
-                            <th className="px-6 py-4 text-right text-xs font-bold text-slate-900 dark:text-white uppercase">
-                              Credits
-                            </th>
-                            <th className="px-6 py-4 text-center text-xs font-bold text-slate-900 dark:text-white uppercase">
-                              Status
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {logs.map((log, idx) => (
-                            <tr
-                              key={log._id}
-                              className={`border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors`}
-                            >
-                              <td className="px-6 py-4 text-sm text-slate-700 dark:text-slate-300 font-medium">
-                                {new Date(log.created_at).toLocaleDateString()}
-                              </td>
-                              <td className="px-6 py-4 text-sm text-right text-slate-900 dark:text-white font-bold">
-                                {log.amount_paid.toFixed(2)} {log.currency}
-                              </td>
-                              <td className="px-6 py-4 text-sm text-right text-slate-900 dark:text-white font-bold">
-                                +{log.credits_added}
-                              </td>
-                              <td className="px-6 py-4 text-center">
-                                <span className={`inline-flex px-3 py-1.5 rounded-full font-bold text-xs border-2 capitalize ${getStatusColor(log.status)}`}>
-                                  {log.status}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto">
+                  <table className="w-full min-w-[620px]">
+                    <thead className="bg-slate-50 dark:bg-slate-800/50">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs uppercase text-slate-600 dark:text-slate-400">Date</th>
+                        <th className="px-6 py-4 text-right text-xs uppercase text-slate-600 dark:text-slate-400">Amount (INR)</th>
+                        <th className="px-6 py-4 text-right text-xs uppercase text-slate-600 dark:text-slate-400">Credits</th>
+                        <th className="px-6 py-4 text-center text-xs uppercase text-slate-600 dark:text-slate-400">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {logs.map((log) => (
+                        <tr key={log._id} className="border-t border-slate-200 dark:border-slate-800">
+                          <td className="px-6 py-4 text-sm text-slate-700 dark:text-slate-300">{new Date(log.created_at).toLocaleDateString()}</td>
+                          <td className="px-6 py-4 text-sm text-right font-semibold text-slate-900 dark:text-white">{formatInr(log.amount_paid)}</td>
+                          <td className="px-6 py-4 text-sm text-right text-slate-900 dark:text-white">+{log.credits_added}</td>
+                          <td className="px-6 py-4 text-center"><span className="inline-flex rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-xs uppercase text-slate-700 dark:text-slate-300">{log.status}</span></td>
+                        </tr>
+                      ))}
+                      {logs.length === 0 && (
+                        <tr>
+                          <td className="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400" colSpan={4}>No payment history yet.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </>
             )}
@@ -739,7 +364,6 @@ export const PricingHub: React.FC = () => {
         )}
       </div>
 
-      {/* Razorpay Script */}
       <script src="https://checkout.razorpay.com/v1/checkout.js" async />
     </div>
   );
