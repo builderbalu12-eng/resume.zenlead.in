@@ -105,7 +105,13 @@ export const PricingHub: React.FC = () => {
       setSubscribingPlanId(plan._id);
 
       const selectedPlan = await apiClient.getSubscriptionPlan(plan._id);
-      const response = await apiClient.createSubscription(selectedPlan._id, user._id);
+      const razorpayPlanId = selectedPlan?.razorpay_plan_id;
+
+      if (!razorpayPlanId) {
+        throw new Error('Selected plan is misconfigured. Missing Razorpay plan id.');
+      }
+
+      const response = await apiClient.createSubscription(razorpayPlanId, user._id);
 
       if (!response.short_url) {
         throw new Error('Failed to generate payment link');
