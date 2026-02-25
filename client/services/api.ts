@@ -1,6 +1,6 @@
 // API client for ResumeMatch Pro backend
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 
 export interface AuthResponse {
   status: number;
@@ -84,22 +84,28 @@ class APIClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<any> {
-    const url = `${this.baseUrl}${endpoint}`;
+    const url = this.baseUrl ? `${this.baseUrl}${endpoint}` : endpoint;
     const token = localStorage.getItem('auth_token');
 
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
-
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
+    const headers = new Headers(options.headers || {});
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    let response: Response;
+
+    try {
+      response = await fetch(url, {
+        ...options,
+        headers,
+      });
+    } catch {
+      throw new Error('Unable to reach payment server. Please try again.');
+    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
