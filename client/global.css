@@ -123,9 +123,9 @@
     @apply font-bold;
   }
 
-  :where(p, span, li, a, button, label, td, th) {
-    overflow-wrap: anywhere;
-    word-break: break-word;
+  :where(p, li, td, th) {
+    overflow-wrap: break-word;
+    word-break: normal;
   }
 
   pre,
