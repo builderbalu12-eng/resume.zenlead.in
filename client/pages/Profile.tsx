@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { CalendarClock, CreditCard, Loader2, PencilLine, ReceiptText, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient, PaymentLog, SubscriptionPlan } from '@/services/api';
@@ -16,7 +17,17 @@ const formatRupees = (amount: number) =>
 
 export const Profile: React.FC = () => {
   const { user, isAuthenticated, updateCurrentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<ProfileTab>('account');
+  const [searchParams] = useSearchParams();
+
+  const initialTab = useMemo<ProfileTab>(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'plans' || tab === 'subscriptions' || tab === 'history' || tab === 'account') {
+      return tab;
+    }
+    return 'account';
+  }, [searchParams]);
+
+  const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +45,10 @@ export const Profile: React.FC = () => {
     setFirstName(user.firstName);
     setLastName(user.lastName);
   }, [user]);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   useEffect(() => {
     const loadData = async () => {

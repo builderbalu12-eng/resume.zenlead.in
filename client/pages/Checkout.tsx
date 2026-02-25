@@ -11,6 +11,16 @@ declare global {
   }
 }
 
+const withRedirectUrl = (checkoutUrl: string) => {
+  try {
+    const url = new URL(checkoutUrl);
+    url.searchParams.set('redirect_url', `${window.location.origin}/payment/success?source=subscription`);
+    return url.toString();
+  } catch {
+    return checkoutUrl;
+  }
+};
+
 export const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -63,7 +73,7 @@ export const Checkout: React.FC = () => {
       }
 
       // Redirect to Razorpay checkout
-      window.location.href = response.short_url;
+      window.location.href = withRedirectUrl(response.short_url);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process subscription');
       setIsProcessing(false);

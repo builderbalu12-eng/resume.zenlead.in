@@ -11,6 +11,7 @@ import { Register } from "./pages/Register";
 import { AuthCallback } from "./pages/AuthCallback";
 import { PricingHub } from "./pages/PricingHub";
 import { Profile } from "./pages/Profile";
+import { PaymentSuccess } from "./pages/PaymentSuccess";
 import { Header } from "./components/Header";
 import { Settings } from "./components/Settings";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -52,6 +53,7 @@ function AppContent() {
 
         {/* Pricing & Payments Hub */}
         <Route path="/pricing" element={<PricingHub />} />
+        <Route path="/payment/success" element={<PaymentSuccess />} />
 
         {/* Protected Feature Routes */}
         <Route

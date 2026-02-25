@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Calendar, Check, CreditCard, Gift, Loader, Settings, Sparkles, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient, PaymentLog, SubscriptionPlan } from '@/services/api';
@@ -21,7 +22,19 @@ const formatInr = (amount: number): string =>
     maximumFractionDigits: 0,
   }).format(amount);
 
+
+const withRedirectUrl = (checkoutUrl: string) => {
+  try {
+    const url = new URL(checkoutUrl);
+    url.searchParams.set('redirect_url', `${window.location.origin}/payment/success?source=subscription`);
+    return url.toString();
+  } catch {
+    return checkoutUrl;
+  }
+};
+
 export const PricingHub: React.FC = () => {
+  const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('plans');
   const [isLoading, setIsLoading] = useState(false);
@@ -107,7 +120,7 @@ export const PricingHub: React.FC = () => {
 
       const response = await apiClient.createSubscription(selectedPlan.razorpay_plan_id, user._id);
       if (response.short_url) {
-        window.location.href = response.short_url;
+        window.location.href = withRedirectUrl(response.short_url);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process subscription');
@@ -140,19 +153,14 @@ export const PricingHub: React.FC = () => {
           currency: response.data.currency,
           order_id: response.data.order_id,
           description: response.data.description,
-          handler: async (razorpayResponse: any) => {
-            try {
-              await apiClient.verifyPayment(
-                razorpayResponse.razorpay_payment_id,
-                razorpayResponse.razorpay_order_id,
-                razorpayResponse.razorpay_signature,
-              );
-              setError(null);
-              alert('Payment successful! Credits added to your account.');
-              setActiveTab('history');
-            } catch {
-              setError('Payment verification failed');
-            }
+          handler: async () => {
+            setError(null);
+            navigate('/payment/success?source=topup');
+          },
+          modal: {
+            ondismiss: () => {
+              setIsOrderProcessing(false);
+            },
           },
           prefill: {
             email: user.email,
@@ -162,11 +170,14 @@ export const PricingHub: React.FC = () => {
         };
 
         const razorpay = new (window as any).Razorpay(options);
+        razorpay.on('payment.failed', () => {
+          setError('Payment failed. Please try again.');
+          setIsOrderProcessing(false);
+        });
         razorpay.open();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process payment');
-    } finally {
       setIsOrderProcessing(false);
     }
   };
