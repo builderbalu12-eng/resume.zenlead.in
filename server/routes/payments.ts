@@ -656,6 +656,7 @@ export const webhookHandler: RequestHandler = async (req, res) => {
     const data = req.body.data;
 
     console.log(`Webhook event received: ${event}`);
+    console.log(`Event data:`, JSON.stringify(data, null, 2));
 
     switch (event) {
       case "payment.authorized":
@@ -690,6 +691,7 @@ export const webhookHandler: RequestHandler = async (req, res) => {
 
       case "subscription.activated":
         // Subscription activated
+        console.log(`Processing subscription.activated: ${data.subscription.id}`);
         const subscription = await Subscription.findOneAndUpdate(
           { razorpay_subscription_id: data.subscription.id },
           {
@@ -702,15 +704,19 @@ export const webhookHandler: RequestHandler = async (req, res) => {
 
         // Add initial credits for subscription activation
         if (subscription) {
+          console.log(`Found subscription for user: ${subscription.user_id}`);
           const plan = subscription.plan_id as any;
           const creditsPerCycle = plan?.credits_per_cycle || 0;
+          console.log(`Plan credits per cycle: ${creditsPerCycle}`);
+
           if (creditsPerCycle > 0 && subscription.user_id) {
             try {
-              await CreditsService.addCredits(
+              const newCredits = await CreditsService.addCredits(
                 subscription.user_id,
                 creditsPerCycle,
                 data.subscription.id
               );
+              console.log(`Credits added successfully. New balance: ${newCredits}`);
 
               // Create payment log for the initial subscription charge
               await PaymentLog.create({
@@ -725,10 +731,15 @@ export const webhookHandler: RequestHandler = async (req, res) => {
                 payment_method: "subscription",
                 description: `Subscription activation - ${plan?.plan_name || "Plan"}`,
               });
+              console.log(`Payment log created for subscription activation`);
             } catch (error) {
               console.error("Error adding credits for subscription activation:", error);
             }
+          } else {
+            console.log(`Skipping credit addition: creditsPerCycle=${creditsPerCycle}, userId=${subscription.user_id}`);
           }
+        } else {
+          console.log(`Subscription not found for Razorpay ID: ${data.subscription.id}`);
         }
         break;
 

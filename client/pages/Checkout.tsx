@@ -14,9 +14,12 @@ declare global {
 const withRedirectUrl = (checkoutUrl: string) => {
   try {
     const url = new URL(checkoutUrl);
-    url.searchParams.set('redirect_url', `${window.location.origin}/payment/success?source=subscription`);
+    const successUrl = `${window.location.origin}/payment/success?source=subscription`;
+    url.searchParams.set('redirect_url', successUrl);
+    console.log('Redirect URL set to:', successUrl);
     return url.toString();
-  } catch {
+  } catch (error) {
+    console.error('Error setting redirect URL:', error);
     return checkoutUrl;
   }
 };
