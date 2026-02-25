@@ -156,8 +156,29 @@ const couponSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+const userSchema = new mongoose.Schema(
+  {
+    _id: String, // Will be set to user ID
+    email: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    credits: {
+      type: Number,
+      default: 0,
+    },
+    masterResume: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+  },
+  { timestamps: true, _id: false }
+);
+
 // ============ MODELS ============
 
+export const User = mongoose.model("User", userSchema);
 export const SubscriptionPlan = mongoose.model(
   "SubscriptionPlan",
   subscriptionPlanSchema

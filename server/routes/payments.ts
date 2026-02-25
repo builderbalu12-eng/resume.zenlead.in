@@ -6,7 +6,9 @@ import {
   Subscription,
   PaymentLog,
   Coupon,
+  User,
 } from "../db";
+import { CreditsService } from "../services/credits";
 
 // Initialize Razorpay
 const razorpay = new Razorpay({
@@ -351,12 +353,17 @@ export const createOrder: RequestHandler = async (req, res) => {
       currency = "INR",
       credits_to_add,
       receipt,
+      user_id,
     } = req.body;
 
     const order = await razorpay.orders.create({
       amount: Math.round(amount * 100), // Convert to paise
       currency,
       receipt,
+      notes: {
+        user_id: user_id || "unknown",
+        credits_to_add,
+      },
     });
 
     res.status(201).json({
@@ -395,23 +402,34 @@ export const verifyPayment: RequestHandler = async (req, res) => {
 
     // Get payment details from Razorpay
     const payment = await razorpay.payments.fetch(razorpay_payment_id);
+    const userId = payment.notes?.user_id || "unknown";
+    const creditsToAdd = parseInt(payment.notes?.credits_to_add || "0");
 
     // Create payment log
     const paymentLog = new PaymentLog({
-      user_id: payment.notes?.user_id || "unknown",
+      user_id: userId,
       transaction_id: razorpay_payment_id,
       order_id: razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
       amount_paid: payment.amount / 100, // Convert from paise
       currency: payment.currency,
-      credits_added: payment.notes?.credits_to_add || 0,
+      credits_added: creditsToAdd,
       status: "success",
       payment_method: payment.method,
       description: payment.description,
     });
 
     const savedLog = await paymentLog.save();
+
+    // Add credits to user if we have a valid user ID and credits
+    if (userId !== "unknown" && creditsToAdd > 0) {
+      try {
+        await CreditsService.addCredits(userId, creditsToAdd, razorpay_payment_id);
+      } catch (error) {
+        console.error("Error adding credits after payment verification:", error);
+      }
+    }
 
     res.json({
       message: "Payment verified successfully",
@@ -642,11 +660,24 @@ export const webhookHandler: RequestHandler = async (req, res) => {
     switch (event) {
       case "payment.authorized":
       case "payment.captured":
-        // Payment successful, update log
-        await PaymentLog.findOneAndUpdate(
+        // Payment successful, update log and add credits
+        const paymentLog = await PaymentLog.findOneAndUpdate(
           { razorpay_payment_id: data.payment.id },
-          { status: "success" }
+          { status: "success" },
+          { new: true }
         );
+
+        if (paymentLog && paymentLog.user_id && paymentLog.credits_added > 0) {
+          try {
+            await CreditsService.addCredits(
+              paymentLog.user_id,
+              paymentLog.credits_added,
+              data.payment.id
+            );
+          } catch (error) {
+            console.error("Error adding credits for payment:", error);
+          }
+        }
         break;
 
       case "payment.failed":
@@ -659,14 +690,46 @@ export const webhookHandler: RequestHandler = async (req, res) => {
 
       case "subscription.activated":
         // Subscription activated
-        await Subscription.findOneAndUpdate(
+        const subscription = await Subscription.findOneAndUpdate(
           { razorpay_subscription_id: data.subscription.id },
           {
             status: "active",
             current_period_start: new Date(data.subscription.current_start * 1000),
             current_period_end: new Date(data.subscription.current_end * 1000),
+          },
+          { new: true }
+        ).populate("plan_id");
+
+        // Add initial credits for subscription activation
+        if (subscription) {
+          const plan = subscription.plan_id as any;
+          const creditsPerCycle = plan?.credits_per_cycle || 0;
+          if (creditsPerCycle > 0 && subscription.user_id) {
+            try {
+              await CreditsService.addCredits(
+                subscription.user_id,
+                creditsPerCycle,
+                data.subscription.id
+              );
+
+              // Create payment log for the initial subscription charge
+              await PaymentLog.create({
+                user_id: subscription.user_id,
+                transaction_id: data.subscription.id,
+                order_id: data.subscription.id,
+                razorpay_payment_id: data.subscription.id,
+                amount_paid: (data.subscription.paid_count || 1) * (plan?.amount || 0),
+                currency: data.subscription.currency || "INR",
+                credits_added: creditsPerCycle,
+                status: "success",
+                payment_method: "subscription",
+                description: `Subscription activation - ${plan?.plan_name || "Plan"}`,
+              });
+            } catch (error) {
+              console.error("Error adding credits for subscription activation:", error);
+            }
           }
-        );
+        }
         break;
 
       case "subscription.paused":
@@ -689,18 +752,42 @@ export const webhookHandler: RequestHandler = async (req, res) => {
         break;
 
       case "subscription.charged":
-        // Subscription charged/renewed
-        await PaymentLog.create({
-          user_id: data.subscription.notes?.user_id || "unknown",
-          transaction_id: data.payment.id,
-          order_id: data.payment.order_id,
-          razorpay_payment_id: data.payment.id,
-          amount_paid: data.payment.amount / 100,
-          currency: data.payment.currency,
-          credits_added: 0, // Will be set by subscription plan
-          status: "success",
-          payment_method: data.payment.method,
-        });
+        // Subscription charged/renewed - add credits
+        const chargedSubscription = await Subscription.findOne({
+          razorpay_subscription_id: data.subscription.id,
+        }).populate("plan_id");
+
+        if (chargedSubscription) {
+          const plan = chargedSubscription.plan_id as any;
+          const creditsPerCycle = plan?.credits_per_cycle || 0;
+
+          // Create payment log
+          const paymentLogEntry = await PaymentLog.create({
+            user_id: chargedSubscription.user_id,
+            transaction_id: data.payment.id,
+            order_id: data.subscription.id,
+            razorpay_payment_id: data.payment.id,
+            amount_paid: data.payment.amount / 100,
+            currency: data.payment.currency,
+            credits_added: creditsPerCycle,
+            status: "success",
+            payment_method: data.payment.method,
+            description: `Subscription charge - ${plan?.plan_name || "Plan"}`,
+          });
+
+          // Add credits
+          if (creditsPerCycle > 0 && chargedSubscription.user_id) {
+            try {
+              await CreditsService.addCredits(
+                chargedSubscription.user_id,
+                creditsPerCycle,
+                data.payment.id
+              );
+            } catch (error) {
+              console.error("Error adding credits for subscription charge:", error);
+            }
+          }
+        }
         break;
 
       default:

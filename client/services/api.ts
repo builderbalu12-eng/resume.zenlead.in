@@ -246,7 +246,7 @@ class APIClient {
     });
   }
 
-  async createPaymentOrder(amount: number, currency: string, creditsToAdd: number, receipt?: string): Promise<any> {
+  async createPaymentOrder(amount: number, currency: string, creditsToAdd: number, receipt?: string, userId?: string): Promise<any> {
     return this.request('/api/payments/create-order', {
       method: 'POST',
       body: JSON.stringify({
@@ -254,6 +254,7 @@ class APIClient {
         currency,
         credits_to_add: creditsToAdd,
         receipt: receipt || `receipt_${Date.now()}`,
+        user_id: userId,
       }),
     });
   }
