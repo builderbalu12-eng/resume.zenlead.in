@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, Calendar, Check, CreditCard, Gift, Loader, Settings, Sparkles, TrendingUp, Zap } from 'lucide-react';
+import { AlertCircle, Calendar, Check, CreditCard, Gift, Loader, Settings, Sparkles, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient, PaymentLog, SubscriptionPlan } from '@/services/api';
 import { Button } from '@/components/ui/button';
@@ -34,7 +34,9 @@ export const PricingHub: React.FC = () => {
   const [selectedPackage, setSelectedPackage] = useState(CREDIT_PACKAGES[1]);
   const [customCredits, setCustomCredits] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState<number | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+
+  const [subscribingPlanId, setSubscribingPlanId] = useState<string | null>(null);
+  const [isOrderProcessing, setIsOrderProcessing] = useState(false);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
 
@@ -85,20 +87,22 @@ export const PricingHub: React.FC = () => {
   };
 
   const handleSelectPlan = async (plan: SubscriptionPlan) => {
-    if (!isAuthenticated || !user) {
+    if (!isAuthenticated) {
       setError('Please sign in to subscribe');
       return;
     }
 
     try {
-      setIsProcessing(true);
-      const response = await apiClient.createSubscription(plan._id, user._id);
+      setError(null);
+      setSubscribingPlanId(plan._id);
+      const response = await apiClient.createSubscription(plan._id);
       if (response.short_url) {
         window.location.href = response.short_url;
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process subscription');
-      setIsProcessing(false);
+    } finally {
+      setSubscribingPlanId(null);
     }
   };
 
@@ -115,7 +119,8 @@ export const PricingHub: React.FC = () => {
     }
 
     try {
-      setIsProcessing(true);
+      setError(null);
+      setIsOrderProcessing(true);
       const response = await apiClient.createPaymentOrder(pkg.amount, 'INR', pkg.credits, `credits_${user._id}_${Date.now()}`);
 
       if (response.data?.order_id) {
@@ -152,7 +157,7 @@ export const PricingHub: React.FC = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process payment');
     } finally {
-      setIsProcessing(false);
+      setIsOrderProcessing(false);
     }
   };
 
@@ -175,7 +180,7 @@ export const PricingHub: React.FC = () => {
         <div className="rounded-3xl bg-gradient-to-br from-cyan-600 to-blue-700 text-white p-8 md:p-10 shadow-xl mb-8">
           <p className="text-xs uppercase tracking-[0.2em] text-white/80 mb-3">Simple Pricing</p>
           <h1 className="text-4xl md:text-5xl font-black mb-3">Scale your resume workflow</h1>
-          <p className="text-white/90 max-w-2xl">Clean pricing inspired by modern SaaS pages: transparent plans, rupee-only checkout, and everything manageable from Profile.</p>
+          <p className="text-white/90 max-w-2xl">Transparent plans and rupee-only pricing.</p>
         </div>
 
         {error && (
@@ -228,8 +233,16 @@ export const PricingHub: React.FC = () => {
                   <li className="flex items-center gap-2"><Check className="h-4 w-4 text-cyan-600" /> Optimized ATS scoring support</li>
                   <li className="flex items-center gap-2"><Check className="h-4 w-4 text-cyan-600" /> Fast resume tailoring workflows</li>
                 </ul>
-                <Button className="mt-6" disabled={isProcessing || !isAuthenticated} onClick={() => handleSelectPlan(plan)}>
-                  {isAuthenticated ? 'Choose plan' : 'Sign in to subscribe'}
+                <Button
+                  className="mt-6"
+                  disabled={!!subscribingPlanId || !isAuthenticated}
+                  onClick={() => handleSelectPlan(plan)}
+                >
+                  {subscribingPlanId === plan._id
+                    ? 'Opening checkout...'
+                    : isAuthenticated
+                      ? 'Choose plan'
+                      : 'Sign in to subscribe'}
                 </Button>
               </div>
             ))}
@@ -304,7 +317,7 @@ export const PricingHub: React.FC = () => {
                 <div className="flex justify-between text-sm"><span>Credits</span><span className="font-bold">{customCredits || selectedPackage.credits}</span></div>
                 <div className="flex justify-between text-sm border-b border-slate-200 dark:border-slate-800 pb-3"><span>Amount</span><span className="font-bold">{formatInr(customAmount || selectedPackage.amount)}</span></div>
                 <div className="flex justify-between text-lg"><span className="font-bold">Total</span><span className="font-black">{formatInr(customAmount || selectedPackage.amount)}</span></div>
-                <Button className="w-full" disabled={isProcessing || !isAuthenticated} onClick={handleOneTimePayment}>{isAuthenticated ? 'Pay now' : 'Sign in to buy'}</Button>
+                <Button className="w-full" disabled={isOrderProcessing || !isAuthenticated} onClick={handleOneTimePayment}>{isOrderProcessing ? 'Processing...' : isAuthenticated ? 'Pay now' : 'Sign in to buy'}</Button>
                 <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1">
                   <p>✓ Price displayed only in INR</p>
                   <p>✓ No hidden charges</p>
