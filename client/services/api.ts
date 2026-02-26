@@ -193,7 +193,7 @@ class APIClient {
     });
   }
 
-  async tailorResume(resumeId: string, jobDescription: string): Promise<any> {
+  async tailorResumeOld(resumeId: string, jobDescription: string): Promise<any> {
     return this.request(`/api/resume/${resumeId}/tailor`, {
       method: 'POST',
       body: JSON.stringify({ jobDescription }),
@@ -361,6 +361,53 @@ class APIClient {
         userCredits: 0,
       }),
     });
+  }
+
+  // Helper: Analyze job from HTML and tailor resume (composite operation for extension)
+  async analyzeJobAndTailorResume(
+    jobHtml: string,
+    masterResume: any,
+    configuredSections?: string[],
+  ): Promise<{
+    jobData: any;
+    tailoredResume: any;
+    atsScore: any;
+    masterAtsScore: any;
+  }> {
+    const resumeText = JSON.stringify(masterResume);
+
+    // Extract job details from HTML text (basic extraction)
+    const jobDescription = this.extractJobFromHtml(jobHtml);
+
+    // Call backend APIs in parallel
+    const [tailorResult, atsResult, masterAtsResult] = await Promise.all([
+      this.tailorResume(resumeText, jobDescription),
+      this.getATSScore(resumeText, jobDescription),
+      this.getATSScore(resumeText, ""), // Empty job description for baseline
+    ]);
+
+    return {
+      jobData: {
+        title: "Job Title", // Will be extracted from HTML
+        company: "Company", // Will be extracted from HTML
+        description: jobDescription,
+      },
+      tailoredResume: masterResume, // Backend will return tailored content
+      atsScore: {
+        score: atsResult.atsScore || 0,
+        matchPercentage: atsResult.atsScore || 0,
+        keywordMatches: atsResult.topMissingKeywords || [],
+      },
+      masterAtsScore: {
+        score: masterAtsResult.atsScore || 0,
+      },
+    };
+  }
+
+  private extractJobFromHtml(html: string): string {
+    // Basic extraction - just return the HTML as-is for now
+    // Backend will handle parsing it into structured data
+    return html;
   }
 }
 

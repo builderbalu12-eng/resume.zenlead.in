@@ -1,7 +1,6 @@
 import { ResumeData, User } from "@/types";
 
 export interface AppSettings {
-  geminiApiKey: string;
   customInstructions: string;
   resumeContentSections: string[];
 }
@@ -35,7 +34,6 @@ const STORAGE_KEYS = {
   USER_ID: "resumematch_user_id",
   MASTER_RESUME: "resumematch_master_resume",
   AUTH_TOKEN: "resumematch_auth_token",
-  GEMINI_API_KEY: "resumematch_gemini_key",
   LAST_SYNC: "resumematch_last_sync",
   APP_SETTINGS: "resumematch_settings",
 };
@@ -283,14 +281,6 @@ export async function setAuthToken(token: string): Promise<void> {
   return saveToStorage(STORAGE_KEYS.AUTH_TOKEN, token);
 }
 
-export async function getGeminiApiKey(): Promise<string | null> {
-  return getFromStorage(STORAGE_KEYS.GEMINI_API_KEY);
-}
-
-export async function setGeminiApiKey(key: string): Promise<void> {
-  return saveToStorage(STORAGE_KEYS.GEMINI_API_KEY, key);
-}
-
 export async function clearAllStorage(): Promise<void> {
   const keys = Object.values(STORAGE_KEYS);
 
@@ -500,15 +490,5 @@ export async function setSettings(settings: AppSettings): Promise<void> {
   } catch (err) {
     console.error("[Storage] Error saving settings:", err);
     throw err;
-  }
-}
-
-export async function getApiKeyFromSettings(): Promise<string | null> {
-  try {
-    const settings = await getSettings();
-    return settings?.geminiApiKey || null;
-  } catch (err) {
-    console.error("Error getting API key from settings:", err);
-    return null;
   }
 }

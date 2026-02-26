@@ -1,5 +1,6 @@
 import { getMasterResume, setMasterResume, getSettings } from "@/utils/storage";
-import { analyzeJobAndTailorResume, isJobPostingPage } from "@/services/gemini";
+import { isJobPostingPage } from "@/services/gemini";
+import { apiClient } from "@/services/api";
 import { downloadResume } from "@/services/resumeGenerator";
 import { ResumeData, JobDescription, ATSScore } from "@/types";
 
@@ -447,8 +448,8 @@ if (tailorBtn) {
         "sections",
       );
 
-      // Call unified Gemini function with configured sections
-      const result = await analyzeJobAndTailorResume(
+      // Call backend API to analyze job and tailor resume
+      const result = await apiClient.analyzeJobAndTailorResume(
         state.pageHTML,
         state.masterResume,
         configuredSections,
