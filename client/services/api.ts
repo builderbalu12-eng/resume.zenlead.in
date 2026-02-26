@@ -246,7 +246,7 @@ class APIClient {
     });
   }
 
-  async createPaymentOrder(amount: number, currency: string, creditsToAdd: number, receipt?: string): Promise<any> {
+  async createPaymentOrder(amount: number, currency: string, creditsToAdd: number, receipt?: string, userId?: string): Promise<any> {
     return this.request('/api/payments/create-order', {
       method: 'POST',
       body: JSON.stringify({
@@ -254,6 +254,7 @@ class APIClient {
         currency,
         credits_to_add: creditsToAdd,
         receipt: receipt || `receipt_${Date.now()}`,
+        user_id: userId,
       }),
     });
   }
@@ -282,6 +283,82 @@ class APIClient {
         code,
         amount,
         plan_id: planId,
+      }),
+    });
+  }
+
+  // ============ GEMINI API ENDPOINTS ============
+
+  async analyzeResume(resume: string, jobDescription: string): Promise<any> {
+    return this.request('/api/analyze-resume', {
+      method: 'POST',
+      body: JSON.stringify({
+        resume,
+        jobDescription,
+        userCredits: 0, // Backend will check actual credits
+      }),
+    });
+  }
+
+  async extractResume(documentText: string): Promise<any> {
+    return this.request('/api/extract-resume', {
+      method: 'POST',
+      body: JSON.stringify({
+        documentText,
+        userCredits: 0,
+      }),
+    });
+  }
+
+  async tailorResume(resume: string, jobDescription: string): Promise<any> {
+    return this.request('/api/tailor-resume', {
+      method: 'POST',
+      body: JSON.stringify({
+        resume,
+        jobDescription,
+        userCredits: 0,
+      }),
+    });
+  }
+
+  async getATSScore(resume: string, jobDescription: string): Promise<any> {
+    return this.request('/api/ats-score', {
+      method: 'POST',
+      body: JSON.stringify({
+        resume,
+        jobDescription,
+        userCredits: 0,
+      }),
+    });
+  }
+
+  async parseJob(jobDescription: string): Promise<any> {
+    return this.request('/api/parse-job', {
+      method: 'POST',
+      body: JSON.stringify({
+        jobDescription,
+        userCredits: 0,
+      }),
+    });
+  }
+
+  async generateCoverLetter(resume: string, jobDescription: string): Promise<any> {
+    return this.request('/api/generate-cover-letter', {
+      method: 'POST',
+      body: JSON.stringify({
+        resume,
+        jobDescription,
+        userCredits: 0,
+      }),
+    });
+  }
+
+  async checkCompleteness(resume: string): Promise<any> {
+    return this.request('/api/check-completeness', {
+      method: 'POST',
+      body: JSON.stringify({
+        resume,
+        userCredits: 0,
       }),
     });
   }

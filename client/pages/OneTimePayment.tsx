@@ -71,12 +71,13 @@ export const OneTimePayment: React.FC = () => {
       setIsProcessing(true);
       setError(null);
 
-      // Create payment order
+      // Create payment order with user_id
       const response = await apiClient.createPaymentOrder(
         finalPackage.amount,
         currency,
         finalPackage.credits,
-        `credits_${user._id}_${Date.now()}`
+        `credits_${user._id}_${Date.now()}`,
+        user._id
       );
 
       if (!response.data || !response.data.order_id) {
@@ -99,8 +100,8 @@ export const OneTimePayment: React.FC = () => {
               razorpayResponse.razorpay_signature
             );
 
-            // Success - redirect to dashboard
-            navigate('/', { state: { paymentSuccess: true } });
+            // Success - redirect to payment success page
+            navigate('/payment/success?source=topup');
           } catch (err) {
             setError('Payment verification failed');
             setIsProcessing(false);

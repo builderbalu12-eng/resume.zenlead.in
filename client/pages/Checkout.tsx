@@ -14,9 +14,12 @@ declare global {
 const withRedirectUrl = (checkoutUrl: string) => {
   try {
     const url = new URL(checkoutUrl);
-    url.searchParams.set('redirect_url', `${window.location.origin}/payment/success?source=subscription`);
+    const successUrl = `${window.location.origin}/payment/success?source=subscription`;
+    url.searchParams.set('redirect_url', successUrl);
+    console.log('Redirect URL set to:', successUrl);
     return url.toString();
-  } catch {
+  } catch (error) {
+    console.error('Error setting redirect URL:', error);
     return checkoutUrl;
   }
 };
@@ -65,8 +68,8 @@ export const Checkout: React.FC = () => {
       setIsProcessing(true);
       setError(null);
 
-      // Create subscription via backend
-      const response = await apiClient.createSubscription(plan.razorpay_plan_id, user?._id);
+      // Create subscription via backend - use plan._id (MongoDB ID), not razorpay_plan_id
+      const response = await apiClient.createSubscription(plan._id, user?._id);
 
       if (!response.short_url) {
         throw new Error('Failed to generate payment link');

@@ -1,18 +1,16 @@
 import React, { useState } from "react";
 import { Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
-import { parseFile, validateResume } from "@/services/resumeParser";
+import { parseFile } from "@/services/resumeParser";
 import { ResumeData } from "@/types";
-import { getApiKeyFromSettings } from "@/utils/storage";
+import { apiClient } from "@/services/api";
 
 interface ResumeUploadProps {
   onUploadSuccess: (resume: ResumeData) => void;
   isLoading?: boolean;
-  onApiKeyMissing?: () => void;
 }
 
 type LoadingStep =
   | "idle"
-  | "validating-key"
   | "extracting"
   | "parsing"
   | "validating"
@@ -22,7 +20,6 @@ type LoadingStep =
 export const ResumeUpload: React.FC<ResumeUploadProps> = ({
   onUploadSuccess,
   isLoading = false,
-  onApiKeyMissing,
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,30 +27,6 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
   const [loadingMessage, setLoadingMessage] = useState("");
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-
-  const validateApiKey = async (): Promise<boolean> => {
-    setLoadingStep("validating-key");
-    setLoadingMessage("Checking API configuration...");
-    try {
-      const apiKey = await getApiKeyFromSettings();
-      if (!apiKey || apiKey.trim().length === 0) {
-        setLoadingStep("error");
-        setError(
-          "⚠️ API Key Required. Please configure your Gemini API key in Settings before uploading your resume.",
-        );
-        if (onApiKeyMissing) {
-          onApiKeyMissing();
-        }
-        return false;
-      }
-      return true;
-    } catch (err) {
-      console.error("Error validating API key:", err);
-      setLoadingStep("error");
-      setError("Failed to validate API key. Please try again.");
-      return false;
-    }
-  };
 
   const handleFile = async (file: File) => {
     // Clear any previous timeout
@@ -78,34 +51,36 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
 
       setError(null);
 
-      // Validate API key
-      const hasApiKey = await validateApiKey();
-      if (!hasApiKey) {
-        return;
-      }
-
-      // Start timeout - if parsing takes longer than 90 seconds, show error
+      // Start timeout - if parsing takes longer than 120 seconds, show error
       timeoutRef.current = setTimeout(() => {
         setLoadingStep("error");
         setError(
-          "⏱️ Resume parsing took too long. Please check your API key in Settings and try again.",
+          "⏱️ Resume parsing took too long. Please try again or contact support.",
         );
-      }, 90000);
+      }, 120000);
 
       setLoadingStep("extracting");
       setLoadingMessage("Extracting text from your resume...");
 
-      const resume = await parseFile(file);
+      // Parse the file locally first to get text
+      const resumeText = await parseFile(file);
+
+      // Send to backend for structure extraction
+      setLoadingStep("parsing");
+      setLoadingMessage("Processing resume with AI...");
+
+      const extractedData = await apiClient.extractResume(resumeText);
 
       setLoadingStep("validating");
       setLoadingMessage("Validating resume data...");
 
-      const validation = validateResume(resume);
+      // The extracted data from backend should be in the expected format
+      const resume: ResumeData = extractedData;
 
-      if (!validation.isValid) {
+      if (!resume || !resume.contact) {
         setLoadingStep("error");
         setError(
-          `❌ Resume validation failed:\n\n${validation.errors.map((e) => `• ${e}`).join("\n")}\n\nPlease ensure your resume contains all required sections.`,
+          `❌ Resume validation failed:\n\nCould not extract valid resume data.\n\nPlease ensure your resume is clearly formatted.`,
         );
         return;
       }
@@ -127,16 +102,13 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
       setLoadingStep("error");
       const errorMessage = err instanceof Error ? err.message : String(err);
 
-      if (
-        errorMessage.includes("Extension context invalidated") ||
-        errorMessage.includes("chrome.runtime.lastError")
-      ) {
+      if (errorMessage.includes("Insufficient credits")) {
         setError(
-          `⚠️ Browser extension issue detected.\n\nPlease try:\n1. Refresh this page\n2. If error persists, clear your browser cache\n3. Re-upload your resume\n\nIf the issue continues, contact support.`,
+          `💳 Insufficient credits:\n\n${errorMessage}\n\nPlease purchase more credits to continue.`,
         );
-      } else if (errorMessage.includes("API") || errorMessage.includes("key")) {
+      } else if (errorMessage.includes("Unauthorized")) {
         setError(
-          `🔑 API Configuration Error:\n\n${errorMessage}\n\nPlease check your Gemini API key in Settings.`,
+          `🔐 Authentication error:\n\nPlease log in again to continue.`,
         );
       } else if (errorMessage.includes("Could not extract")) {
         setError(
@@ -188,8 +160,6 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
 
   const getStepProgress = (): number => {
     switch (loadingStep) {
-      case "validating-key":
-        return 20;
       case "extracting":
         return 40;
       case "parsing":

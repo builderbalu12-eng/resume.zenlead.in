@@ -13,6 +13,7 @@ import { PricingHub } from "./pages/PricingHub";
 import { Profile } from "./pages/Profile";
 import { PaymentSuccess } from "./pages/PaymentSuccess";
 import { Checkout } from "./pages/Checkout";
+import { OneTimePayment } from "./pages/OneTimePayment";
 import { Header } from "./components/Header";
 import { Settings } from "./components/Settings";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -95,6 +96,14 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <Checkout />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/one-time-payment"
+          element={
+            <ProtectedRoute>
+              <OneTimePayment />
             </ProtectedRoute>
           }
         />

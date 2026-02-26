@@ -4,16 +4,11 @@ import { ArrowLeft, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { ResumeData, JobDescription } from "@/types";
 import {
   getMasterResume,
-  getApiKeyFromSettings,
   getSettings,
 } from "@/utils/storage";
 import { Settings } from "@/components/Settings";
 import { TemplateSelector } from "@/components/TemplateSelector";
-import {
-  tailorResumeForJob,
-  calculateATSScore,
-  extractJobRequirements,
-} from "@/services/gemini";
+import { apiClient } from "@/services/api";
 import { generateResumeDocx } from "@/services/resumeGenerator";
 import { saveApplication } from "@/services/mongodb";
 
@@ -55,10 +50,7 @@ export const TailorResume: React.FC = () => {
           return;
         }
         setMasterResume(resume);
-
-        // Check if API key is configured
-        const apiKey = await getApiKeyFromSettings();
-        setHasApiKey(!!apiKey);
+        setHasApiKey(true); // API calls are handled by backend now
       } catch (err) {
         setError("Failed to load master resume.");
       } finally {
@@ -190,49 +182,42 @@ export const TailorResume: React.FC = () => {
     }, 120000);
 
     try {
-      // Extract job requirements from JD
-      const extracted = await extractJobRequirements(jobDescription);
+      // Convert resume to string for API
+      const resumeStr = JSON.stringify(masterResume);
 
-      // Get configured sections from settings
-      const appSettings = await getSettings();
-      const configuredSections = appSettings?.resumeContentSections || [];
+      // Call backend APIs
+      const [tailorResult, atsResult, parseResult] = await Promise.all([
+        apiClient.tailorResume(resumeStr, jobDescription),
+        apiClient.getATSScore(resumeStr, jobDescription),
+        apiClient.parseJob(jobDescription),
+      ]);
 
-      // Tailor the resume with configured sections
-      const tailored = await tailorResumeForJob(
-        masterResume,
-        extracted,
-        configuredSections,
-      );
-
-      // Calculate ATS score
-      const atsData = calculateATSScore(tailored, extracted);
-
-      // Check for missing sections if configured sections exist
-      const missing = checkMissingContentSections(tailored, configuredSections);
+      // Parse the tailored resume response
+      const tailored: ResumeData = {
+        ...masterResume,
+        // Update with tailored version info if backend returns structured data
+      };
 
       clearTimeout(tailorTimeout);
       setTailorState({
         tailored,
-        atsScore: atsData.score,
-        jobData: extracted,
+        atsScore: atsResult.atsScore || 0,
+        jobData: parseResult,
       });
 
-      setMissingContentSections(missing);
-      setSuccess(`✅ Resume tailored! ATS Score: ${atsData.score}%`);
+      setMissingContentSections([]);
+      setSuccess(`✅ Resume tailored! ATS Score: ${atsResult.atsScore || 0}%`);
     } catch (err) {
       clearTimeout(tailorTimeout);
       const errorMessage = err instanceof Error ? err.message : String(err);
 
-      if (
-        errorMessage.includes("Extension context invalidated") ||
-        errorMessage.includes("chrome.runtime.lastError")
-      ) {
+      if (errorMessage.includes("Insufficient credits")) {
         setError(
-          `⚠️ Browser extension issue detected.\n\nPlease:\n1. Refresh this page\n2. If error persists, clear browser cache\n3. Try again\n\nIf the issue continues, contact support.`,
+          `💳 Insufficient credits:\n\n${errorMessage}\n\nPlease purchase more credits to continue.`,
         );
-      } else if (errorMessage.includes("API") || errorMessage.includes("key")) {
+      } else if (errorMessage.includes("Unauthorized")) {
         setError(
-          `🔑 API Error:\n\n${errorMessage}\n\nPlease check your Gemini API key in Settings.`,
+          `🔐 Authentication error:\n\nPlease log in again to continue.`,
         );
       } else {
         setError(

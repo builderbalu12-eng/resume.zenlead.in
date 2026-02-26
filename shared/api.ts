@@ -76,6 +76,7 @@ export interface ApplicationRecord {
 export interface User {
   _id?: string;
   email: string;
+  credits?: number;
   masterResume?: ResumeData;
   createdAt?: Date;
   updatedAt?: Date;
