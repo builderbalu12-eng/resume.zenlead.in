@@ -1,12 +1,11 @@
 import { ResumeData, ContactInfo, Experience, Education } from "@/types";
 import mammoth from "mammoth";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { getApiKeyFromSettings } from "@/utils/storage";
-import { retryWithBackoff } from "@/services/gemini";
 
-const GEMINI_API_KEY = import.meta.env.VITE_GOOGLE_GEMINI_API_KEY || "";
-
-export async function parseFile(file: File): Promise<ResumeData> {
+/**
+ * Extract raw text from resume file (without parsing/structuring)
+ * Structuring is done by backend via apiClient.extractResume()
+ */
+export async function parseFile(file: File): Promise<string> {
   let text = "";
 
   if (file.name.endsWith(".docx")) {
@@ -29,18 +28,7 @@ export async function parseFile(file: File): Promise<ResumeData> {
     );
   }
 
-  // Use Gemini to parse completely if API key is available
-  let apiKey = GEMINI_API_KEY || (await getApiKeyFromSettings());
-  if (apiKey) {
-    try {
-      return await parseWithGemini(text, apiKey);
-    } catch (error) {
-      console.warn("Gemini parsing failed:", error);
-      throw error;
-    }
-  }
-
-  throw new Error("Gemini API key not configured. Please set it in Settings.");
+  return text;
 }
 
 export async function parseDocxFile(file: File): Promise<ResumeData> {
