@@ -1,5 +1,4 @@
 import { getMasterResume, setMasterResume, getSettings } from "@/utils/storage";
-import { isJobPostingPage } from "@/services/gemini";
 import { apiClient } from "@/services/api";
 import { downloadResume } from "@/services/resumeGenerator";
 import { ResumeData, JobDescription, ATSScore } from "@/types";
@@ -707,13 +706,8 @@ if (customAnalyseBtn) {
         () => {},
       );
 
-      // Try detecting if it's a job page (best-effort)
-      try {
-        state.isJobPosting = await isJobPostingPage(payload.html);
-      } catch (e) {
-        console.warn("[Popup] Job detection failed or not configured:", e);
-        state.isJobPosting = null; // fall back to default behavior
-      }
+      // Job detection is now handled by backend API
+      state.isJobPosting = null; // will be determined when tailoring
 
       updateUI();
     } catch (error) {
