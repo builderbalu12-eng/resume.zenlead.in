@@ -281,6 +281,30 @@ export async function setAuthToken(token: string): Promise<void> {
   return saveToStorage(STORAGE_KEYS.AUTH_TOKEN, token);
 }
 
+export async function getAuthTokenFromSync(): Promise<string | null> {
+  return new Promise((resolve) => {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.sync.get(['resumematch_auth_token'], (result) => {
+        resolve(result['resumematch_auth_token'] || null);
+      });
+    } else {
+      resolve(null);
+    }
+  });
+}
+
+export async function getUserIdFromSync(): Promise<string | null> {
+  return new Promise((resolve) => {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.sync.get(['resumematch_user_id'], (result) => {
+        resolve(result['resumematch_user_id'] || null);
+      });
+    } else {
+      resolve(null);
+    }
+  });
+}
+
 export async function clearAllStorage(): Promise<void> {
   const keys = Object.values(STORAGE_KEYS);
 

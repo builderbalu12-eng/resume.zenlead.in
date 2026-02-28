@@ -88,7 +88,18 @@ class APIClient {
     options: RequestInit = {}
   ): Promise<any> {
     const url = this.baseUrl ? `${this.baseUrl}${endpoint}` : endpoint;
-    const token = localStorage.getItem('auth_token');
+
+    // Try to get token from localStorage first, then chrome.storage.sync
+    let token = localStorage.getItem('auth_token');
+
+    if (!token && typeof chrome !== 'undefined' && chrome.storage) {
+      // Try to get from chrome.storage.sync (for extension context)
+      token = await new Promise<string | null>((resolve) => {
+        chrome.storage.sync.get(['resumematch_auth_token'], (result) => {
+          resolve(result['resumematch_auth_token'] || null);
+        });
+      });
+    }
 
     const headers = new Headers(options.headers || {});
     if (!headers.has('Content-Type')) {
@@ -189,6 +200,12 @@ class APIClient {
 
   async getResumes(): Promise<any[]> {
     return this.request('/api/resume/list', {
+      method: 'GET',
+    });
+  }
+
+  async getIncomingResume(): Promise<any> {
+    return this.request('/api/incoming-resume', {
       method: 'GET',
     });
   }

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { apiClient, User } from '@/services/api';
+import { setMasterResume } from '@/utils/storage';
 
 interface AuthContextType {
   user: User | null;
@@ -16,6 +17,20 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Helper: Load incoming resume from backend after login
+async function loadAndSaveIncomingResume(): Promise<void> {
+  try {
+    const incomingResume = await apiClient.getIncomingResume();
+    if (incomingResume && incomingResume.extracted_data) {
+      await setMasterResume(incomingResume.extracted_data);
+      console.log('[Auth] ✓ Loaded incoming resume from backend');
+    }
+  } catch (err) {
+    // No incoming resume found or error loading it - that's OK
+    console.warn('[Auth] Could not load incoming resume:', err instanceof Error ? err.message : String(err));
+  }
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -47,10 +62,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       const response = await apiClient.login({ email, password });
-      
-      // Store token
-      localStorage.setItem('auth_token', response.data.access_token);
+
+      const token = response.data.access_token;
+      const userId = response.data.user._id;
+
+      // Store token in localStorage
+      localStorage.setItem('auth_token', token);
+
+      // Also save to chrome.storage.sync for extension
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        chrome.storage.sync.set({
+          'resumematch_auth_token': token,
+          'resumematch_user_id': userId,
+        }, () => {
+          if (chrome.runtime.lastError) {
+            console.warn('[Auth] Could not save credentials to chrome.storage:', chrome.runtime.lastError);
+          } else {
+            console.log('[Auth] ✓ Credentials saved to chrome.storage.sync');
+          }
+        });
+      }
+
       setUser(response.data.user);
+
+      // Load incoming resume from backend if available
+      await loadAndSaveIncomingResume();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed';
       setError(message);
@@ -76,9 +112,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
       });
 
-      // Store token
-      localStorage.setItem('auth_token', response.data.access_token);
+      const token = response.data.access_token;
+      const userId = response.data.user._id;
+
+      // Store token in localStorage
+      localStorage.setItem('auth_token', token);
+
+      // Also save to chrome.storage.sync for extension
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        chrome.storage.sync.set({
+          'resumematch_auth_token': token,
+          'resumematch_user_id': userId,
+        }, () => {
+          if (chrome.runtime.lastError) {
+            console.warn('[Auth] Could not save credentials to chrome.storage:', chrome.runtime.lastError);
+          } else {
+            console.log('[Auth] ✓ Credentials saved to chrome.storage.sync');
+          }
+        });
+      }
+
       setUser(response.data.user);
+
+      // Load incoming resume from backend if available
+      await loadAndSaveIncomingResume();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Registration failed';
       setError(message);
@@ -90,8 +147,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('resumematch_master_resume'); // Don't keep offline resume
     setUser(null);
     setError(null);
+
+    // Clear from chrome.storage.sync
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.sync.remove(['resumematch_auth_token', 'resumematch_user_id'], () => {
+        if (!chrome.runtime.lastError) {
+          console.log('[Auth] ✓ Credentials cleared from chrome.storage.sync');
+        }
+      });
+    }
   };
 
   const clearError = () => {
@@ -111,6 +178,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const setAuthData = (userData: User, token: string) => {
     localStorage.setItem('auth_token', token);
+
+    // Also save to chrome.storage.sync for extension
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.sync.set({
+        'resumematch_auth_token': token,
+        'resumematch_user_id': userData._id,
+      }, () => {
+        if (chrome.runtime.lastError) {
+          console.warn('[Auth] Could not save credentials to chrome.storage:', chrome.runtime.lastError);
+        } else {
+          console.log('[Auth] ✓ Credentials saved to chrome.storage.sync');
+        }
+      });
+    }
+
     setUser(userData);
     setError(null);
   };
