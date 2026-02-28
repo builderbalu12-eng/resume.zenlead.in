@@ -11,7 +11,60 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // Handle messages from content script and popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "resumeUpdated") {
+  if (request.action === "saveAuthCredentials") {
+    console.log(
+      "[Background] Saving auth credentials to chrome.storage.sync:",
+      { userId: request.userId }
+    );
+
+    try {
+      chrome.storage.sync.set(
+        {
+          'resumematch_auth_token': request.authToken,
+          'resumematch_user_id': request.userId,
+        },
+        () => {
+          if (chrome.runtime.lastError) {
+            console.error(
+              "[Background] Error saving auth credentials:",
+              chrome.runtime.lastError.message
+            );
+            sendResponse({
+              success: false,
+              error: chrome.runtime.lastError?.message,
+            });
+          } else {
+            console.log("[Background] ✓ Auth credentials saved to chrome.storage.sync");
+
+            // Verify the save was successful
+            chrome.storage.sync.get(
+              ['resumematch_auth_token', 'resumematch_user_id'],
+              (result) => {
+                if (result['resumematch_auth_token'] && result['resumematch_user_id']) {
+                  console.log(
+                    "[Background] ✓ Verification: auth credentials are now in chrome.storage.sync"
+                  );
+                } else {
+                  console.warn(
+                    "[Background] ⚠️ WARNING: auth credentials were not saved!"
+                  );
+                }
+              }
+            );
+
+            sendResponse({ success: true });
+          }
+        }
+      );
+    } catch (e) {
+      console.error("[Background] Exception saving auth credentials:", e);
+      sendResponse({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+    return true;
+  } else if (request.action === "resumeUpdated") {
     console.log(
       "[Background] Resume update notification received from web app:",
       request.resume?.contact?.name,

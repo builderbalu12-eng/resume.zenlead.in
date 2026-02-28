@@ -40,9 +40,9 @@ export const AuthCallback: React.FC = () => {
 
         // Store auth data
         localStorage.setItem('auth_token', authData.access_token);
-        
-        // Update auth context
-        setAuthData(authData.user, authData.access_token);
+
+        // Update auth context (AWAIT this to ensure sync completes)
+        await setAuthData(authData.user, authData.access_token);
 
         // Redirect to dashboard
         setTimeout(() => navigate('/'), 500);
