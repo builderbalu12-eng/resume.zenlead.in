@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Save, Eye, EyeOff, Plus, Lock } from "lucide-react";
+import { X, Save, Plus, Lock } from "lucide-react";
 import {
   getSettings,
   setSettings,
@@ -15,13 +15,11 @@ interface SettingsProps {
 
 export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
   const [settings, setSettingsState] = useState<AppSettings>({
-    geminiApiKey: "",
     customInstructions: "",
     resumeContentSections: [],
   });
 
   const [isSaving, setIsSaving] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState("");
@@ -52,12 +50,6 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
     setShowProcessingMessage(false);
 
     try {
-      if (!settings.geminiApiKey.trim()) {
-        setError("Please enter a Gemini API key");
-        setIsSaving(false);
-        return;
-      }
-
       console.log("[Settings] Saving settings:", settings);
 
       // Save to local storage first
@@ -169,49 +161,6 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
         </div>
 
         <div className="p-6 space-y-6">
-          {/* API Key Section */}
-          <div>
-            <label className="block text-sm font-semibold mb-3">
-              Gemini API Key
-            </label>
-            <p className="text-xs text-muted-foreground mb-2">
-              Get your free API key from{" "}
-              <a
-                href="https://aistudio.google.com/app/apikey"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                Google AI Studio
-              </a>
-            </p>
-            <div className="relative">
-              <input
-                type={showApiKey ? "text" : "password"}
-                value={settings.geminiApiKey}
-                onChange={(e) =>
-                  setSettingsState({
-                    ...settings,
-                    geminiApiKey: e.target.value,
-                  })
-                }
-                placeholder="Enter your Gemini API key..."
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowApiKey(!showApiKey)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showApiKey ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </div>
-
           {/* Custom Instructions */}
           <div>
             <label className="block text-sm font-semibold mb-3">

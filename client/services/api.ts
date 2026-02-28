@@ -88,7 +88,18 @@ class APIClient {
     options: RequestInit = {}
   ): Promise<any> {
     const url = this.baseUrl ? `${this.baseUrl}${endpoint}` : endpoint;
-    const token = localStorage.getItem('auth_token');
+
+    // Try to get token from localStorage first, then chrome.storage.sync
+    let token = localStorage.getItem('auth_token');
+
+    if (!token && typeof chrome !== 'undefined' && chrome.storage) {
+      // Try to get from chrome.storage.sync (for extension context)
+      token = await new Promise<string | null>((resolve) => {
+        chrome.storage.sync.get(['resumematch_auth_token'], (result) => {
+          resolve(result['resumematch_auth_token'] || null);
+        });
+      });
+    }
 
     const headers = new Headers(options.headers || {});
     if (!headers.has('Content-Type')) {
@@ -193,7 +204,13 @@ class APIClient {
     });
   }
 
-  async tailorResume(resumeId: string, jobDescription: string): Promise<any> {
+  async getIncomingResume(): Promise<any> {
+    return this.request('/api/incoming-resume', {
+      method: 'GET',
+    });
+  }
+
+  async tailorResumeOld(resumeId: string, jobDescription: string): Promise<any> {
     return this.request(`/api/resume/${resumeId}/tailor`, {
       method: 'POST',
       body: JSON.stringify({ jobDescription }),
@@ -361,6 +378,53 @@ class APIClient {
         userCredits: 0,
       }),
     });
+  }
+
+  // Helper: Analyze job from HTML and tailor resume (composite operation for extension)
+  async analyzeJobAndTailorResume(
+    jobHtml: string,
+    masterResume: any,
+    configuredSections?: string[],
+  ): Promise<{
+    jobData: any;
+    tailoredResume: any;
+    atsScore: any;
+    masterAtsScore: any;
+  }> {
+    const resumeText = JSON.stringify(masterResume);
+
+    // Extract job details from HTML text (basic extraction)
+    const jobDescription = this.extractJobFromHtml(jobHtml);
+
+    // Call backend APIs in parallel
+    const [tailorResult, atsResult, masterAtsResult] = await Promise.all([
+      this.tailorResume(resumeText, jobDescription),
+      this.getATSScore(resumeText, jobDescription),
+      this.getATSScore(resumeText, ""), // Empty job description for baseline
+    ]);
+
+    return {
+      jobData: {
+        title: "Job Title", // Will be extracted from HTML
+        company: "Company", // Will be extracted from HTML
+        description: jobDescription,
+      },
+      tailoredResume: masterResume, // Backend will return tailored content
+      atsScore: {
+        score: atsResult.atsScore || 0,
+        matchPercentage: atsResult.atsScore || 0,
+        keywordMatches: atsResult.topMissingKeywords || [],
+      },
+      masterAtsScore: {
+        score: masterAtsResult.atsScore || 0,
+      },
+    };
+  }
+
+  private extractJobFromHtml(html: string): string {
+    // Basic extraction - just return the HTML as-is for now
+    // Backend will handle parsing it into structured data
+    return html;
   }
 }
 

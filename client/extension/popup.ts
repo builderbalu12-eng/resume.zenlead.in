@@ -1,5 +1,5 @@
 import { getMasterResume, setMasterResume, getSettings } from "@/utils/storage";
-import { analyzeJobAndTailorResume, isJobPostingPage } from "@/services/gemini";
+import { apiClient } from "@/services/api";
 import { downloadResume } from "@/services/resumeGenerator";
 import { ResumeData, JobDescription, ATSScore } from "@/types";
 
@@ -128,10 +128,49 @@ async function loadMasterResume(): Promise<ResumeData | null> {
     }
 
     console.log(
-      "[Popup] Resume not in chrome.storage.sync, trying localhost...",
+      "[Popup] Resume not in chrome.storage.sync, trying backend...",
     );
 
-    // Try 2: Get from localhost tab if available
+    // Try 2: Get from backend if user is logged in
+    try {
+      const token = await new Promise<string | null>((resolve) => {
+        if (typeof chrome !== 'undefined' && chrome.storage) {
+          chrome.storage.sync.get(['resumematch_auth_token'], (result) => {
+            resolve(result['resumematch_auth_token'] || null);
+          });
+        } else {
+          resolve(null);
+        }
+      });
+
+      if (token) {
+        console.log("[Popup] Auth token found, attempting to fetch incoming resume from backend...");
+        const response = await apiClient.getIncomingResume();
+        if (response && response.extracted_data) {
+          resume = response.extracted_data;
+          console.log("[Popup] ✓ Resume fetched from backend:", resume.contact?.name);
+          state.masterResume = resume;
+
+          // Cache to chrome.storage
+          try {
+            await setMasterResume(resume);
+            console.log("[Popup] ✓ Resume cached to chrome.storage.sync");
+          } catch (e) {
+            console.warn("[Popup] Could not cache resume:", e);
+          }
+
+          return resume;
+        }
+      }
+    } catch (e) {
+      console.warn("[Popup] Could not fetch from backend:", e);
+    }
+
+    console.log(
+      "[Popup] Resume not in backend, trying localhost...",
+    );
+
+    // Try 3: Get from localhost tab if available
     resume = await getResumeFromLocalhost();
     if (resume) {
       console.log("[Popup] ✓ Resume found on localhost:", resume.contact?.name);
@@ -447,8 +486,8 @@ if (tailorBtn) {
         "sections",
       );
 
-      // Call unified Gemini function with configured sections
-      const result = await analyzeJobAndTailorResume(
+      // Call backend API to analyze job and tailor resume
+      const result = await apiClient.analyzeJobAndTailorResume(
         state.pageHTML,
         state.masterResume,
         configuredSections,
@@ -706,13 +745,8 @@ if (customAnalyseBtn) {
         () => {},
       );
 
-      // Try detecting if it's a job page (best-effort)
-      try {
-        state.isJobPosting = await isJobPostingPage(payload.html);
-      } catch (e) {
-        console.warn("[Popup] Job detection failed or not configured:", e);
-        state.isJobPosting = null; // fall back to default behavior
-      }
+      // Job detection is now handled by backend API
+      state.isJobPosting = null; // will be determined when tailoring
 
       updateUI();
     } catch (error) {
