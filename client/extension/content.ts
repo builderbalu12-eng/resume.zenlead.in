@@ -17,7 +17,33 @@ window.addEventListener("message", (event) => {
     event.data.action,
   );
 
-  if (event.data.action === "saveSettings") {
+  if (event.data.action === "saveAuthCredentials") {
+    console.log(
+      "[Content Script] Web app requesting to save auth credentials",
+      { userId: event.data.userId }
+    );
+
+    // Relay to background script
+    chrome.runtime.sendMessage(
+      {
+        action: "saveAuthCredentials",
+        authToken: event.data.authToken,
+        userId: event.data.userId,
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          console.error(
+            "[Content Script] Error relaying saveAuthCredentials to background:",
+            chrome.runtime.lastError.message,
+          );
+        } else {
+          console.log(
+            "[Content Script] ✓ Auth credentials relayed to background script successfully"
+          );
+        }
+      },
+    );
+  } else if (event.data.action === "saveSettings") {
     console.log(
       "[Content Script] Web app requesting to save settings:",
       event.data.settings,

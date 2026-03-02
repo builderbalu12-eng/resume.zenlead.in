@@ -12,8 +12,10 @@ import { ResumeData, ApplicationRecord } from "@/types";
 import { getApplicationHistory } from "@/services/mongodb";
 import { getMasterResume } from "@/utils/storage";
 import { TemplatesShowcase } from "@/components/TemplatesShowcase";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const Dashboard: React.FC = () => {
+  const { user, isAuthenticated } = useAuth();
   const [masterResume, setMasterResume] = useState<ResumeData | null>(null);
   const [recentApplications, setRecentApplications] = useState<
     ApplicationRecord[]
@@ -24,49 +26,69 @@ export const Dashboard: React.FC = () => {
     successRate: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [expandedSummary, setExpandedSummary] = useState(false);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const resume = await getMasterResume();
-        setMasterResume(resume);
+  // Load dashboard data when user logs in or page loads
+  const loadDashboardData = async () => {
+    try {
+      console.log('[Dashboard] Loading resume and application history...');
+      const resume = await getMasterResume();
+      console.log('[Dashboard] Master resume loaded:', resume?.contact?.name ?? 'No resume');
+      setMasterResume(resume);
 
-        const apps = await getApplicationHistory();
-        setRecentApplications(apps.slice(0, 5));
+      const apps = await getApplicationHistory();
+      setRecentApplications(apps.slice(0, 5));
 
-        if (apps.length > 0) {
-          const avgScore = Math.round(
-            apps.reduce(
-              (sum, a) => sum + (a.atsScore || a.matchPercentage || 0),
-              0,
-            ) / apps.length,
-          );
-          const successCount = apps.filter(
-            (a) => a.status === "offer" || a.status === "interview",
-          ).length;
-          const successRate = Math.round((successCount / apps.length) * 100);
+      if (apps.length > 0) {
+        const avgScore = Math.round(
+          apps.reduce(
+            (sum, a) => sum + (a.atsScore || a.matchPercentage || 0),
+            0,
+          ) / apps.length,
+        );
+        const successCount = apps.filter(
+          (a) => a.status === "offer" || a.status === "interview",
+        ).length;
+        const successRate = Math.round((successCount / apps.length) * 100);
 
-          setStats({
-            totalApps: apps.length,
-            avgScore,
-            successRate,
-          });
-        }
-      } catch (error) {
-        console.error("Error loading dashboard data:", error);
-      } finally {
-        setIsLoading(false);
+        setStats({
+          totalApps: apps.length,
+          avgScore,
+          successRate,
+        });
       }
-    };
+    } catch (error) {
+      console.error("Error loading dashboard data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    loadData();
+  // Load data on component mount
+  useEffect(() => {
+    loadDashboardData();
   }, []);
+
+  // Reload resume when user logs in or authentication state changes
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('[Dashboard] User authenticated:', user.email);
+      // Refresh resume data when user logs in
+      loadDashboardData();
+    } else {
+      console.log('[Dashboard] User logged out - clearing resume');
+      // Clear resume when user logs out
+      setMasterResume(null);
+      setRecentApplications([]);
+      setStats({ totalApps: 0, avgScore: 0, successRate: 0 });
+    }
+  }, [isAuthenticated, user]);
 
   // Refresh resume when page becomes visible
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (!document.hidden) {
-        // Page became visible - refresh the resume
+        console.log('[Dashboard] Page became visible - refreshing resume');
         const resume = await getMasterResume();
         setMasterResume(resume);
       }
@@ -82,6 +104,7 @@ export const Dashboard: React.FC = () => {
   // Listen for storage changes from other tabs/windows
   useEffect(() => {
     const handleStorageChange = async () => {
+      console.log('[Dashboard] Storage changed in another tab - refreshing resume');
       const resume = await getMasterResume();
       if (resume) {
         setMasterResume(resume);
@@ -185,7 +208,7 @@ export const Dashboard: React.FC = () => {
             <div className="hidden md:block">
               <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/30 via-purple-400/30 to-pink-400/30 rounded-3xl blur-2xl opacity-50 group-hover:opacity-70 transition-opacity duration-300" />
-                <div className="relative bg-white dark:bg-slate-900 rounded-3xl p-8 border-2 border-slate-200 dark:border-slate-800 shadow-2xl hover:shadow-3xl transition-all duration-300">
+                <div className="relative bg-white dark:bg-slate-900 rounded-3xl p-8 border-2 border-slate-200 dark:border-slate-800 shadow-2xl hover:shadow-3xl transition-all duration-300 max-h-[600px] overflow-y-auto">
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
@@ -210,10 +233,24 @@ export const Dashboard: React.FC = () => {
                     </div>
 
                     <div className="border-t-2 border-slate-200 dark:border-slate-800 pt-6">
-                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                        {masterResume?.summary ??
-                          "Experienced software engineer with a track record of building scalable web applications and improving product metrics."}
-                      </p>
+                      <div className="space-y-3">
+                        <p
+                          className={`text-sm text-slate-700 dark:text-slate-300 leading-relaxed ${
+                            expandedSummary ? '' : 'line-clamp-2'
+                          }`}
+                        >
+                          {masterResume?.summary ??
+                            "Experienced software engineer with a track record of building scalable web applications and improving product metrics."}
+                        </p>
+                        {masterResume?.summary && masterResume.summary.length > 200 && (
+                          <button
+                            onClick={() => setExpandedSummary(!expandedSummary)}
+                            className="text-xs font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors"
+                          >
+                            {expandedSummary ? '▼ Show less' : '▶ Show more'}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div>

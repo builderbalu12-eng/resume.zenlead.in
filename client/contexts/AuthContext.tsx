@@ -12,19 +12,79 @@ interface AuthContextType {
   error: string | null;
   clearError: () => void;
   getGoogleAuthUrl: () => Promise<string>;
-  setAuthData: (user: User, token: string) => void;
+  setAuthData: (user: User, token: string) => Promise<void>;
   updateCurrentUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper: Send credentials to extension via window.postMessage (for web app context)
+function sendCredentialsToExtension(token: string, userId: string): void {
+  try {
+    window.postMessage(
+      {
+        source: 'resumematch-web-app',
+        action: 'saveAuthCredentials',
+        authToken: token,
+        userId: userId,
+      },
+      '*'
+    );
+    console.log('[Auth] ✓ Auth credentials sent to extension via postMessage');
+  } catch (e) {
+    console.warn('[Auth] Could not send credentials to extension:', e);
+  }
+}
+
+// Helper: Save credentials to chrome.storage.sync (returns a Promise)
+async function saveCredentialsToSync(token: string, userId: string): Promise<void> {
+  // Step 1: Try to send to extension via postMessage (works when extension is installed)
+  sendCredentialsToExtension(token, userId);
+
+  // Step 2: Try direct chrome.storage.sync.set() (won't work in regular web app context, but we try anyway)
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+    return new Promise<void>((resolve) => {
+      chrome.storage.sync.set(
+        {
+          'resumematch_auth_token': token,
+          'resumematch_user_id': userId,
+        },
+        () => {
+          if (chrome.runtime.lastError) {
+            console.warn('[Auth] Could not save credentials to chrome.storage:', chrome.runtime.lastError);
+            resolve(); // Resolve anyway to not block auth flow
+          } else {
+            console.log('[Auth] ✓ Credentials saved to chrome.storage.sync (direct)');
+            // Verify it was actually saved
+            chrome.storage.sync.get(['resumematch_auth_token'], (result) => {
+              if (result['resumematch_auth_token']) {
+                console.log('[Auth] ✓ Verified: auth_token is now in chrome.storage.sync');
+              } else {
+                console.warn('[Auth] ✗ WARNING: auth_token was not saved!');
+              }
+              resolve();
+            });
+          }
+        }
+      );
+    });
+  } else {
+    console.log('[Auth] chrome.storage.sync not directly available (normal for web app context)');
+    return Promise.resolve();
+  }
+}
+
 // Helper: Load incoming resume from backend after login
 async function loadAndSaveIncomingResume(): Promise<void> {
   try {
+    console.log('[Auth] Attempting to load incoming resume from backend...');
     const incomingResume = await apiClient.getIncomingResume();
     if (incomingResume && incomingResume.extracted_data) {
+      console.log('[Auth] ✓ Received incoming resume from backend');
       await setMasterResume(incomingResume.extracted_data);
-      console.log('[Auth] ✓ Loaded incoming resume from backend');
+      console.log('[Auth] ✓ Incoming resume saved to chrome.storage.sync and localStorage');
+    } else {
+      console.log('[Auth] No incoming resume available from backend');
     }
   } catch (err) {
     // No incoming resume found or error loading it - that's OK
@@ -69,24 +129,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Store token in localStorage
       localStorage.setItem('auth_token', token);
 
-      // Also save to chrome.storage.sync for extension
-      if (typeof chrome !== 'undefined' && chrome.storage) {
-        chrome.storage.sync.set({
-          'resumematch_auth_token': token,
-          'resumematch_user_id': userId,
-        }, () => {
-          if (chrome.runtime.lastError) {
-            console.warn('[Auth] Could not save credentials to chrome.storage:', chrome.runtime.lastError);
-          } else {
-            console.log('[Auth] ✓ Credentials saved to chrome.storage.sync');
-          }
-        });
-      }
+      // Save to chrome.storage.sync for extension (AWAIT this to ensure it completes)
+      await saveCredentialsToSync(token, userId);
 
+      // Load incoming resume from backend BEFORE setting user (so Dashboard gets the resume)
+      await loadAndSaveIncomingResume();
+
+      // Now set the user - this will trigger Dashboard to load the resume
       setUser(response.data.user);
 
-      // Load incoming resume from backend if available
-      await loadAndSaveIncomingResume();
+      console.log('[Auth] ✓ Login complete: credentials and incoming resume synced');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed';
       setError(message);
@@ -118,24 +170,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Store token in localStorage
       localStorage.setItem('auth_token', token);
 
-      // Also save to chrome.storage.sync for extension
-      if (typeof chrome !== 'undefined' && chrome.storage) {
-        chrome.storage.sync.set({
-          'resumematch_auth_token': token,
-          'resumematch_user_id': userId,
-        }, () => {
-          if (chrome.runtime.lastError) {
-            console.warn('[Auth] Could not save credentials to chrome.storage:', chrome.runtime.lastError);
-          } else {
-            console.log('[Auth] ✓ Credentials saved to chrome.storage.sync');
-          }
-        });
-      }
+      // Save to chrome.storage.sync for extension (AWAIT this to ensure it completes)
+      await saveCredentialsToSync(token, userId);
 
+      // Load incoming resume from backend BEFORE setting user (so Dashboard gets the resume)
+      await loadAndSaveIncomingResume();
+
+      // Now set the user - this will trigger Dashboard to load the resume
       setUser(response.data.user);
 
-      // Load incoming resume from backend if available
-      await loadAndSaveIncomingResume();
+      console.log('[Auth] ✓ Registration complete: credentials and incoming resume synced');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Registration failed';
       setError(message);
@@ -153,9 +197,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Clear from chrome.storage.sync
     if (typeof chrome !== 'undefined' && chrome.storage) {
-      chrome.storage.sync.remove(['resumematch_auth_token', 'resumematch_user_id'], () => {
+      chrome.storage.sync.remove([
+        'resumematch_auth_token',
+        'resumematch_user_id',
+        'resumematch_master_resume' // Also remove cached resume
+      ], () => {
         if (!chrome.runtime.lastError) {
-          console.log('[Auth] ✓ Credentials cleared from chrome.storage.sync');
+          console.log('[Auth] ✓ All data cleared from chrome.storage.sync');
         }
       });
     }
@@ -176,25 +224,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const setAuthData = (userData: User, token: string) => {
+  const setAuthData = async (userData: User, token: string) => {
     localStorage.setItem('auth_token', token);
 
-    // Also save to chrome.storage.sync for extension
-    if (typeof chrome !== 'undefined' && chrome.storage) {
-      chrome.storage.sync.set({
-        'resumematch_auth_token': token,
-        'resumematch_user_id': userData._id,
-      }, () => {
-        if (chrome.runtime.lastError) {
-          console.warn('[Auth] Could not save credentials to chrome.storage:', chrome.runtime.lastError);
-        } else {
-          console.log('[Auth] ✓ Credentials saved to chrome.storage.sync');
-        }
-      });
-    }
+    // Save to chrome.storage.sync for extension (AWAIT this to ensure it completes)
+    await saveCredentialsToSync(token, userData._id);
 
+    // Load incoming resume from backend BEFORE setting user (so Dashboard gets the resume)
+    await loadAndSaveIncomingResume();
+
+    // Now set the user and clear any errors - this will trigger Dashboard to load the resume
     setUser(userData);
     setError(null);
+
+    console.log('[Auth] ✓ setAuthData complete: credentials and incoming resume synced');
   };
 
   const updateCurrentUser = (userData: User) => {
