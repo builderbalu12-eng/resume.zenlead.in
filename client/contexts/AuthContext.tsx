@@ -36,6 +36,22 @@ function sendCredentialsToExtension(token: string, userId: string): void {
   }
 }
 
+// Helper: Notify extension of logout via window.postMessage
+function notifyExtensionOfLogout(): void {
+  try {
+    window.postMessage(
+      {
+        source: 'resumematch-web-app',
+        action: 'clearAuthCredentials',
+      },
+      '*'
+    );
+    console.log('[Auth] ✓ Logout notification sent to extension via postMessage');
+  } catch (e) {
+    console.warn('[Auth] Could not notify extension of logout:', e);
+  }
+}
+
 // Helper: Save credentials to chrome.storage.sync (returns a Promise)
 async function saveCredentialsToSync(token: string, userId: string): Promise<void> {
   // Step 1: Try to send to extension via postMessage (works when extension is installed)
@@ -194,6 +210,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('resumematch_master_resume'); // Don't keep offline resume
     setUser(null);
     setError(null);
+
+    // Notify extension of logout via postMessage
+    notifyExtensionOfLogout();
 
     // Clear from chrome.storage.sync
     if (typeof chrome !== 'undefined' && chrome.storage) {
