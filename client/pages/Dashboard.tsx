@@ -28,35 +28,6 @@ export const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [expandedSummary, setExpandedSummary] = useState(false);
 
-  // Helper: Count lines in text (approximate by line breaks)
-  const countLines = (text: string): number => {
-    return text.split('\n').length;
-  };
-
-  // Helper: Truncate text to 2-3 lines
-  const truncateToLines = (text: string, maxLines: number = 2): { truncated: string; isTruncated: boolean } => {
-    const lines = text.split('\n');
-    if (lines.length > maxLines) {
-      return {
-        truncated: lines.slice(0, maxLines).join('\n'),
-        isTruncated: true,
-      };
-    }
-
-    // If no line breaks, check character count (approximate 80 chars per line)
-    const charsPerLine = 80;
-    const maxChars = maxLines * charsPerLine;
-    if (text.length > maxChars) {
-      const truncated = text.substring(0, maxChars).trim();
-      return {
-        truncated: truncated + '...',
-        isTruncated: true,
-      };
-    }
-
-    return { truncated: text, isTruncated: false };
-  };
-
   // Load dashboard data when user logs in or page loads
   const loadDashboardData = async () => {
     try {
@@ -237,7 +208,7 @@ export const Dashboard: React.FC = () => {
             <div className="hidden md:block">
               <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/30 via-purple-400/30 to-pink-400/30 rounded-3xl blur-2xl opacity-50 group-hover:opacity-70 transition-opacity duration-300" />
-                <div className="relative bg-white dark:bg-slate-900 rounded-3xl p-8 border-2 border-slate-200 dark:border-slate-800 shadow-2xl hover:shadow-3xl transition-all duration-300">
+                <div className="relative bg-white dark:bg-slate-900 rounded-3xl p-8 border-2 border-slate-200 dark:border-slate-800 shadow-2xl hover:shadow-3xl transition-all duration-300 max-h-[600px] overflow-y-auto">
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
@@ -262,27 +233,24 @@ export const Dashboard: React.FC = () => {
                     </div>
 
                     <div className="border-t-2 border-slate-200 dark:border-slate-800 pt-6">
-                      {(() => {
-                        const summaryText = masterResume?.summary ?? "Experienced software engineer with a track record of building scalable web applications and improving product metrics.";
-                        const { truncated, isTruncated } = truncateToLines(summaryText, 2);
-                        const displayText = expandedSummary ? summaryText : truncated;
-
-                        return (
-                          <div className="space-y-3">
-                            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
-                              {displayText}
-                            </p>
-                            {isTruncated && (
-                              <button
-                                onClick={() => setExpandedSummary(!expandedSummary)}
-                                className="text-xs font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors"
-                              >
-                                {expandedSummary ? 'Show less' : 'Show more'}
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })()}
+                      <div className="space-y-3">
+                        <p
+                          className={`text-sm text-slate-700 dark:text-slate-300 leading-relaxed ${
+                            expandedSummary ? '' : 'line-clamp-2'
+                          }`}
+                        >
+                          {masterResume?.summary ??
+                            "Experienced software engineer with a track record of building scalable web applications and improving product metrics."}
+                        </p>
+                        {masterResume?.summary && masterResume.summary.length > 200 && (
+                          <button
+                            onClick={() => setExpandedSummary(!expandedSummary)}
+                            className="text-xs font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors"
+                          >
+                            {expandedSummary ? '▼ Show less' : '▶ Show more'}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div>
