@@ -12,8 +12,10 @@ import { ResumeData, ApplicationRecord } from "@/types";
 import { getApplicationHistory } from "@/services/mongodb";
 import { getMasterResume } from "@/utils/storage";
 import { TemplatesShowcase } from "@/components/TemplatesShowcase";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const Dashboard: React.FC = () => {
+  const { user, isAuthenticated } = useAuth();
   const [masterResume, setMasterResume] = useState<ResumeData | null>(null);
   const [recentApplications, setRecentApplications] = useState<
     ApplicationRecord[]
@@ -25,48 +27,67 @@ export const Dashboard: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const resume = await getMasterResume();
-        setMasterResume(resume);
+  // Load dashboard data when user logs in or page loads
+  const loadDashboardData = async () => {
+    try {
+      console.log('[Dashboard] Loading resume and application history...');
+      const resume = await getMasterResume();
+      console.log('[Dashboard] Master resume loaded:', resume?.contact?.name ?? 'No resume');
+      setMasterResume(resume);
 
-        const apps = await getApplicationHistory();
-        setRecentApplications(apps.slice(0, 5));
+      const apps = await getApplicationHistory();
+      setRecentApplications(apps.slice(0, 5));
 
-        if (apps.length > 0) {
-          const avgScore = Math.round(
-            apps.reduce(
-              (sum, a) => sum + (a.atsScore || a.matchPercentage || 0),
-              0,
-            ) / apps.length,
-          );
-          const successCount = apps.filter(
-            (a) => a.status === "offer" || a.status === "interview",
-          ).length;
-          const successRate = Math.round((successCount / apps.length) * 100);
+      if (apps.length > 0) {
+        const avgScore = Math.round(
+          apps.reduce(
+            (sum, a) => sum + (a.atsScore || a.matchPercentage || 0),
+            0,
+          ) / apps.length,
+        );
+        const successCount = apps.filter(
+          (a) => a.status === "offer" || a.status === "interview",
+        ).length;
+        const successRate = Math.round((successCount / apps.length) * 100);
 
-          setStats({
-            totalApps: apps.length,
-            avgScore,
-            successRate,
-          });
-        }
-      } catch (error) {
-        console.error("Error loading dashboard data:", error);
-      } finally {
-        setIsLoading(false);
+        setStats({
+          totalApps: apps.length,
+          avgScore,
+          successRate,
+        });
       }
-    };
+    } catch (error) {
+      console.error("Error loading dashboard data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    loadData();
+  // Load data on component mount
+  useEffect(() => {
+    loadDashboardData();
   }, []);
+
+  // Reload resume when user logs in or authentication state changes
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('[Dashboard] User authenticated:', user.email);
+      // Refresh resume data when user logs in
+      loadDashboardData();
+    } else {
+      console.log('[Dashboard] User logged out - clearing resume');
+      // Clear resume when user logs out
+      setMasterResume(null);
+      setRecentApplications([]);
+      setStats({ totalApps: 0, avgScore: 0, successRate: 0 });
+    }
+  }, [isAuthenticated, user]);
 
   // Refresh resume when page becomes visible
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (!document.hidden) {
-        // Page became visible - refresh the resume
+        console.log('[Dashboard] Page became visible - refreshing resume');
         const resume = await getMasterResume();
         setMasterResume(resume);
       }
@@ -82,6 +103,7 @@ export const Dashboard: React.FC = () => {
   // Listen for storage changes from other tabs/windows
   useEffect(() => {
     const handleStorageChange = async () => {
+      console.log('[Dashboard] Storage changed in another tab - refreshing resume');
       const resume = await getMasterResume();
       if (resume) {
         setMasterResume(resume);

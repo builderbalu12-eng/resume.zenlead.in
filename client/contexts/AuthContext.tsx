@@ -132,10 +132,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Save to chrome.storage.sync for extension (AWAIT this to ensure it completes)
       await saveCredentialsToSync(token, userId);
 
-      setUser(response.data.user);
-
-      // Load incoming resume from backend if available (AWAIT this too)
+      // Load incoming resume from backend BEFORE setting user (so Dashboard gets the resume)
       await loadAndSaveIncomingResume();
+
+      // Now set the user - this will trigger Dashboard to load the resume
+      setUser(response.data.user);
 
       console.log('[Auth] ✓ Login complete: credentials and incoming resume synced');
     } catch (err) {
@@ -172,10 +173,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Save to chrome.storage.sync for extension (AWAIT this to ensure it completes)
       await saveCredentialsToSync(token, userId);
 
-      setUser(response.data.user);
-
-      // Load incoming resume from backend if available (AWAIT this too)
+      // Load incoming resume from backend BEFORE setting user (so Dashboard gets the resume)
       await loadAndSaveIncomingResume();
+
+      // Now set the user - this will trigger Dashboard to load the resume
+      setUser(response.data.user);
 
       console.log('[Auth] ✓ Registration complete: credentials and incoming resume synced');
     } catch (err) {
@@ -228,11 +230,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Save to chrome.storage.sync for extension (AWAIT this to ensure it completes)
     await saveCredentialsToSync(token, userData._id);
 
+    // Load incoming resume from backend BEFORE setting user (so Dashboard gets the resume)
+    await loadAndSaveIncomingResume();
+
+    // Now set the user and clear any errors - this will trigger Dashboard to load the resume
     setUser(userData);
     setError(null);
-
-    // Load incoming resume from backend if available
-    await loadAndSaveIncomingResume();
 
     console.log('[Auth] ✓ setAuthData complete: credentials and incoming resume synced');
   };
