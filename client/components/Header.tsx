@@ -45,7 +45,7 @@ export const Header: React.FC = () => {
             </span>
           </button>
 
-          <nav className="hidden lg:flex items-center gap-1 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/70 p-1.5 min-w-0">
+          <nav className="hidden lg:flex items-center gap-2 p-1.5 min-w-0">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
@@ -55,19 +55,16 @@ export const Header: React.FC = () => {
                   key={item.path}
                   onClick={() => navigate(item.path)}
                   title={item.label}
-                  className={`inline-flex items-center justify-center h-9 w-9 lg:h-auto lg:w-auto lg:gap-2 lg:px-4 rounded-full transition-colors ${
+                  className={`h-10 w-10 flex items-center justify-center rounded-lg transition-colors ${
                     active
                       ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-slate-100'
                       : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`}
                 >
                   {Icon ? (
-                    <>
-                      <Icon className="h-5 w-5 lg:h-4 lg:w-4 shrink-0" />
-                      <span className="hidden lg:inline-block whitespace-nowrap text-sm font-semibold">{item.label}</span>
-                    </>
+                    <Icon className="h-5 w-5 shrink-0" />
                   ) : (
-                    <span className="hidden lg:inline-block text-sm font-semibold">{item.label}</span>
+                    <span className="text-sm font-bold">⌂</span>
                   )}
                 </button>
               );

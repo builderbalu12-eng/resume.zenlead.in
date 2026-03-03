@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { apiClient } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Briefcase, Search, Loader2, Trash2, ArrowRight, Star, MapPin, DollarSign } from 'lucide-react';
+import { Briefcase, Search, Loader2, Trash2, Sparkles, MapPin, DollarSign } from 'lucide-react';
 import { JobListPanel } from '@/components/job/JobListPanel';
 import { JobRecommendModal } from '@/components/job/JobRecommendModal';
 import { JobListingCard } from '@/components/job/JobListingCard';
 
 export const FindJob: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState<'search' | 'recommendations' | 'all'>('recommendations');
+  const [activeTab, setActiveTab] = useState<'feed' | 'all'>('feed');
   const [showRecommendModal, setShowRecommendModal] = useState(false);
+  const [hasRecommendations, setHasRecommendations] = useState(false);
   const [jobLists, setJobLists] = useState<any[]>([]);
+  const [defaultJobs, setDefaultJobs] = useState<any[]>([]);
   const [selectedList, setSelectedList] = useState<any>(null);
-  const [allJobs, setAllJobs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filteredJobs, setFilteredJobs] = useState<any[]>([]);
 
@@ -26,27 +26,43 @@ export const FindJob: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Load recommendations on mount
+  // Load data on mount
   useEffect(() => {
     if (isAuthenticated) {
-      loadRecommendations();
+      loadInitialData();
     }
   }, [isAuthenticated]);
 
-  const loadRecommendations = async () => {
+  const loadInitialData = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/jobs/lists', {
+      // First check if user has recommendations
+      const defaultResponse = await fetch('/api/jobs/default', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },
       });
-      const data = await response.json();
-      if (data.success) {
-        setJobLists(data.lists || []);
+      const defaultData = await defaultResponse.json();
+
+      if (defaultData.has_recommendations) {
+        // User has recommendations - load their lists
+        setHasRecommendations(true);
+        const listsResponse = await fetch('/api/jobs/lists', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          },
+        });
+        const listsData = await listsResponse.json();
+        if (listsData.success) {
+          setJobLists(listsData.lists || []);
+        }
+      } else {
+        // No recommendations yet - show default jobs
+        setHasRecommendations(false);
+        setDefaultJobs(defaultData.jobs || []);
       }
     } catch (error) {
-      console.error('Error loading recommendations:', error);
+      console.error('Error loading initial data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -130,7 +146,7 @@ export const FindJob: React.FC = () => {
         {/* Tabs */}
         <div className="flex gap-2 mb-8 border-b border-slate-200 dark:border-slate-800">
           {[
-            { id: 'recommendations', label: 'My Recommendations' },
+            { id: 'feed', label: hasRecommendations ? 'My Recommendations' : 'Job Feed' },
             { id: 'all', label: 'Browse All Jobs' },
           ].map(tab => (
             <button
@@ -151,73 +167,116 @@ export const FindJob: React.FC = () => {
         </div>
 
         {/* Content */}
-        {activeTab === 'recommendations' && (
+        {activeTab === 'feed' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Your Job Recommendations</h2>
-              <Button
-                onClick={() => setShowRecommendModal(true)}
-                className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
-              >
-                <Briefcase className="h-4 w-4 mr-2" />
-                Find New Jobs
-              </Button>
-            </div>
-
-            {isLoading ? (
-              <div className="flex justify-center items-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
-              </div>
-            ) : jobLists.length === 0 ? (
-              <div className="bg-white dark:bg-slate-900 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 p-12 text-center">
-                <Briefcase className="h-16 w-16 mx-auto mb-4 text-slate-400" />
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No Recommendations Yet</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6">Start by searching for jobs matching your resume</p>
-                <Button
-                  onClick={() => setShowRecommendModal(true)}
-                  className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
-                >
-                  Find Jobs Now
-                </Button>
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                {jobLists.map(list => (
-                  <div
-                    key={list.list_id}
-                    onClick={() => setSelectedList(list)}
-                    className="bg-white dark:bg-slate-900 rounded-xl border-2 border-slate-200 dark:border-slate-800 p-6 cursor-pointer hover:border-purple-500 dark:hover:border-purple-400 hover:shadow-lg transition-all"
+            {hasRecommendations ? (
+              <>
+                {/* User has recommendations */}
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Your Job Recommendations</h2>
+                  <Button
+                    onClick={() => setShowRecommendModal(true)}
+                    className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{list.search_term}</h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">📍 {list.location}</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-3xl font-black text-purple-600">{list.total_jobs}</div>
-                        <p className="text-xs text-slate-500">jobs found</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-slate-500">
-                        {new Date(list.created_at).toLocaleDateString()}
-                      </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteList(list.list_id);
-                        }}
-                        className="p-2 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Find More Jobs
+                  </Button>
+                </div>
 
-            {selectedList && <JobListPanel list={selectedList} onClose={() => setSelectedList(null)} />}
+                {isLoading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+                  </div>
+                ) : jobLists.length === 0 ? (
+                  <div className="bg-white dark:bg-slate-900 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 p-12 text-center">
+                    <Briefcase className="h-16 w-16 mx-auto mb-4 text-slate-400" />
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No Recommendations Yet</h3>
+                    <p className="text-slate-600 dark:text-slate-400 mb-6">Start by searching for jobs matching your resume</p>
+                    <Button
+                      onClick={() => setShowRecommendModal(true)}
+                      className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+                    >
+                      Find Jobs Now
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {jobLists.map(list => (
+                      <div
+                        key={list.list_id}
+                        onClick={() => setSelectedList(list)}
+                        className="bg-white dark:bg-slate-900 rounded-xl border-2 border-slate-200 dark:border-slate-800 p-6 cursor-pointer hover:border-purple-500 dark:hover:border-purple-400 hover:shadow-lg transition-all"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{list.search_term}</h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">📍 {list.location}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-3xl font-black text-purple-600">{list.total_jobs}</div>
+                            <p className="text-xs text-slate-500">jobs found</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-slate-500">
+                            {new Date(list.created_at).toLocaleDateString()}
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteList(list.list_id);
+                            }}
+                            className="p-2 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedList && <JobListPanel list={selectedList} onClose={() => setSelectedList(null)} />}
+              </>
+            ) : (
+              <>
+                {/* User has no recommendations - show default jobs */}
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Recommended for You</h2>
+                  <Button
+                    onClick={() => setShowRecommendModal(true)}
+                    className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Find Jobs
+                  </Button>
+                </div>
+
+                {isLoading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+                  </div>
+                ) : defaultJobs.length === 0 ? (
+                  <div className="bg-white dark:bg-slate-900 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 p-12 text-center">
+                    <Search className="h-16 w-16 mx-auto mb-4 text-slate-400" />
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No Jobs Available</h3>
+                    <p className="text-slate-600 dark:text-slate-400 mb-6">Start by searching for jobs matching your profile</p>
+                    <Button
+                      onClick={() => setShowRecommendModal(true)}
+                      className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+                    >
+                      Find Jobs Now
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {defaultJobs.map(job => (
+                      <JobListingCard key={job.job_url} job={job} />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 
