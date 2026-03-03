@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, Menu, X, Sparkles, FileText, Clock, UserCircle2, Wallet } from 'lucide-react';
+import { LogOut, Menu, X, Sparkles, FileText, Clock, UserCircle2, Wallet, Briefcase } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +27,7 @@ export const Header: React.FC = () => {
     { label: 'Upload Resume', path: '/upload', icon: FileText },
     { label: 'Tailor Resume', path: '/tailor', icon: Sparkles },
     { label: 'History', path: '/history', icon: Clock },
+    { label: 'Find Jobs', path: '/findjob', icon: Briefcase },
     { label: 'Pricing', path: '/pricing', icon: Wallet },
   ];
 
@@ -44,7 +45,7 @@ export const Header: React.FC = () => {
             </span>
           </button>
 
-          <nav className="hidden 2xl:flex items-center gap-1 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/70 p-1.5 min-w-0">
+          <nav className="hidden lg:flex items-center gap-1 rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/70 p-1.5 min-w-0">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
@@ -53,14 +54,21 @@ export const Header: React.FC = () => {
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors whitespace-nowrap ${
+                  title={item.label}
+                  className={`inline-flex items-center justify-center h-9 w-9 lg:h-auto lg:w-auto lg:gap-2 lg:px-4 rounded-full transition-colors ${
                     active
                       ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-slate-100'
-                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   }`}
                 >
-                  {Icon && <Icon className="h-4 w-4 shrink-0" />}
-                  <span className="whitespace-nowrap">{item.label}</span>
+                  {Icon ? (
+                    <>
+                      <Icon className="h-5 w-5 lg:h-4 lg:w-4 shrink-0" />
+                      <span className="hidden lg:inline-block whitespace-nowrap text-sm font-semibold">{item.label}</span>
+                    </>
+                  ) : (
+                    <span className="hidden lg:inline-block text-sm font-semibold">{item.label}</span>
+                  )}
                 </button>
               );
             })}
@@ -100,7 +108,7 @@ export const Header: React.FC = () => {
 
             <button
               onClick={() => setMenuOpen((prev) => !prev)}
-              className="2xl:hidden rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900"
+              className="lg:hidden rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900"
             >
               {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -108,7 +116,7 @@ export const Header: React.FC = () => {
         </div>
 
         {menuOpen && (
-          <nav className="2xl:hidden border-t border-slate-200 dark:border-slate-800 py-3 space-y-1">
+          <nav className="lg:hidden border-t border-slate-200 dark:border-slate-800 py-3 space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
