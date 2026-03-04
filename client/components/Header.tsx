@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, Menu, X, Sparkles, Clock, UserCircle2, Briefcase, Home, Wand2 } from 'lucide-react';
 
+// Main header/navbar component
 export const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
