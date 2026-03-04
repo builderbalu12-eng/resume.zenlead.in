@@ -90,18 +90,18 @@ class APIClient {
     const url = this.baseUrl ? `${this.baseUrl}${endpoint}` : endpoint;
 
     // Try to get token from localStorage first, then chrome.storage.sync
-    let token = localStorage.getItem('auth_token');
+    let token = localStorage.getItem('token') || localStorage.getItem('auth_token');
     let tokenSource = 'localStorage';
 
     if (!token && typeof chrome !== 'undefined' && chrome.storage) {
       // Try to get from chrome.storage.sync (for extension context)
       token = await new Promise<string | null>((resolve) => {
-        chrome.storage.sync.get(['resumematch_auth_token'], (result) => {
-          const syncToken = result['resumematch_auth_token'] || null;
+        chrome.storage.sync.get(['resumematch_auth_token', 'resumematch_token'], (result) => {
+          const syncToken = result['resumematch_token'] || result['resumematch_auth_token'] || null;
           if (syncToken) {
             console.log('[API] ✓ Token retrieved from chrome.storage.sync');
           } else {
-            console.warn('[API] ⚠️ chrome.storage.sync has no auth_token');
+            console.warn('[API] ⚠️ chrome.storage.sync has no auth_token or token');
           }
           resolve(syncToken);
         });

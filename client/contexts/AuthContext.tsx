@@ -116,13 +116,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Check if user is already logged in on mount
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
       if (token) {
         try {
           const currentUser = await apiClient.getCurrentUser();
           setUser(currentUser);
         } catch (err) {
           // Token is invalid or expired
+          localStorage.removeItem('token');
           localStorage.removeItem('auth_token');
           setUser(null);
         }
@@ -143,6 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userId = response.data.user._id;
 
       // Store token in localStorage
+      localStorage.setItem('token', token);
       localStorage.setItem('auth_token', token);
 
       // Save to chrome.storage.sync for extension (AWAIT this to ensure it completes)
@@ -184,6 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userId = response.data.user._id;
 
       // Store token in localStorage
+      localStorage.setItem('token', token);
       localStorage.setItem('auth_token', token);
 
       // Save to chrome.storage.sync for extension (AWAIT this to ensure it completes)
@@ -206,6 +209,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    localStorage.removeItem('token');
     localStorage.removeItem('auth_token');
     localStorage.removeItem('resumematch_master_resume'); // Don't keep offline resume
     setUser(null);
@@ -244,6 +248,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const setAuthData = async (userData: User, token: string) => {
+    localStorage.setItem('token', token);
     localStorage.setItem('auth_token', token);
 
     // Save to chrome.storage.sync for extension (AWAIT this to ensure it completes)
