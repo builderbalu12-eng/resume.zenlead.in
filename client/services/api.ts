@@ -169,6 +169,24 @@ class APIClient {
     });
   }
 
+  async updateCurrentUser(data: { firstName?: string; lastName?: string }): Promise<any> {
+    return this.request('/api/user/me', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async changePassword(data: {
+    current_password: string;
+    new_password: string;
+    confirm_password: string;
+  }): Promise<any> {
+    return this.request('/api/user/me/change-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async getGoogleAuthUrl(): Promise<{ success: boolean; auth_url: string }> {
     return this.request('/api/auth/google/url', {
       method: 'GET',
@@ -318,6 +336,46 @@ class APIClient {
         amount,
         plan_id: planId,
       }),
+    });
+  }
+
+  // Telegram endpoints
+  async getTelegramStatus(): Promise<{ linked: boolean }> {
+    return this.request('/api/telegram/status', {
+      method: 'GET',
+    });
+  }
+
+  async getTelegramLink(): Promise<{ link: string }> {
+    return this.request('/api/telegram/link', {
+      method: 'GET',
+    });
+  }
+
+  async getTelegramQR(): Promise<Blob> {
+    const url = this.baseUrl ? `${this.baseUrl}/api/telegram/qr` : '/api/telegram/qr';
+    let token = localStorage.getItem('auth_token');
+
+    const headers: HeadersInit = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch QR code');
+    }
+
+    return response.blob();
+  }
+
+  async disconnectTelegram(): Promise<any> {
+    return this.request('/api/telegram/unlink', {
+      method: 'DELETE',
     });
   }
 
