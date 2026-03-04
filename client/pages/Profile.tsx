@@ -67,12 +67,22 @@ export const Profile: React.FC = () => {
       if (activeTab === 'account') {
         try {
           setIsLoading(true);
+          setPersonalMessage(null);
           const response = await apiClient.getCurrentUser();
           setUser(response);
           setFirstName(response.firstName || '');
           setLastName(response.lastName || '');
         } catch (err) {
-          setPersonalMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to load profile' });
+          console.error('Failed to load user profile from API:', err);
+          // Fallback to auth context user data if available
+          if (authUser) {
+            setUser(authUser);
+            setFirstName(authUser.firstName || '');
+            setLastName(authUser.lastName || '');
+            setPersonalMessage(null);
+          } else {
+            setPersonalMessage({ type: 'error', text: 'Failed to load profile. Please refresh the page.' });
+          }
         } finally {
           setIsLoading(false);
         }
@@ -80,7 +90,7 @@ export const Profile: React.FC = () => {
     };
 
     loadUserProfile();
-  }, [activeTab]);
+  }, [activeTab, authUser]);
 
   // Load telegram status when account tab is active
   useEffect(() => {
@@ -140,6 +150,10 @@ export const Profile: React.FC = () => {
     const loadData = async () => {
       try {
         setIsLoading(true);
+        // Clear error message when switching tabs (not for account tab)
+        if (activeTab !== 'account') {
+          setPersonalMessage(null);
+        }
 
         if (activeTab === 'plans') {
           const response = await apiClient.getSubscriptionPlans(0, 100, true);
@@ -162,7 +176,9 @@ export const Profile: React.FC = () => {
           setLogs(response.data?.items || []);
         }
       } catch (err) {
-        setPersonalMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to load profile data' });
+        if (activeTab !== 'account') {
+          setPersonalMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to load profile data' });
+        }
       } finally {
         setIsLoading(false);
       }
