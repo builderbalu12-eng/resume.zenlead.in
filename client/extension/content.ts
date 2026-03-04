@@ -43,6 +43,29 @@ window.addEventListener("message", (event) => {
         }
       },
     );
+  } else if (event.data.action === "clearAuthCredentials") {
+    console.log(
+      "[Content Script] Web app requesting to clear auth credentials (user logged out)"
+    );
+
+    // Relay to background script
+    chrome.runtime.sendMessage(
+      {
+        action: "clearAuthCredentials",
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          console.error(
+            "[Content Script] Error relaying clearAuthCredentials to background:",
+            chrome.runtime.lastError.message,
+          );
+        } else {
+          console.log(
+            "[Content Script] ✓ Logout notification relayed to background script successfully"
+          );
+        }
+      },
+    );
   } else if (event.data.action === "saveSettings") {
     console.log(
       "[Content Script] Web app requesting to save settings:",

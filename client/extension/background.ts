@@ -64,6 +64,53 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
     }
     return true;
+  } else if (request.action === "clearAuthCredentials") {
+    console.log("[Background] Clearing auth credentials from chrome.storage.sync (user logged out)");
+
+    try {
+      chrome.storage.sync.remove(
+        [
+          'resumematch_auth_token',
+          'resumematch_user_id',
+          'resumematch_master_resume' // Also remove cached resume
+        ],
+        () => {
+          if (chrome.runtime.lastError) {
+            console.error(
+              "[Background] Error clearing auth credentials:",
+              chrome.runtime.lastError.message
+            );
+            sendResponse({
+              success: false,
+              error: chrome.runtime.lastError?.message,
+            });
+          } else {
+            console.log("[Background] ✓ All auth credentials and resume cleared from chrome.storage.sync");
+
+            // Verify the clear was successful
+            chrome.storage.sync.get(
+              ['resumematch_auth_token', 'resumematch_user_id', 'resumematch_master_resume'],
+              (result) => {
+                if (!result['resumematch_auth_token'] && !result['resumematch_user_id']) {
+                  console.log("[Background] ✓ Verification: auth credentials successfully removed");
+                } else {
+                  console.warn("[Background] ⚠️ WARNING: Some credentials were not properly cleared!");
+                }
+              }
+            );
+
+            sendResponse({ success: true });
+          }
+        }
+      );
+    } catch (e) {
+      console.error("[Background] Exception clearing auth credentials:", e);
+      sendResponse({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+    return true;
   } else if (request.action === "resumeUpdated") {
     console.log(
       "[Background] Resume update notification received from web app:",
