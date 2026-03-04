@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, Menu, X, Sparkles, Clock, UserCircle2, Briefcase } from 'lucide-react';
+import { LogOut, Menu, X, Sparkles, Clock, UserCircle2, Briefcase, Home, Wand2 } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -23,9 +23,10 @@ export const Header: React.FC = () => {
   }, [user]);
 
   const navItems = [
-    { label: 'Home', path: '/', icon: '🏠' },
+    { label: 'Home', path: '/', icon: Home },
+    { label: 'Tailor Resume', path: '/tailor', icon: Wand2 },
     { label: 'Find Jobs', path: '/findjob', icon: Briefcase },
-    { label: 'My Resumes', path: '/history', icon: Clock },
+    { label: 'History', path: '/history', icon: Clock },
   ];
 
   return (
@@ -77,14 +78,6 @@ export const Header: React.FC = () => {
         <div className="flex items-center gap-3">
           {user ? (
             <>
-              {/* Notification icon - bell only */}
-              <button 
-                className="hidden md:inline-flex items-center justify-center h-10 w-10 rounded-lg hover:bg-gray-100 transition-colors"
-                title="Notifications"
-              >
-                <span className="text-xl">🔔</span>
-              </button>
-
               {/* User profile button */}
               <button
                 onClick={() => navigate('/profile')}
