@@ -114,6 +114,7 @@ export const TailorResume: React.FC = () => {
     const missing: string[] = [];
 
     for (const section of configuredSections) {
+      if (!section) continue;
       const sectionKey =
         section.charAt(0).toLowerCase() + section.slice(1).replace(/ /g, "");
       const sectionValue = (tailored as any)[sectionKey];

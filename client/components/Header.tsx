@@ -20,7 +20,9 @@ export const Header: React.FC = () => {
 
   const initials = useMemo(() => {
     if (!user) return '';
-    return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
+    const first = user.firstName?.charAt(0) || '';
+    const last = user.lastName?.charAt(0) || '';
+    return `${first}${last}`.toUpperCase() || '?';
   }, [user]);
 
   const navItems = [
