@@ -37,10 +37,10 @@ export const Profile: React.FC = () => {
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [logs, setLogs] = useState<PaymentLog[]>([]);
 
-  // Personal Info
-  const [user, setUser] = useState<User | null>(null);
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  // Personal Info - initialize with authUser if available
+  const [user, setUser] = useState<User | null>(authUser || null);
+  const [firstName, setFirstName] = useState(authUser?.firstName || '');
+  const [lastName, setLastName] = useState(authUser?.lastName || '');
 
   // Change Password
   const [currentPassword, setCurrentPassword] = useState('');
@@ -61,36 +61,36 @@ export const Profile: React.FC = () => {
   const [telegramMessage, setTelegramMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [pollingTelegram, setPollingTelegram] = useState(false);
 
-  // Load user profile on account tab or on mount
+  // Load user profile on component mount (one time only)
   useEffect(() => {
     const loadUserProfile = async () => {
-      if (activeTab === 'account') {
-        try {
-          setIsLoading(true);
+      try {
+        setIsLoading(true);
+        setPersonalMessage(null);
+        const response = await apiClient.getCurrentUser();
+        setUser(response);
+        setFirstName(response.firstName || '');
+        setLastName(response.lastName || '');
+      } catch (err) {
+        console.error('Failed to load user profile from API:', err);
+        // Fallback to auth context user data if available
+        if (authUser) {
+          setUser(authUser);
+          setFirstName(authUser.firstName || '');
+          setLastName(authUser.lastName || '');
           setPersonalMessage(null);
-          const response = await apiClient.getCurrentUser();
-          setUser(response);
-          setFirstName(response.firstName || '');
-          setLastName(response.lastName || '');
-        } catch (err) {
-          console.error('Failed to load user profile from API:', err);
-          // Fallback to auth context user data if available
-          if (authUser) {
-            setUser(authUser);
-            setFirstName(authUser.firstName || '');
-            setLastName(authUser.lastName || '');
-            setPersonalMessage(null);
-          } else {
-            setPersonalMessage({ type: 'error', text: 'Failed to load profile. Please refresh the page.' });
-          }
-        } finally {
-          setIsLoading(false);
+        } else {
+          setPersonalMessage({ type: 'error', text: 'Failed to load profile. Please refresh the page.' });
         }
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    loadUserProfile();
-  }, [activeTab, authUser]);
+    if (isAuthenticated && !user) {
+      loadUserProfile();
+    }
+  }, [isAuthenticated]);
 
   // Load telegram status when account tab is active
   useEffect(() => {
@@ -307,6 +307,13 @@ export const Profile: React.FC = () => {
     { id: 'history', label: 'Payment History', icon: ReceiptText },
   ];
 
+  // Get user initials for avatar
+  const getInitials = (first: string, last: string) => {
+    const f = first?.charAt(0)?.toUpperCase() || '';
+    const l = last?.charAt(0)?.toUpperCase() || '';
+    return `${f}${l}`;
+  };
+
   if (!isAuthenticated || !authUser) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center">
@@ -320,10 +327,17 @@ export const Profile: React.FC = () => {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-10">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
-          <p className="text-sm font-semibold text-cyan-700 dark:text-cyan-300 mb-1">Your workspace</p>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white">{authUser.firstName} {authUser.lastName}</h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">{authUser.email}</p>
-          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mt-3">Available credits: {authUser.credits}</p>
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+              {getInitials(authUser.firstName, authUser.lastName) || '?'}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-cyan-700 dark:text-cyan-300 mb-1">Your workspace</p>
+              <h1 className="text-3xl font-black text-slate-900 dark:text-white">{authUser.firstName} {authUser.lastName}</h1>
+              <p className="text-slate-600 dark:text-slate-400 mt-1">{authUser.email}</p>
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mt-2">Available credits: {authUser.credits}</p>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 mb-6">
@@ -347,7 +361,7 @@ export const Profile: React.FC = () => {
           })}
         </div>
 
-        {isLoading && activeTab === 'account' ? (
+        {isLoading && !user ? (
           <div className="py-16 text-center">
             <Loader2 className="h-10 w-10 animate-spin mx-auto text-slate-500" />
           </div>
@@ -411,7 +425,7 @@ export const Profile: React.FC = () => {
                     <hr className="border-slate-200 dark:border-slate-800 mb-6" />
                     <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm mb-6">
                       <h3 className="text-[18px] font-semibold text-slate-900 dark:text-white mb-1">Change Password</h3>
-                      <p className="text-[13px] text-slate-500 dark:text-slate-400 mb-4">Leave blank if you don't want to change</p>
+                      <p className="text-[13px] text-slate-500 dark:text-slate-400 mb-4">Update your password to keep your account secure</p>
 
                       <div className="space-y-4 mb-4">
                         {/* Current Password */}
