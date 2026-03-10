@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button';
 import { JobCard } from '@/components/job/JobCard';
 import { SearchForm } from '@/components/job/SearchForm';
 import { MySearchesSidebar } from '@/components/job/MySearchesSidebar';
+import { Page } from '@/components/layout/Page';
+import { PremiumCard } from '@/components/premium/PremiumCard';
+import { EmptyState, LoadingState } from '@/components/premium/States';
+import { SectionHeader } from '@/components/premium/SectionHeader';
 
 type View = 'default' | 'recommendations' | 'browse';
 
@@ -158,11 +162,17 @@ export const FindJob: React.FC = () => {
 
   const loadAllJobs = async (page: number = 1) => {
     try {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: '20',
-        ...allJobsFilters,
-      });
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", "20");
+      params.set("search", allJobsFilters.search || "");
+      params.set("site", allJobsFilters.site || "");
+      if (allJobsFilters.is_remote !== null) {
+        params.set("is_remote", String(allJobsFilters.is_remote));
+      }
+      params.set("min_score", String(allJobsFilters.min_score || 0));
+      params.set("sort_by", allJobsFilters.sort_by || "fit_score");
+      params.set("sort_order", allJobsFilters.sort_order || "desc");
 
       const response = await fetch(`http://localhost:8000/api/jobs/all?${params}`, {
         headers,
@@ -191,37 +201,36 @@ export const FindJob: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center px-4">
-        <div className="text-center">
-          <Briefcase className="h-16 w-16 mx-auto mb-4 text-slate-400" />
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">Find Jobs</h1>
-          <p className="text-slate-600 dark:text-slate-400">Log in to discover job opportunities</p>
-        </div>
-      </div>
+      <Page size="md">
+        <EmptyState
+          title="Find jobs"
+          description="Sign in to discover job opportunities matched to your resume."
+          action={
+            <Button variant="gradient" asChild>
+              <a href="/login">Sign in</a>
+            </Button>
+          }
+        />
+      </Page>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-purple-600 mx-auto mb-4" />
-          <p className="text-slate-600 dark:text-slate-400">Loading...</p>
-        </div>
-      </div>
+      <Page size="md">
+        <LoadingState title="Loading jobs" description="Fetching your job feed…" />
+      </Page>
     );
   }
 
   // VIEW 1: DEFAULT JOBS PAGE
   if (view === 'default') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
-        <div className="max-w-6xl mx-auto px-4 py-12 space-y-12">
-          {/* Header */}
-          <div className="text-center space-y-2">
-            <h1 className="text-4xl font-black text-slate-900 dark:text-white">Find Jobs</h1>
-            <p className="text-lg text-slate-600 dark:text-slate-400">Discover opportunities matched to your resume</p>
-          </div>
+      <Page size="xl" className="space-y-10">
+        <SectionHeader
+          title="Find jobs"
+          description="Discover opportunities matched to your resume."
+        />
 
           {/* Search Form */}
           {!isSearching && <SearchForm onSubmit={handleSearch} isLoading={isSearching} />}
@@ -247,11 +256,11 @@ export const FindJob: React.FC = () => {
             </div>
 
             {defaultJobs.length === 0 ? (
-              <div className="bg-white dark:bg-slate-900 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 p-12 text-center">
-                <Briefcase className="h-16 w-16 mx-auto mb-4 text-slate-400" />
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No jobs available yet</h3>
-                <p className="text-slate-600 dark:text-slate-400">Be the first to run a search!</p>
-              </div>
+              <PremiumCard hover={false} className="p-12 text-center border-dashed">
+                <Briefcase className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-1">No jobs available yet</h3>
+                <p className="text-sm text-muted-foreground">Be the first to run a search.</p>
+              </PremiumCard>
             ) : (
               <div className="grid md:grid-cols-2 gap-6">
                 {defaultJobs.map(job => (
@@ -260,8 +269,7 @@ export const FindJob: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
-      </div>
+      </Page>
     );
   }
 
@@ -359,8 +367,7 @@ export const FindJob: React.FC = () => {
 
   // VIEW 3: BROWSE ALL JOBS
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
-      <div className="max-w-6xl mx-auto px-4 py-12 space-y-8">
+    <Page size="xl" className="space-y-8">
         {/* Header */}
         <div>
           <h1 className="text-4xl font-black text-slate-900 dark:text-white mb-2">Browse All Jobs</h1>
@@ -480,7 +487,6 @@ export const FindJob: React.FC = () => {
             </Button>
           </div>
         )}
-      </div>
-    </div>
+    </Page>
   );
 };

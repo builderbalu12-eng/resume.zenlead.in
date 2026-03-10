@@ -1,6 +1,4 @@
-import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Settings as SettingsIcon } from "lucide-react";
 import { Dashboard } from "./pages/Dashboard";
 import { UploadResume } from "./pages/UploadResume";
 import { TailorResume } from "./pages/TailorResume";
@@ -15,36 +13,13 @@ import { PaymentSuccess } from "./pages/PaymentSuccess";
 import { Checkout } from "./pages/Checkout";
 import { OneTimePayment } from "./pages/OneTimePayment";
 import { FindJob } from "./pages/FindJob";
-import { Header } from "./components/Header";
-import { Settings } from "./components/Settings";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AuthProvider } from "./contexts/AuthContext";
+import { AppShell } from "./components/layout/AppShell";
 
 function AppContent() {
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const { isAuthenticated } = useAuth();
-
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <Header />
-
-      {/* Settings Button - only show when authenticated */}
-      {isAuthenticated && (
-        <button
-          onClick={() => setSettingsOpen(true)}
-          className="fixed top-16 right-4 z-40 p-2 rounded-lg bg-muted hover:bg-muted/80 border border-border transition-colors"
-          title="Settings"
-        >
-          <SettingsIcon className="h-5 w-5" />
-        </button>
-      )}
-
-      {/* Settings Modal */}
-      <Settings
-        isOpen={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-      />
-
+    <div className="min-h-screen bg-background text-foreground">
       <Routes>
         {/* Public Auth Routes */}
         <Route path="/login" element={<Login />} />
@@ -52,18 +27,41 @@ function AppContent() {
         <Route path="/auth/callback" element={<AuthCallback />} />
 
         {/* Public Landing Page - No Auth Required */}
-        <Route path="/" element={<Dashboard />} />
+        <Route
+          path="/"
+          element={
+            <AppShell>
+              <Dashboard />
+            </AppShell>
+          }
+        />
 
         {/* Pricing & Payments Hub */}
-        <Route path="/pricing" element={<PricingHub />} />
-        <Route path="/payment/success" element={<PaymentSuccess />} />
+        <Route
+          path="/pricing"
+          element={
+            <AppShell>
+              <PricingHub />
+            </AppShell>
+          }
+        />
+        <Route
+          path="/payment/success"
+          element={
+            <AppShell>
+              <PaymentSuccess />
+            </AppShell>
+          }
+        />
 
         {/* Protected Feature Routes */}
         <Route
           path="/upload"
           element={
             <ProtectedRoute>
-              <UploadResume />
+              <AppShell>
+                <UploadResume />
+              </AppShell>
             </ProtectedRoute>
           }
         />
@@ -71,7 +69,9 @@ function AppContent() {
           path="/tailor"
           element={
             <ProtectedRoute>
-              <TailorResume />
+              <AppShell>
+                <TailorResume />
+              </AppShell>
             </ProtectedRoute>
           }
         />
@@ -79,7 +79,9 @@ function AppContent() {
           path="/history"
           element={
             <ProtectedRoute>
-              <History />
+              <AppShell>
+                <History />
+              </AppShell>
             </ProtectedRoute>
           }
         />
@@ -87,7 +89,9 @@ function AppContent() {
           path="/findjob"
           element={
             <ProtectedRoute>
-              <FindJob />
+              <AppShell>
+                <FindJob />
+              </AppShell>
             </ProtectedRoute>
           }
         />
@@ -95,7 +99,9 @@ function AppContent() {
           path="/profile"
           element={
             <ProtectedRoute>
-              <Profile />
+              <AppShell>
+                <Profile />
+              </AppShell>
             </ProtectedRoute>
           }
         />
@@ -104,7 +110,9 @@ function AppContent() {
           path="/checkout"
           element={
             <ProtectedRoute>
-              <Checkout />
+              <AppShell>
+                <Checkout />
+              </AppShell>
             </ProtectedRoute>
           }
         />
@@ -112,7 +120,9 @@ function AppContent() {
           path="/one-time-payment"
           element={
             <ProtectedRoute>
-              <OneTimePayment />
+              <AppShell>
+                <OneTimePayment />
+              </AppShell>
             </ProtectedRoute>
           }
         />

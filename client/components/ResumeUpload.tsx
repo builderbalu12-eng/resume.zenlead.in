@@ -7,10 +7,12 @@ import { apiClient } from "@/services/api";
 interface ResumeUploadProps {
   onUploadSuccess: (resume: ResumeData) => void;
   isLoading?: boolean;
+  onApiKeyMissing?: () => void;
 }
 
 type LoadingStep =
   | "idle"
+  | "validating-key"
   | "extracting"
   | "parsing"
   | "validating"
@@ -20,6 +22,7 @@ type LoadingStep =
 export const ResumeUpload: React.FC<ResumeUploadProps> = ({
   onUploadSuccess,
   isLoading = false,
+  onApiKeyMissing,
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +112,14 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
       } else if (errorMessage.includes("Unauthorized")) {
         setError(
           `🔐 Authentication error:\n\nPlease log in again to continue.`,
+        );
+      } else if (
+        errorMessage.toLowerCase().includes("api key") ||
+        errorMessage.toLowerCase().includes("apikey")
+      ) {
+        onApiKeyMissing?.();
+        setError(
+          `🔑 API key/config missing:\n\n${errorMessage}\n\nOpen Settings to configure and try again.`,
         );
       } else if (errorMessage.includes("Could not extract")) {
         setError(
@@ -284,9 +295,7 @@ export const ResumeUpload: React.FC<ResumeUploadProps> = ({
                 <div className="mt-6 w-full max-w-xs mx-auto">
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                      className={`h-full ${
-                        loadingStep === "error" ? "bg-red-600" : "bg-primary"
-                      } transition-all duration-300`}
+                      className="h-full bg-primary transition-all duration-300"
                       style={{ width: `${getStepProgress()}%` }}
                     />
                   </div>

@@ -11,95 +11,97 @@
    * tailwind.config.ts expects HSL values
   */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Premium SaaS palette (mapped from provided hex values) */
+    --background: 210 20% 98%; /* #F9FAFB */
+    --foreground: 222 47% 11%; /* #111827 */
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222 47% 11%;
 
-    /* ResumeMatch Pro Brand Colors */
-    --primary: 262 80% 50%;
+    /* Primary: #6366F1, Secondary: #8B5CF6 */
+    --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 218 92% 50%;
+    --secondary: 258 90% 66%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 14% 46%; /* #6B7280 */
 
-    --accent: 16 100% 60%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 210 20% 96%;
+    --accent-foreground: 222 47% 11%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 262 80% 50%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 239 84% 67%;
 
-    --radius: 0.75rem;
+    /* 12–16px system radius (default 16px) */
+    --radius: 1rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 262 80% 50%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 239 84% 67%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-accent: 210 20% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 262 80% 50%;
+    --sidebar-ring: 239 84% 67%;
 
     --gradient-primary: linear-gradient(
       135deg,
-      hsl(262, 80%, 50%) 0%,
-      hsl(218, 92%, 50%) 100%
+      hsl(239, 84%, 67%) 0%,
+      hsl(258, 90%, 66%) 100%
     );
     --gradient-warm: linear-gradient(
       135deg,
-      hsl(262, 80%, 50%) 0%,
-      hsl(16, 100%, 60%) 100%
+      hsl(239, 84%, 67%) 0%,
+      hsl(258, 90%, 66%) 100%
     );
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 47% 6%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 222 47% 8%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 262 80% 60%;
-    --primary-foreground: 222.2 84% 4.9%;
+    --primary: 239 84% 72%;
+    --primary-foreground: 222 47% 8%;
 
-    --secondary: 218 92% 60%;
-    --secondary-foreground: 222.2 84% 4.9%;
+    --secondary: 258 90% 70%;
+    --secondary-foreground: 222 47% 8%;
 
-    --muted: 217.2 32.6% 17.5%;
+    --muted: 222 25% 14%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 16 100% 50%;
-    --accent-foreground: 222.2 84% 4.9%;
+    --accent: 222 25% 14%;
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 262 80% 60%;
+    --border: 222 25% 16%;
+    --input: 222 25% 16%;
+    --ring: 239 84% 72%;
 
-    --sidebar-background: 240 5.9% 10%;
+    --sidebar-background: 222 47% 8%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 262 80% 60%;
+    --sidebar-primary: 239 84% 72%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent: 222 25% 14%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 262 80% 60%;
+    --sidebar-border: 222 25% 16%;
+    --sidebar-ring: 239 84% 72%;
   }
 }
 
@@ -149,8 +151,8 @@
   .text-gradient {
     background: linear-gradient(
       135deg,
-      hsl(262, 80%, 50%) 0%,
-      hsl(218, 92%, 50%) 100%
+      hsl(239, 84%, 67%) 0%,
+      hsl(258, 90%, 66%) 100%
     );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -158,10 +160,20 @@
   }
 
   .shadow-glow {
-    box-shadow: 0 10px 30px rgba(102, 51, 153, 0.2);
+    box-shadow: 0 12px 32px rgba(99, 102, 241, 0.18);
   }
 
   .shadow-glow-lg {
-    box-shadow: 0 20px 50px rgba(102, 51, 153, 0.15);
+    box-shadow: 0 24px 64px rgba(99, 102, 241, 0.16);
+  }
+
+  .surface-glass {
+    background: hsl(var(--card) / 0.75);
+    border: 1px solid hsl(var(--border) / 0.7);
+    backdrop-filter: blur(14px);
+  }
+
+  .animate-in-soft {
+    animation: fade-in 220ms ease-out, slide-up 260ms ease-out;
   }
 }

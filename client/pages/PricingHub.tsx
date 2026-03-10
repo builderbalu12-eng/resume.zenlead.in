@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { apiClient, PaymentLog, SubscriptionPlan } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Page } from '@/components/layout/Page';
+import { PremiumCard } from '@/components/premium/PremiumCard';
 
 const CREDIT_PACKAGES = [
   { credits: 100, amount: 999 },
@@ -191,21 +193,31 @@ export const PricingHub: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-3xl bg-gradient-to-br from-cyan-600 to-blue-700 text-white p-8 md:p-10 shadow-xl mb-8">
-          <p className="text-xs uppercase tracking-[0.2em] text-white/80 mb-3">Simple Pricing</p>
-          <h1 className="text-4xl md:text-5xl font-black mb-3">Scale your resume workflow</h1>
-          <p className="text-white/90 max-w-2xl">Transparent plans and rupee-only pricing.</p>
+    <Page size="xl" className="space-y-8">
+      <PremiumCard
+        hover={false}
+        className="overflow-hidden p-0 bg-gradient-primary text-primary-foreground border-border/40"
+      >
+        <div className="p-8 md:p-10">
+          <p className="text-xs uppercase tracking-[0.2em] text-white/80 mb-3">
+            Simple pricing
+          </p>
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mb-2 text-white">
+            Scale your resume workflow
+          </h1>
+          <p className="text-white/90 max-w-2xl">
+            Transparent plans and rupee-only pricing.
+          </p>
         </div>
+      </PremiumCard>
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 text-sm font-semibold flex items-center gap-2">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive text-sm font-medium flex items-center gap-2">
             <AlertCircle className="h-4 w-4" /> {error}
           </div>
         )}
 
-        <div className="mb-7 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           {[
             { id: 'plans' as TabType, label: 'Plans', icon: Sparkles },
             { id: 'subscriptions' as TabType, label: 'Subscriptions', icon: Settings },
@@ -217,10 +229,10 @@ export const PricingHub: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold border ${
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold border transition-colors ${
                   activeTab === tab.id
-                    ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
-                    : 'bg-white text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800'
+                    ? 'bg-foreground text-background border-foreground'
+                    : 'bg-card/60 text-foreground border-border/60 hover:bg-card'
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -231,8 +243,8 @@ export const PricingHub: React.FC = () => {
         </div>
 
         {isLoading && (
-          <div className="py-20 text-center">
-            <Loader className="h-10 w-10 mx-auto animate-spin text-slate-500" />
+          <div className="py-14 text-center">
+            <Loader className="h-10 w-10 mx-auto animate-spin text-muted-foreground" />
           </div>
         )}
 
@@ -391,9 +403,7 @@ export const PricingHub: React.FC = () => {
             )}
           </div>
         )}
-      </div>
-
       <script src="https://checkout.razorpay.com/v1/checkout.js" async />
-    </div>
+    </Page>
   );
 };

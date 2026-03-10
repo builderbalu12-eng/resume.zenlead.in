@@ -119,7 +119,7 @@ export const Dashboard: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-blue-950 dark:to-purple-950">
+    <div className="-mx-4 -my-6 md:-mx-6 md:-my-8 bg-gradient-to-b from-background via-background to-background">
       {/* Hero Section - Modern Design */}
       <div className="relative overflow-hidden">
         {/* Animated Background Elements */}

@@ -3,6 +3,11 @@ import { ArrowLeft, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ApplicationList } from "@/components/ApplicationList";
 import { ApplicationRecord } from "@/types";
+import { Page } from "@/components/layout/Page";
+import { PremiumCard } from "@/components/premium/PremiumCard";
+import { SectionHeader } from "@/components/premium/SectionHeader";
+import { StatCard } from "@/components/premium/StatCard";
+import { Button } from "@/components/ui/button";
 import {
   getApplicationHistory,
   updateApplicationStatus,
@@ -100,26 +105,48 @@ export const History: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background py-12">
-      <div className="max-w-5xl mx-auto px-4">
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
-        </button>
+    <Page size="xl">
+      <Button variant="ghost" onClick={() => navigate("/")} className="-ml-2 mb-6">
+        <ArrowLeft className="h-4 w-4" />
+        Back to Dashboard
+      </Button>
 
-        <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold font-heading mb-2">
-            Application History
-          </h1>
-          <p className="text-muted-foreground">
-            Track all your tailored resumes and application outcomes
-          </p>
+      <div className="mb-8">
+        <SectionHeader
+          title="Application history"
+          description="Track tailored resumes and application outcomes."
+          action={
+            <Button
+              onClick={handleExportCSV}
+              disabled={applications.length === 0}
+              variant="outline"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+          }
+        />
+      </div>
+
+      {applications.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2 mb-8">
+          <StatCard label="Total applications" value={applications.length} />
+          <StatCard
+            label="Avg match score"
+            value={`${applications.length > 0
+              ? Math.round(
+                  applications.reduce(
+                    (sum, a) =>
+                      sum + (a.atsScore || a.matchPercentage || 0),
+                    0,
+                  ) / applications.length,
+                )
+              : 0}%`}
+          />
         </div>
+      )}
 
-        <div className="bg-card border border-border rounded-xl p-6 mb-8">
+      <PremiumCard className="p-6" hover={false}>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div className="flex flex-wrap gap-2">
               <button
@@ -133,15 +160,6 @@ export const History: React.FC = () => {
                 All ({applications.length})
               </button>
             </div>
-
-            <button
-              onClick={handleExportCSV}
-              disabled={applications.length === 0}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Download className="h-4 w-4" />
-              Export CSV
-            </button>
           </div>
 
           <ApplicationList
@@ -149,36 +167,7 @@ export const History: React.FC = () => {
             onStatusChange={handleStatusChange}
             isLoading={isLoading}
           />
-        </div>
-
-        {applications.length > 0 && (
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="bg-card border border-border rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-primary mb-1">
-                {applications.length}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Total Applications
-              </p>
-            </div>
-            <div className="bg-card border border-border rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-primary mb-1">
-                {applications.length > 0
-                  ? Math.round(
-                      applications.reduce(
-                        (sum, a) =>
-                          sum + (a.atsScore || a.matchPercentage || 0),
-                        0,
-                      ) / applications.length,
-                    )
-                  : 0}
-                %
-              </div>
-              <p className="text-sm text-muted-foreground">Avg Match Score</p>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+      </PremiumCard>
+    </Page>
   );
 };
