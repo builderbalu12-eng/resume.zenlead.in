@@ -47,25 +47,111 @@ export const saveUserResume: RequestHandler = async (req, res) => {
 export const saveUser: RequestHandler = async (req, res) => {
   try {
     const userData: User = req.body;
-    const userId = userData._id || `user_${Date.now()}`;
+    const { email, firstName, lastName, password } = userData;
 
-    let user = await UserModel.findById(userId);
-    if (!user) {
-      user = new UserModel({
-        _id: userId,
-        ...userData,
-        credits: userData.credits || 0,
+    // Check if user already exists
+    const existingUser = await UserModel.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "User with this email already exists"
       });
-    } else {
-      user.email = userData.email || user.email;
-      user.masterResume = userData.masterResume || user.masterResume;
-      user.credits = userData.credits || user.credits;
     }
 
+    // Generate user ID
+    const userId = userData._id || `user_${Date.now()}`;
+
+    // Create new user
+    const user = new UserModel({
+      _id: userId,
+      firstName,
+      lastName,
+      email,
+      password,
+      auth_provider: "local",
+      credits: 150,
+    });
+
     await user.save();
-    res.json(user);
+
+    // Remove password from response
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    // Return response in auth format with token = userId
+    res.status(201).json({
+      status: 201,
+      success: true,
+      message: "User registered successfully",
+      data: {
+        user: userResponse,
+        access_token: userId,
+        token_type: "bearer",
+      },
+    });
   } catch (error: any) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: error.message || "Registration failed"
+    });
+  }
+};
+
+// NEW: Login endpoint
+export const loginUser: RequestHandler = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Email and password required"
+      });
+    }
+
+    // Find user by email with password field selected
+    const user = await UserModel.findOne({ email }).select("+password");
+    if (!user) {
+      return res.status(401).json({
+        status: 401,
+        success: false,
+        message: "Invalid email or password"
+      });
+    }
+
+    // Check password (in production, use bcrypt)
+    if (!user.password || user.password !== password) {
+      return res.status(401).json({
+        status: 401,
+        success: false,
+        message: "Invalid email or password"
+      });
+    }
+
+    // Remove password from response before sending
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    // Return response in auth format with token = userId
+    res.json({
+      status: 200,
+      success: true,
+      message: "Login successful",
+      data: {
+        user: userResponse,
+        access_token: user._id,
+        token_type: "bearer",
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: error.message
+    });
   }
 };
 

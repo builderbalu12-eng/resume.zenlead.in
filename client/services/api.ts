@@ -164,16 +164,20 @@ class APIClient {
   }
 
   async getCurrentUser(): Promise<User> {
-    return this.request('/api/user/me', {
+    const response = await this.request('/api/user/me', {
       method: 'GET',
     });
+    // Handle both new response format and raw user response
+    return response.data?.user || response;
   }
 
-  async updateCurrentUser(data: { firstName?: string; lastName?: string }): Promise<any> {
-    return this.request('/api/user/me', {
+  async updateCurrentUser(data: { firstName?: string; lastName?: string }): Promise<User> {
+    const response = await this.request('/api/user/me', {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
+    // Handle both new response format and raw user response
+    return response.data?.user || response;
   }
 
   async changePassword(data: {

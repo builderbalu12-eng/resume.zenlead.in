@@ -6,6 +6,7 @@ import {
   getUserResume,
   saveUserResume,
   saveUser,
+  loginUser,
   getApplicationHistory,
   saveApplication,
   updateApplicationStatus,
@@ -53,6 +54,8 @@ export function createServer(): Express {
   });
 
   // User routes
+  app.post("/api/auth/register", saveUser);
+  app.post("/api/auth/login", loginUser);
   app.post("/api/users", saveUser);
   app.get("/api/user/me", authMiddleware, getMe);
   app.patch("/api/user/me", authMiddleware, updateMe);
