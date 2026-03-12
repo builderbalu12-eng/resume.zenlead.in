@@ -8,6 +8,7 @@ export const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
   const { setAuthData } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const redirectTo = searchParams.get("redirect");
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -45,7 +46,8 @@ export const AuthCallback: React.FC = () => {
         await setAuthData(authData.user, authData.access_token);
 
         // Redirect to dashboard
-        setTimeout(() => navigate('/'), 500);
+        const target = redirectTo && redirectTo.startsWith("/") ? redirectTo : "/";
+        setTimeout(() => navigate(target), 500);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Authentication error';
         setError(message);
@@ -54,7 +56,7 @@ export const AuthCallback: React.FC = () => {
     };
 
     handleCallback();
-  }, [searchParams, navigate, setAuthData]);
+  }, [searchParams, navigate, setAuthData, redirectTo]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-blue-950 dark:to-purple-950 flex items-center justify-center p-4">

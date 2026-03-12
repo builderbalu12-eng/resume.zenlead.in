@@ -17,7 +17,7 @@ export function AppShell({
   const [settingsOpen, setSettingsOpen] = React.useState(false);
 
   return (
-    <SidebarProvider defaultOpen>
+    <SidebarProvider defaultOpen={false}>
       <AppSidebar />
       <SidebarInset>
         <AppHeader

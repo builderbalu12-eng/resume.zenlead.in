@@ -24,7 +24,7 @@ import { getRouteTitle } from "./nav";
 function getInitials(first?: string, last?: string) {
   const f = first?.slice(0, 1) ?? "";
   const l = last?.slice(0, 1) ?? "";
-  return (f + l).toUpperCase() || "?";
+  return (f + l).toUpperCase();
 }
 
 export function AppHeader({
@@ -122,8 +122,14 @@ export function AppHeader({
                 )}
               >
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-gradient-primary text-white text-xs font-semibold">
-                    {getInitials(user?.firstName, user?.lastName)}
+                  <AvatarFallback className="bg-gradient-primary text-white text-xs font-semibold flex items-center justify-center">
+                    {user ? (
+                      getInitials(user.firstName, user.lastName) || (
+                        <UserIcon className="h-4 w-4" />
+                      )
+                    ) : (
+                      <UserIcon className="h-4 w-4" />
+                    )}
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden sm:flex flex-col text-left leading-tight">

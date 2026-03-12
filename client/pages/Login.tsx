@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Loader } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ export const GoogleSignInButton = ({ onClick, isLoading }: { onClick: () => void
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login, isLoading, error, clearError, getGoogleAuthUrl } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -37,6 +38,14 @@ export const Login: React.FC = () => {
   });
   const [localError, setLocalError] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  const redirectTo = useMemo(() => {
+    const raw = searchParams.get("redirect");
+    if (!raw) return "/";
+    // Only allow internal redirects.
+    if (!raw.startsWith("/")) return "/";
+    return raw;
+  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -56,7 +65,7 @@ export const Login: React.FC = () => {
 
     try {
       await login(formData.email, formData.password);
-      navigate('/');
+      navigate(redirectTo);
     } catch (err) {
       // Error is handled by context
     }
@@ -94,6 +103,16 @@ export const Login: React.FC = () => {
           {displayError && (
             <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-lg">
               <p className="text-red-700 dark:text-red-400 text-sm font-medium">{displayError}</p>
+            </div>
+          )}
+          {!displayError && searchParams.get("redirect") && (
+            <div className="mb-6 p-4 bg-primary/5 border border-primary/15 rounded-lg">
+              <p className="text-foreground text-sm font-medium">
+                Please log in to continue.
+              </p>
+              <p className="text-muted-foreground text-xs mt-1">
+                You’ll be redirected after signing in.
+              </p>
             </div>
           )}
 

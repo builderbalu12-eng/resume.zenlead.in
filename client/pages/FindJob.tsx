@@ -12,6 +12,15 @@ import { SectionHeader } from '@/components/premium/SectionHeader';
 
 type View = 'default' | 'recommendations' | 'browse';
 
+const API_HOST = (
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://localhost:8000' : '')
+).replace(/\/$/, '');
+
+function apiUrl(path: string) {
+  return API_HOST ? `${API_HOST}${path}` : path;
+}
+
 export const FindJob: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const token = localStorage.getItem('auth_token');
@@ -50,7 +59,7 @@ export const FindJob: React.FC = () => {
   const loadInitialData = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:8000/api/jobs/default', {
+      const response = await fetch(apiUrl('/api/jobs/default'), {
         headers,
       });
       const data = await response.json();
@@ -78,7 +87,7 @@ export const FindJob: React.FC = () => {
 
   const loadSearches = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/jobs/lists', {
+      const response = await fetch(apiUrl('/api/jobs/lists'), {
         headers,
       });
       const data = await response.json();
@@ -96,7 +105,7 @@ export const FindJob: React.FC = () => {
   const loadListJobs = async (listId: string) => {
     try {
       setSelectedListId(listId);
-      const response = await fetch(`http://localhost:8000/api/jobs/lists/${listId}`, {
+      const response = await fetch(apiUrl(`/api/jobs/lists/${listId}`), {
         headers,
       });
       const data = await response.json();
@@ -117,7 +126,7 @@ export const FindJob: React.FC = () => {
   const handleSearch = async (formData: any) => {
     setIsSearching(true);
     try {
-      const response = await fetch('http://localhost:8000/api/jobs/recommend', {
+      const response = await fetch(apiUrl('/api/jobs/recommend'), {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -143,7 +152,7 @@ export const FindJob: React.FC = () => {
 
   const handleDeleteSearch = async (listId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/jobs/lists/${listId}`, {
+      const response = await fetch(apiUrl(`/api/jobs/lists/${listId}`), {
         method: 'DELETE',
         headers,
       });
@@ -174,7 +183,7 @@ export const FindJob: React.FC = () => {
       params.set("sort_by", allJobsFilters.sort_by || "fit_score");
       params.set("sort_order", allJobsFilters.sort_order || "desc");
 
-      const response = await fetch(`http://localhost:8000/api/jobs/all?${params}`, {
+      const response = await fetch(apiUrl(`/api/jobs/all?${params}`), {
         headers,
       });
       const data = await response.json();

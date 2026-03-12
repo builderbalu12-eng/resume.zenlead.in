@@ -25,7 +25,8 @@ export const PRIMARY_NAV: NavItem[] = [
 
 export const ACCOUNT_NAV: NavItem[] = [
   { label: "Profile", path: "/profile", icon: User, requiresAuth: true },
-  { label: "Billing", path: "/pricing", icon: CreditCard },
+  { label: "Pricing", path: "/pricing", icon: CreditCard },
+  { label: "Billing", path: "/billing", icon: CreditCard, requiresAuth: true },
 ];
 
 export function getRouteTitle(pathname: string): string {

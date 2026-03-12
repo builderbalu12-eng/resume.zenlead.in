@@ -1,20 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CalendarClock, CreditCard, Loader2, PencilLine, ReceiptText, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Loader2, PencilLine } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { apiClient, PaymentLog, SubscriptionPlan, User } from '@/services/api';
+import { apiClient, User } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-type ProfileTab = 'account' | 'plans' | 'subscriptions' | 'history';
-
-const formatRupees = (amount: number) =>
-  new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(amount);
+type ProfileTab = 'account';
 
 export const Profile: React.FC = () => {
   const { user: authUser, isAuthenticated, updateCurrentUser } = useAuth();
@@ -22,9 +15,6 @@ export const Profile: React.FC = () => {
 
   const initialTab = useMemo<ProfileTab>(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'plans' || tab === 'subscriptions' || tab === 'history' || tab === 'account') {
-      return tab;
-    }
     return 'account';
   }, [searchParams]);
 
@@ -32,10 +22,6 @@ export const Profile: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [personalMessage, setPersonalMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const [subscriptions, setSubscriptions] = useState<any[]>([]);
-  const [logs, setLogs] = useState<PaymentLog[]>([]);
 
   // Personal Info - initialize with authUser if available
   const [user, setUser] = useState<User | null>(authUser || null);
@@ -149,51 +135,16 @@ export const Profile: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        setIsLoading(true);
-        // Clear error message when switching tabs (not for account tab)
-        if (activeTab !== 'account') {
-          setPersonalMessage(null);
-        }
-
-        if (activeTab === 'plans') {
-          const response = await apiClient.getSubscriptionPlans(0, 100, true);
-          setPlans(response.data?.items || []);
-          return;
-        }
-
-        if (!isAuthenticated) {
-          setIsLoading(false);
-          return;
-        }
-
-        if (activeTab === 'subscriptions') {
-          const response = await apiClient.getSubscriptions(0, 100);
-          setSubscriptions(response.data?.items || []);
-        }
-
-        if (activeTab === 'history') {
-          const response = await apiClient.getPaymentLogs(0, 100);
-          setLogs(response.data?.items || []);
-        }
+        // no-op: profile no longer loads billing/payment data
       } catch (err) {
-        if (activeTab !== 'account') {
-          setPersonalMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to load profile data' });
-        }
+        // ignore
       } finally {
-        setIsLoading(false);
+        // ignore
       }
     };
 
     loadData();
   }, [activeTab, isAuthenticated]);
-
-  const stats = useMemo(() => {
-    const successful = logs.filter((log) => ['success', 'succeeded'].includes(log.status.toLowerCase()));
-    const totalSpent = successful.reduce((sum, item) => sum + item.amount_paid, 0);
-    const totalCredits = successful.reduce((sum, item) => sum + item.credits_added, 0);
-
-    return { totalSpent, totalCredits };
-  }, [logs]);
 
   const handleSaveProfile = async () => {
     if (!user) return;
@@ -302,9 +253,6 @@ export const Profile: React.FC = () => {
 
   const tabs: { id: ProfileTab; label: string; icon: React.ElementType }[] = [
     { id: 'account', label: 'Account', icon: PencilLine },
-    { id: 'plans', label: 'Plans', icon: Sparkles },
-    { id: 'subscriptions', label: 'Subscriptions', icon: CalendarClock },
-    { id: 'history', label: 'Payment History', icon: ReceiptText },
   ];
 
   // Get user initials for avatar
@@ -608,87 +556,6 @@ export const Profile: React.FC = () => {
                     )}
                   </div>
                 </>
-              </div>
-            )}
-
-            {activeTab === 'plans' && (
-              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
-                {plans.map((plan) => (
-                  <div key={plan._id} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">{plan.plan_name}</h3>
-                    <p className="text-sm mt-2 text-slate-600 dark:text-slate-400 min-h-12">{plan.description}</p>
-                    <p className="mt-4 text-3xl font-black text-slate-900 dark:text-white">{formatRupees(plan.amount)}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">Per {plan.period}</p>
-                    <p className="text-sm font-semibold mt-3 text-cyan-700 dark:text-cyan-300">{plan.credits_per_cycle} credits / cycle</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {activeTab === 'subscriptions' && (
-              <div className="space-y-4">
-                {subscriptions.length === 0 ? (
-                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center text-slate-600 dark:text-slate-400">
-                    No active subscriptions.
-                  </div>
-                ) : (
-                  subscriptions.map((subscription) => (
-                    <div key={subscription._id} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 flex items-center justify-between gap-4">
-                      <div>
-                        <p className="font-bold text-slate-900 dark:text-white">Subscription #{subscription._id.slice(-6)}</p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Status: {subscription.status}</p>
-                      </div>
-                      <span className="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 uppercase">
-                        {subscription.status}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {activeTab === 'history' && (
-              <div className="space-y-5">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Total Spent</p>
-                    <p className="text-3xl font-black text-slate-900 dark:text-white">{formatRupees(stats.totalSpent)}</p>
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Credits Purchased</p>
-                    <p className="text-3xl font-black text-slate-900 dark:text-white">{stats.totalCredits}</p>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto">
-                  <table className="w-full min-w-[560px]">
-                    <thead className="bg-slate-50 dark:bg-slate-800/50">
-                      <tr>
-                        <th className="text-left p-4 text-xs uppercase text-slate-600 dark:text-slate-400">Date</th>
-                        <th className="text-left p-4 text-xs uppercase text-slate-600 dark:text-slate-400">Amount</th>
-                        <th className="text-left p-4 text-xs uppercase text-slate-600 dark:text-slate-400">Credits</th>
-                        <th className="text-left p-4 text-xs uppercase text-slate-600 dark:text-slate-400">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {logs.map((log) => (
-                        <tr key={log._id} className="border-t border-slate-200 dark:border-slate-800">
-                          <td className="p-4 text-sm text-slate-700 dark:text-slate-300">{new Date(log.created_at).toLocaleDateString()}</td>
-                          <td className="p-4 text-sm font-semibold text-slate-900 dark:text-white">{formatRupees(log.amount_paid)}</td>
-                          <td className="p-4 text-sm text-slate-700 dark:text-slate-300">+{log.credits_added}</td>
-                          <td className="p-4"><span className="text-xs uppercase rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-slate-700 dark:text-slate-300">{log.status}</span></td>
-                        </tr>
-                      ))}
-                      {logs.length === 0 && (
-                        <tr>
-                          <td colSpan={4} className="p-8 text-center text-slate-500 dark:text-slate-400">
-                            No payment history available.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
               </div>
             )}
           </>

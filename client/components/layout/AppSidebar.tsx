@@ -1,5 +1,5 @@
 import * as React from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -23,12 +23,20 @@ import { ACCOUNT_NAV, PRIMARY_NAV } from "./nav";
 export function AppSidebar() {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const navItems = PRIMARY_NAV.filter(
-    (i) => !i.requiresAuth || isAuthenticated,
-  );
-  const accountItems = ACCOUNT_NAV.filter(
-    (i) => !i.requiresAuth || isAuthenticated,
+  const navItems = PRIMARY_NAV;
+  const accountItems = ACCOUNT_NAV;
+
+  const guardNav = React.useCallback(
+    (item: { path: string; requiresAuth?: boolean }) =>
+      (e: React.MouseEvent) => {
+        if (item.requiresAuth && !isAuthenticated) {
+          e.preventDefault();
+          navigate(`/login?redirect=${encodeURIComponent(item.path)}`);
+        }
+      },
+    [isAuthenticated, navigate],
   );
 
   return (
@@ -74,7 +82,7 @@ export function AppSidebar() {
                       isActive={active}
                       tooltip={item.label}
                     >
-                      <NavLink to={item.path}>
+                      <NavLink to={item.path} onClick={guardNav(item)}>
                         <Icon className="size-4" />
                         <span>{item.label}</span>
                       </NavLink>
@@ -100,7 +108,7 @@ export function AppSidebar() {
                       isActive={active}
                       tooltip={item.label}
                     >
-                      <NavLink to={item.path}>
+                      <NavLink to={item.path} onClick={guardNav(item)}>
                         <Icon className="size-4" />
                         <span>{item.label}</span>
                       </NavLink>
