@@ -7,6 +7,7 @@ import { CouponInput } from "@/components/payment/CouponInput";
 import { PlanCard } from "@/components/payment/PlanCard";
 import { paymentService, type BillingCycle, type SubscriptionPlan } from "@/services/paymentService";
 import { useRazorpay } from "@/hooks/useRazorpay";
+import { useRazorpayCheckout } from "@/hooks/useRazorpayCheckout";
 
 type CouponState =
   | { status: "idle" }
@@ -18,6 +19,7 @@ export function PricingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, user, updateCurrentUser } = useAuth();
   const { ready: razorpayReady, open: openRazorpay } = useRazorpay();
+  const { openCheckout } = useRazorpayCheckout();
 
   const [plans, setPlans] = React.useState<SubscriptionPlan[]>([]);
   const [loadingPlans, setLoadingPlans] = React.useState(true);
@@ -112,21 +114,18 @@ export function PricingPage() {
           coupon_code,
         });
 
-        const raw: any = res as any;
-        const shortUrl =
-          raw?.data?.short_url ||
-          raw?.data?.shorturl ||
-          raw?.data?.data?.short_url ||
-          raw?.data?.data?.shorturl;
+        const razorpaySubscriptionId = res.data.razorpay_subscription_id;
 
-        if (!shortUrl) {
-          // Helpful during debugging if backend shape changes
-          // eslint-disable-next-line no-console
-          console.error("Missing short_url/shorturl in subscription response", raw);
-          throw new Error("Missing checkout link");
+        if (!razorpaySubscriptionId) {
+          throw new Error("Missing subscription ID in response");
         }
 
-        window.location.href = shortUrl;
+        openCheckout({
+          subscriptionId: razorpaySubscriptionId,
+          planName: plan.plan_name,
+          onSuccess: () => navigate("/payment/success"),
+          onFailure: (reason) => toast.error(reason, { duration: 5000 }),
+        });
         return;
       }
 

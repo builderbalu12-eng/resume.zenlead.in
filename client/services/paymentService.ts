@@ -222,7 +222,7 @@ export const paymentService = {
   },
 
   refreshMe(): Promise<any> {
-    return request("/users/me", { method: "GET", auth: true });
+    return request("/user/me", { method: "GET", auth: true });
   },
 };
 

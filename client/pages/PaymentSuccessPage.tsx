@@ -13,28 +13,25 @@ export function PaymentSuccessPage() {
   const { updateCurrentUser } = useAuth();
   const [planName, setPlanName] = React.useState<string | null>(null);
 
+  const hasRunRef = React.useRef(false);
+
   React.useEffect(() => {
     const p = params.get("plan");
     setPlanName(p);
 
-    const razorpay_payment_id = params.get("razorpay_payment_id");
-    const razorpay_payment_link_id = params.get("razorpay_payment_link_id");
-    const razorpay_signature = params.get("razorpay_signature");
-
-    // not required for UI, but helps debugging
-    if (razorpay_payment_id || razorpay_payment_link_id || razorpay_signature) {
-      // no-op
+    // Run refresh only once — updateCurrentUser changes reference on each call, causing effect re-runs
+    if (!hasRunRef.current) {
+      hasRunRef.current = true;
+      paymentService
+        .refreshMe()
+        .then((me) => {
+          const nextUser = me?.data?.user || me?.data || me;
+          if (nextUser && typeof nextUser === "object") updateCurrentUser(nextUser);
+        })
+        .catch((e: any) => {
+          toast.error(e?.message || "Could not refresh account. Please reload.", { duration: 5000 });
+        });
     }
-
-    paymentService
-      .refreshMe()
-      .then((me) => {
-        const nextUser = me?.data?.user || me?.data || me;
-        if (nextUser && typeof nextUser === "object") updateCurrentUser(nextUser);
-      })
-      .catch((e: any) => {
-        toast.error(e?.message || "Could not refresh account. Please reload.", { duration: 5000 });
-      });
 
     const t = window.setTimeout(() => navigate("/"), 4000);
     return () => window.clearTimeout(t);

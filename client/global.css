@@ -177,3 +177,7 @@
     animation: fade-in 220ms ease-out, slide-up 260ms ease-out;
   }
 }
+
+iframe[src*="razorpay"] {
+  color-scheme: light;
+}

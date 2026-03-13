@@ -16,8 +16,10 @@ import { PricingPage } from "./pages/PricingPage";
 import { BillingPage } from "./pages/BillingPage";
 import { PaymentSuccessPage } from "./pages/PaymentSuccessPage";
 import { Toaster } from "@/components/ui/sonner";
+import { usePageTracking } from "@/hooks/usePageTracking";
 
 function AppContent() {
+  usePageTracking();
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Toaster position="bottom-right" richColors />
