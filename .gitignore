@@ -27,3 +27,4 @@ dist-ssr
 .config/
 !.env
 .vercel
+.env*.local
