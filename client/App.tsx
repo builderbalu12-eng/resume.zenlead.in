@@ -9,6 +9,7 @@ import { Register } from "./pages/Register";
 import { AuthCallback } from "./pages/AuthCallback";
 import { Profile } from "./pages/Profile";
 import { FindJob } from "./pages/FindJob";
+import { FindBusinessPage } from "./pages/FindBusinessPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AppShell } from "./components/layout/AppShell";
@@ -104,6 +105,16 @@ function AppContent() {
             <ProtectedRoute>
               <AppShell>
                 <FindJob />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/find-business"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <FindBusinessPage />
               </AppShell>
             </ProtectedRoute>
           }

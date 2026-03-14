@@ -1,5 +1,6 @@
 import {
   Briefcase,
+  Building2,
   Clock,
   CreditCard,
   Home,
@@ -20,6 +21,12 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: "Upload", path: "/upload", icon: Upload, requiresAuth: true },
   { label: "Tailor", path: "/tailor", icon: Wand2, requiresAuth: true },
   { label: "Find Jobs", path: "/findjob", icon: Briefcase, requiresAuth: true },
+  {
+    label: "Find Business",
+    path: "/find-business",
+    icon: Building2,
+    requiresAuth: true,
+  },
   { label: "History", path: "/history", icon: Clock, requiresAuth: true },
 ];
 
