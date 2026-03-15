@@ -11,8 +11,8 @@ import {
 import { ResumeData, ApplicationRecord } from "@/types";
 import { getApplicationHistory } from "@/services/mongodb";
 import { getMasterResume } from "@/utils/storage";
-import { TemplatesShowcase } from "@/components/TemplatesShowcase";
 import { useAuth } from "@/contexts/AuthContext";
+import { WhatYouCanObtain } from "@/components/WhatYouCanObtain";
 
 export const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -343,6 +343,8 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      <WhatYouCanObtain />
+
       {/* Features Section - Modern Cards */}
       <div className="relative py-24 sm:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -476,9 +478,50 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Templates Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
-        <TemplatesShowcase />
+      {/* Testimonials / Social proof placeholder (edit content later if needed) */}
+      <div className="py-20 sm:py-24">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-10 space-y-3 text-center">
+            <h3 className="text-3xl sm:text-4xl font-black font-heading text-slate-900 dark:text-slate-100">
+              People using ResumeMatch
+            </h3>
+            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
+              A few snapshots of how job seekers and freelancers use the product every day.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            {[
+              {
+                name: "Sana · Data Analyst",
+                quote:
+                  "I stopped manually editing my resume. Now I just paste a job description and ResumeMatch does the rest.",
+              },
+              {
+                name: "Arjun · Frontend Engineer",
+                quote:
+                  "The Chrome extension + AI job search feed means I can apply to 10 targeted roles in the time it used to take for 1.",
+              },
+              {
+                name: "Meera · Freelance Developer",
+                quote:
+                  "The Find Clients map showed me local businesses without websites. It literally became my outbound client list.",
+              },
+            ].map((t) => (
+              <div
+                key={t.name}
+                className="flex flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 p-5 shadow-sm"
+              >
+                <p className="mb-4 text-sm text-slate-700 dark:text-slate-300">
+                  “{t.quote}”
+                </p>
+                <p className="mt-auto text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  {t.name}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* CTA Section - Bold & Vibrant */}
