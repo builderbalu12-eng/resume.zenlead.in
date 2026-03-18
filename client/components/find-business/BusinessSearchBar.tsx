@@ -24,6 +24,8 @@ export interface BusinessSearchBarProps {
   onSearch: (params: { city: string; category: string; radius_km: number }) => void;
   searchLimit: number;
   onChangeSearchLimit: (value: number) => void;
+  costPerLead: number | null;
+  isCostLoading?: boolean;
 }
 
 export function BusinessSearchBar({
@@ -31,6 +33,8 @@ export function BusinessSearchBar({
   onSearch,
   searchLimit,
   onChangeSearchLimit,
+  costPerLead,
+  isCostLoading,
 }: BusinessSearchBarProps) {
   const [city, setCity] = useState("");
   const [category, setCategory] = useState<string>("jeweler");
@@ -104,8 +108,21 @@ export function BusinessSearchBar({
             placeholder="10"
           />
           <span className="whitespace-nowrap text-sm text-muted-foreground">
-            leads ={" "}
-            <span className="font-semibold text-primary">{searchLimit * 2} credits</span>
+            {isCostLoading ? (
+              <span>Fetching cost...</span>
+            ) : costPerLead && costPerLead > 0 ? (
+              <>
+                leads ={" "}
+                <span className="font-semibold text-primary">
+                  {searchLimit * costPerLead} credits
+                </span>
+                <span className="ml-1 text-[11px] text-muted-foreground">
+                  ({costPerLead} credits per lead)
+                </span>
+              </>
+            ) : (
+              <span className="text-[11px]">Cost info unavailable</span>
+            )}
           </span>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   FileUp,
@@ -13,6 +13,7 @@ import { getApplicationHistory } from "@/services/mongodb";
 import { getMasterResume } from "@/utils/storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { WhatYouCanObtain } from "@/components/WhatYouCanObtain";
+import Lottie from "lottie-react";
 
 export const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -27,6 +28,20 @@ export const Dashboard: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [expandedSummary, setExpandedSummary] = useState(false);
+
+  // Hero cycling state
+  const [heroState, setHeroState] = useState<0 | 1 | 2>(0);
+  const [typedText, setTypedText] = useState("");
+  const [showDesc, setShowDesc] = useState(false);
+  const [rightVisible, setRightVisible] = useState(true);
+  const [isTyping, setIsTyping] = useState(true);
+  const [heroVisible, setHeroVisible] = useState(true);
+  const [jobSearchAnim, setJobSearchAnim] = useState<any | null>(null);
+  const [findClientsAnim, setFindClientsAnim] = useState<any | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
+  const typingIntervalRef = useRef<number | null>(null);
+  const timeoutsRef = useRef<number[]>([]);
+  const isPausedRef = useRef(false);
 
   // Load dashboard data when user logs in or page loads
   const loadDashboardData = async () => {
@@ -68,6 +83,124 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     loadDashboardData();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [jobRes, leadRes] = await Promise.all([
+          fetch("/anime/jobsearch.json"),
+          fetch("/anime/findclients.json"),
+        ]);
+        const [jobJson, leadJson] = await Promise.all([jobRes.json(), leadRes.json()]);
+        if (cancelled) return;
+        setJobSearchAnim(jobJson);
+        setFindClientsAnim(leadJson);
+      } catch (e) {
+        console.error("Failed to load hero animations", e);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const states = [
+      {
+        heading: "AI Tailors Your Resume",
+        description:
+          "Automatically tailor your resume for every job application. Get instant ATS scores and land interviews 3x faster with AI-powered optimization.",
+      },
+      {
+        heading: "Let AI Find Your Job",
+        description:
+          "Automatically searches LinkedIn, Naukri, Indeed, Unstop and more. Get daily AI-curated job matches sent straight to you — zero manual searching.",
+      },
+      {
+        heading: "Find Your Lead,Clients",
+        description:
+          "Discover local businesses that need your skills on a live map. Turn nearby opportunities into real paying clients effortlessly.",
+      },
+    ] as const;
+
+    // Clear timers FIRST
+    if (typingIntervalRef.current) {
+      window.clearInterval(typingIntervalRef.current);
+      typingIntervalRef.current = null;
+    }
+    timeoutsRef.current.forEach((t) => window.clearTimeout(t));
+    timeoutsRef.current = [];
+
+    // Reset per-state UI
+    setTypedText("");
+    setShowDesc(false);
+    setIsTyping(true);
+    setHeroVisible(true);
+
+    // Right side fade out then in for new content
+    setRightVisible(false);
+    timeoutsRef.current.push(
+      window.setTimeout(() => {
+        setRightVisible(true);
+      }, 300),
+    );
+
+    const current = states[heroState];
+    let i = 0;
+    typingIntervalRef.current = window.setInterval(() => {
+      i += 1;
+      setTypedText(current.heading.slice(0, i));
+      if (i >= current.heading.length) {
+        if (typingIntervalRef.current) {
+          window.clearInterval(typingIntervalRef.current);
+          typingIntervalRef.current = null;
+        }
+        setIsTyping(false);
+        setShowDesc(true);
+
+        // Wait 3s, fade out, then switch state
+        timeoutsRef.current.push(
+          window.setTimeout(() => {
+            if (isPausedRef.current) return;
+            setHeroVisible(false);
+            setRightVisible(false);
+            timeoutsRef.current.push(
+              window.setTimeout(() => {
+                if (isPausedRef.current) return;
+                setHeroState(((heroState + 1) % states.length) as 0 | 1 | 2);
+              }, 300),
+            );
+          }, 3000),
+        );
+      }
+    }, 40);
+
+    return () => {
+      if (typingIntervalRef.current) {
+        window.clearInterval(typingIntervalRef.current);
+        typingIntervalRef.current = null;
+      }
+      timeoutsRef.current.forEach((t) => window.clearTimeout(t));
+      timeoutsRef.current = [];
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heroState]);
+
+  const heroDescription =
+    heroState === 0
+      ? "Automatically tailor your resume for every job application. Get instant ATS scores and land interviews 3x faster with AI-powered optimization."
+      : heroState === 1
+        ? "Automatically searches LinkedIn, Naukri, Indeed, Unstop and more. Get daily AI-curated job matches sent straight to you — zero manual searching."
+        : "Discover local businesses that need your skills on a live map. Turn nearby opportunities into real paying clients effortlessly.";
+
+  const heroGradient =
+    heroState === 0
+      ? "bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 dark:from-cyan-400 dark:via-blue-400 dark:to-purple-400"
+      : heroState === 1
+        ? "bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 dark:from-purple-400 dark:via-pink-400 dark:to-rose-400"
+        : "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-400 dark:via-teal-400 dark:to-cyan-400";
 
   // Reload resume when user logs in or authentication state changes
   useEffect(() => {
@@ -141,23 +274,131 @@ export const Dashboard: React.FC = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black font-heading leading-tight">
-                    <span className="bg-gradient-to-r from-slate-900 via-purple-800 to-slate-900 dark:from-slate-100 dark:via-purple-300 dark:to-slate-100 bg-clip-text text-transparent">
-                      Land Your
-                    </span>
-                    <br />
-                    <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 dark:from-cyan-400 dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                      Dream Job
+                  <h1
+                    className={`text-4xl sm:text-5xl lg:text-6xl font-black font-heading leading-tight min-h-[60px] sm:min-h-[60px] lg:min-h-[130px] transition-opacity duration-300 ${
+                      heroVisible ? "opacity-100" : "opacity-0"
+                    }`}
+                  >
+                    <span className={`${heroGradient} bg-clip-text text-transparent`}>
+                      {typedText}
+                      {isTyping && (
+                        <span className="ml-1 inline-block animate-pulse align-middle">
+                          |
+                        </span>
+                      )}
                     </span>
                   </h1>
                 </div>
               </div>
 
-              <p className="text-lg sm:text-xl text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                Automatically tailor your resume for every job application. Get
-                instant ATS scores and land interviews 3x faster with AI-powered
-                optimization.
+              <p
+                className={`text-lg sm:text-xl text-slate-700 dark:text-slate-300 leading-relaxed font-medium transition-opacity duration-300 motion-reduce:transition-none ${
+                  heroVisible && showDesc ? "opacity-100" : "opacity-0"
+                }`}
+              >
+                {heroDescription}
               </p>
+
+              {/* Mobile: show right-side content under title/description */}
+              <div
+                className={`relative md:hidden transition-opacity duration-300 ${
+                  rightVisible ? "opacity-100" : "opacity-0"
+                }`}
+              >
+                {heroState === 0 ? (
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/25 via-purple-400/25 to-pink-400/25 rounded-3xl blur-2xl opacity-50" />
+                    <div className="relative bg-white dark:bg-slate-900 rounded-3xl p-5 border-2 border-slate-200 dark:border-slate-800 shadow-2xl max-h-[420px] overflow-y-auto">
+                      <div className="space-y-5">
+                        <div>
+                          <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+                            {masterResume?.contact.name ?? "John Doe"}
+                          </h3>
+                          <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                            <p className="flex items-center gap-2">
+                              <span className="w-1 h-1 rounded-full bg-cyan-500" />
+                              {masterResume?.contact.email ?? "john.doe@example.com"}
+                            </p>
+                            <p className="flex items-center gap-2">
+                              <span className="w-1 h-1 rounded-full bg-purple-500" />
+                              {masterResume?.contact.phone ?? "(555) 555-5555"}
+                            </p>
+                            <p className="flex items-center gap-2">
+                              <span className="w-1 h-1 rounded-full bg-pink-500" />
+                              {masterResume?.contact.location ?? "San Francisco, CA"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="border-t-2 border-slate-200 dark:border-slate-800 pt-5">
+                          <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-3">
+                            {masterResume?.summary ??
+                              "Experienced software engineer with a track record of building scalable web applications and improving product metrics."}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    {heroState === 1 ? (
+                      jobSearchAnim ? (
+                        <Lottie
+                          animationData={jobSearchAnim}
+                          loop={true}
+                          className="w-full max-w-xs sm:max-w-md mx-auto scale-110 sm:scale-125"
+                        />
+                      ) : (
+                        <div className="h-72 w-full max-w-xs sm:max-w-md mx-auto rounded-2xl bg-slate-200/40 dark:bg-slate-800/40" />
+                      )
+                    ) : findClientsAnim ? (
+                      <Lottie
+                        animationData={findClientsAnim}
+                        loop={true}
+                        className="w-full max-w-xs sm:max-w-md mx-auto scale-110 sm:scale-125"
+                      />
+                    ) : (
+                      <div className="h-72 w-full max-w-xs sm:max-w-md mx-auto rounded-2xl bg-slate-200/40 dark:bg-slate-800/40" />
+                    )}
+
+                    {/* Pause / resume icon button in bottom-right of Lottie area */}
+                    <button
+                      onClick={() => {
+                        const next = !isPausedRef.current;
+                        isPausedRef.current = next;
+                        setIsPaused(next);
+
+                        // If resuming after pause, restart the wait/transition timer
+                        if (!next && !isTyping && showDesc) {
+                          setHeroState((prev) => prev);
+                        }
+                      }}
+                      className="absolute bottom-3 right-3 z-30 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/20"
+                      title={isPaused ? "Resume animation" : "Pause animation"}
+                    >
+                      {isPaused ? (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          className="h-3.5 w-3.5"
+                        >
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      ) : (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          className="h-3.5 w-3.5"
+                        >
+                          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
                 {!masterResume ? (
@@ -204,8 +445,13 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Right Resume Preview - KEPT INTACT */}
-            <div className="hidden md:block">
+          {/* Right side: resume preview (state 0) or Lottie (states 1/2) */}
+          <div
+            className={`hidden md:block relative transition-opacity duration-300 ${
+              rightVisible ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            {heroState === 0 ? (
               <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/30 via-purple-400/30 to-pink-400/30 rounded-3xl blur-2xl opacity-50 group-hover:opacity-70 transition-opacity duration-300" />
                 <div className="relative bg-white dark:bg-slate-900 rounded-3xl p-8 border-2 border-slate-200 dark:border-slate-800 shadow-2xl hover:shadow-3xl transition-all duration-300 max-h-[600px] overflow-y-auto">
@@ -217,8 +463,7 @@ export const Dashboard: React.FC = () => {
                       <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
                         <p className="flex items-center gap-2">
                           <span className="w-1 h-1 rounded-full bg-cyan-500" />
-                          {masterResume?.contact.email ??
-                            "john.doe@example.com"}
+                          {masterResume?.contact.email ?? "john.doe@example.com"}
                         </p>
                         <p className="flex items-center gap-2">
                           <span className="w-1 h-1 rounded-full bg-purple-500" />
@@ -226,8 +471,7 @@ export const Dashboard: React.FC = () => {
                         </p>
                         <p className="flex items-center gap-2">
                           <span className="w-1 h-1 rounded-full bg-pink-500" />
-                          {masterResume?.contact.location ??
-                            "San Francisco, CA"}
+                          {masterResume?.contact.location ?? "San Francisco, CA"}
                         </p>
                       </div>
                     </div>
@@ -236,7 +480,7 @@ export const Dashboard: React.FC = () => {
                       <div className="space-y-3">
                         <p
                           className={`text-sm text-slate-700 dark:text-slate-300 leading-relaxed ${
-                            expandedSummary ? '' : 'line-clamp-2'
+                            expandedSummary ? "" : "line-clamp-2"
                           }`}
                         >
                           {masterResume?.summary ??
@@ -247,7 +491,7 @@ export const Dashboard: React.FC = () => {
                             onClick={() => setExpandedSummary(!expandedSummary)}
                             className="text-xs font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors"
                           >
-                            {expandedSummary ? '▼ Show less' : '▶ Show more'}
+                            {expandedSummary ? "▼ Show less" : "▶ Show more"}
                           </button>
                         )}
                       </div>
@@ -258,15 +502,13 @@ export const Dashboard: React.FC = () => {
                         Top Skills
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {(
-                          masterResume?.skills ?? [
-                            "JavaScript",
-                            "React",
-                            "Node.js",
-                            "TypeScript",
-                            "AWS",
-                          ]
-                        )
+                        {(masterResume?.skills ?? [
+                          "JavaScript",
+                          "React",
+                          "Node.js",
+                          "TypeScript",
+                          "AWS",
+                        ])
                           .slice(0, 6)
                           .map((s) => (
                             <span
@@ -283,8 +525,7 @@ export const Dashboard: React.FC = () => {
                       <h4 className="text-sm font-bold mb-4 text-slate-900 dark:text-slate-100">
                         Recent Role
                       </h4>
-                      {(masterResume?.experience &&
-                      masterResume.experience.length
+                      {(masterResume?.experience && masterResume.experience.length
                         ? masterResume.experience.slice(0, 1)
                         : [
                             {
@@ -338,7 +579,66 @@ export const Dashboard: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="relative">
+                {heroState === 1 ? (
+                  jobSearchAnim ? (
+                    <Lottie
+                      animationData={jobSearchAnim}
+                      loop={true}
+                      className="w-full max-w-md mx-auto scale-110 sm:scale-125 md:scale-150"
+                    />
+                  ) : (
+                    <div className="h-72 w-full max-w-md mx-auto rounded-2xl bg-slate-200/40 dark:bg-slate-800/40" />
+                  )
+                ) : findClientsAnim ? (
+                  <Lottie
+                    animationData={findClientsAnim}
+                    loop={true}
+                    className="w-full max-w-md mx-auto scale-110 sm:scale-125 md:scale-150"
+                  />
+                ) : (
+                  <div className="h-72 w-full max-w-md mx-auto rounded-2xl bg-slate-200/40 dark:bg-slate-800/40" />
+                )}
+
+                {/* Pause / resume icon button in bottom-right of Lottie area */}
+                <button
+                  onClick={() => {
+                    const next = !isPausedRef.current;
+                    isPausedRef.current = next;
+                    setIsPaused(next);
+
+                    // If resuming after pause, restart the wait/transition timer
+                    if (!next && !isTyping && showDesc) {
+                      setHeroState((prev) => prev);
+                    }
+                  }}
+                  className="absolute bottom-3 right-3 z-30 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-sm transition-all duration-200 hover:bg-white/20"
+                  title={isPaused ? "Resume animation" : "Pause animation"}
+                >
+                  {isPaused ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      className="h-3.5 w-3.5"
+                    >
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      className="h-3.5 w-3.5"
+                    >
+                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
           </div>
         </div>
       </div>
@@ -533,7 +833,7 @@ export const Dashboard: React.FC = () => {
         <div className="absolute -bottom-40 -right-40 w-80 h-80 rounded-full bg-gradient-to-tl from-purple-500 to-pink-600 opacity-20 blur-3xl animate-pulse" />
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-8">
-          <h2 className="text-5xl sm:text-6xl lg:text-7xl font-black font-heading leading-tight">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black font-heading leading-tight">
             <span className="text-white">Ready to</span>
             <br />
             <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">

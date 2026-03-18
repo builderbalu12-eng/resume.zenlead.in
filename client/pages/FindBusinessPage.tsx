@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Building2 } from "lucide-react";
 import { Page } from "@/components/layout/Page";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +7,7 @@ import { BusinessSearchBar } from "@/components/find-business/BusinessSearchBar"
 import { BusinessFilters } from "@/components/find-business/BusinessFilters";
 import { BusinessMap } from "@/components/find-business/BusinessMap";
 import { BusinessResultsList } from "@/components/find-business/BusinessResultsList";
+import { businessService } from "@/services/businessService";
 
 export function FindBusinessPage() {
   const {
@@ -25,6 +26,33 @@ export function FindBusinessPage() {
   } = useBusinessSearch();
   const [activeTab, setActiveTab] = useState<"map" | "list">("map");
   const [searchLimit, setSearchLimit] = useState(10);
+  const [costPerLead, setCostPerLead] = useState<number | null>(null);
+  const [isCostLoading, setIsCostLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCost = async () => {
+      try {
+        setIsCostLoading(true);
+        const res = await businessService.getFindLeadsCost();
+        if (!cancelled) {
+          setCostPerLead(res.cost_per_unit ?? 0);
+        }
+      } catch {
+        if (!cancelled) {
+          setCostPerLead(0);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsCostLoading(false);
+        }
+      }
+    };
+    loadCost();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSearch = (params: { city: string; category: string; radius_km: number }) => {
     search({ ...params, limit: searchLimit });
@@ -50,6 +78,8 @@ export function FindBusinessPage() {
           onSearch={handleSearch}
           searchLimit={searchLimit}
           onChangeSearchLimit={setSearchLimit}
+          costPerLead={costPerLead}
+          isCostLoading={isCostLoading}
         />
         <BusinessFilters filters={filters} onChange={updateFilters} />
 

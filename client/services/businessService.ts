@@ -80,6 +80,7 @@ export interface FindLeadsInput {
   city: string;
   category: string;
   radius_km: number;
+  limit?: number;
 }
 
 export interface FindLeadsResponse {
@@ -185,6 +186,23 @@ export const businessService = {
       method: "DELETE",
       auth: true,
     });
+  },
+
+  async getFindLeadsCost(): Promise<{ cost_per_unit: number; unit: string }> {
+    const data = await request<{
+      success?: boolean;
+      feature?: string;
+      cost_per_unit?: number;
+      unit?: string;
+    }>("/api/clients/credits/find-leads", {
+      method: "GET",
+      auth: true,
+    });
+
+    return {
+      cost_per_unit: data.cost_per_unit ?? 0,
+      unit: data.unit ?? "per lead",
+    };
   },
 };
 
