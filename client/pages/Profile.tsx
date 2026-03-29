@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { apiClient, PaymentLog, SubscriptionPlan, User } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 type ProfileTab = 'account' | 'plans' | 'subscriptions' | 'history';
 
@@ -30,8 +31,7 @@ export const Profile: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [personalMessage, setPersonalMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
@@ -69,10 +69,10 @@ export const Profile: React.FC = () => {
           setIsLoading(true);
           const response = await apiClient.getCurrentUser();
           setUser(response);
-          setFirstName(response.firstName);
-          setLastName(response.lastName);
+          setFirstName(response.firstName || '');
+          setLastName(response.lastName || '');
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to load profile');
+          setPersonalMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to load profile' });
         } finally {
           setIsLoading(false);
         }
@@ -140,7 +140,6 @@ export const Profile: React.FC = () => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        setError(null);
 
         if (activeTab === 'plans') {
           const response = await apiClient.getSubscriptionPlans(0, 100, true);
@@ -163,7 +162,7 @@ export const Profile: React.FC = () => {
           setLogs(response.data?.items || []);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load profile data');
+        setPersonalMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to load profile data' });
       } finally {
         setIsLoading(false);
       }
@@ -185,8 +184,7 @@ export const Profile: React.FC = () => {
 
     try {
       setIsSaving(true);
-      setError(null);
-      setSuccess(null);
+      setPersonalMessage(null);
 
       const response = await apiClient.updateCurrentUser({
         firstName: firstName.trim(),
@@ -201,10 +199,10 @@ export const Profile: React.FC = () => {
       setUser(updatedUser);
       updateCurrentUser(updatedUser);
 
-      setSuccess('Profile updated successfully');
-      setTimeout(() => setSuccess(null), 3000);
+      setPersonalMessage({ type: 'success', text: 'Profile updated successfully' });
+      setTimeout(() => setPersonalMessage(null), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update profile');
+      setPersonalMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to update profile' });
     } finally {
       setIsSaving(false);
     }
@@ -312,7 +310,7 @@ export const Profile: React.FC = () => {
           <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mt-3">Available credits: {authUser.credits}</p>
         </div>
 
-        <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2">
+        <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 mb-6">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const selected = tab.id === activeTab;
@@ -333,9 +331,6 @@ export const Profile: React.FC = () => {
           })}
         </div>
 
-        {error && <p className="rounded-xl bg-red-50 text-red-700 border border-red-200 px-4 py-3 text-sm font-medium">{error}</p>}
-        {success && <p className="rounded-xl bg-green-50 text-green-700 border border-green-200 px-4 py-3 text-sm font-medium">{success}</p>}
-
         {isLoading && activeTab === 'account' ? (
           <div className="py-16 text-center">
             <Loader2 className="h-10 w-10 animate-spin mx-auto text-slate-500" />
@@ -345,23 +340,51 @@ export const Profile: React.FC = () => {
             {activeTab === 'account' && user && (
               <div className="space-y-6">
                 {/* Personal Information */}
-                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Personal Information</h3>
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm mb-6">
+                  <h3 className="text-[18px] font-semibold text-slate-900 dark:text-white mb-4">Personal Information</h3>
                   <div className="grid md:grid-cols-2 gap-4 mb-4">
                     <div>
                       <p className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">First name</p>
-                      <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                      <Input
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="rounded-[8px] py-[10px] px-[14px] w-full"
+                      />
                     </div>
                     <div>
                       <p className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Last name</p>
-                      <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                      <Input
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="rounded-[8px] py-[10px] px-[14px] w-full"
+                      />
                     </div>
                   </div>
                   <div className="mb-4">
                     <p className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Email</p>
-                    <Input value={user.email} disabled className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400" />
+                    <Input
+                      value={user.email}
+                      disabled
+                      className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-[8px] py-[10px] px-[14px] w-full opacity-60 cursor-not-allowed"
+                    />
                   </div>
-                  <Button onClick={handleSaveProfile} disabled={isSaving}>
+
+                  {personalMessage && (
+                    <div className={cn(
+                      "mb-4 border p-[10px] rounded-[8px] text-sm font-medium",
+                      personalMessage.type === 'success'
+                        ? "bg-[#f0fdf4] text-[#16a34a] border-[#bbf7d0]"
+                        : "bg-[#fef2f2] text-[#dc2626] border-[#fecaca]"
+                    )}>
+                      {personalMessage.text}
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={handleSaveProfile}
+                    disabled={isSaving}
+                    className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white rounded-[8px] py-[10px] px-[20px]"
+                  >
                     {isSaving ? 'Saving...' : 'Save profile'}
                   </Button>
                 </div>
@@ -369,10 +392,10 @@ export const Profile: React.FC = () => {
                 {/* Change Password - only for local auth */}
                 {user.auth_provider === 'local' && (
                   <>
-                    <div className="border-t border-slate-200 dark:border-slate-800"></div>
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
-                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">Change Password</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Leave blank if you don't want to change</p>
+                    <hr className="border-slate-200 dark:border-slate-800 mb-6" />
+                    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm mb-6">
+                      <h3 className="text-[18px] font-semibold text-slate-900 dark:text-white mb-1">Change Password</h3>
+                      <p className="text-[13px] text-slate-500 dark:text-slate-400 mb-4">Leave blank if you don't want to change</p>
 
                       <div className="space-y-4 mb-4">
                         {/* Current Password */}
@@ -383,6 +406,7 @@ export const Profile: React.FC = () => {
                               type={showCurrentPassword ? 'text' : 'password'}
                               value={currentPassword}
                               onChange={(e) => setCurrentPassword(e.target.value)}
+                              className="rounded-[8px] py-[10px] px-[14px] w-full"
                             />
                             <button
                               type="button"
@@ -402,6 +426,7 @@ export const Profile: React.FC = () => {
                               type={showNewPassword ? 'text' : 'password'}
                               value={newPassword}
                               onChange={(e) => setNewPassword(e.target.value)}
+                              className="rounded-[8px] py-[10px] px-[14px] w-full"
                             />
                             <button
                               type="button"
@@ -421,6 +446,7 @@ export const Profile: React.FC = () => {
                               type={showConfirmPassword ? 'text' : 'password'}
                               value={confirmPassword}
                               onChange={(e) => setConfirmPassword(e.target.value)}
+                              className="rounded-[8px] py-[10px] px-[14px] w-full"
                             />
                             <button
                               type="button"
@@ -434,21 +460,21 @@ export const Profile: React.FC = () => {
                       </div>
 
                       {passwordMessage && (
-                        <p
-                          className={`mb-4 rounded-lg px-3 py-2 text-sm font-medium ${
-                            passwordMessage.type === 'success'
-                              ? 'bg-green-50 text-green-700 border border-green-200'
-                              : 'bg-red-50 text-red-700 border border-red-200'
-                          }`}
-                        >
+                        <div className={cn(
+                          "mb-4 border p-[10px] rounded-[8px] text-sm font-medium",
+                          passwordMessage.type === 'success'
+                            ? "bg-[#f0fdf4] text-[#16a34a] border-[#bbf7d0]"
+                            : "bg-[#fef2f2] text-[#dc2626] border-[#fecaca]"
+                        )}>
                           {passwordMessage.text}
-                        </p>
+                        </div>
                       )}
 
                       <Button
                         onClick={handleChangePassword}
                         disabled={isUpdatingPassword}
                         variant="outline"
+                        className="border-[1.5px] border-current text-[#7c3aed] bg-transparent rounded-[8px] py-[10px] px-[20px]"
                       >
                         {isUpdatingPassword ? 'Updating...' : 'Update Password'}
                       </Button>
@@ -458,22 +484,22 @@ export const Profile: React.FC = () => {
 
                 {/* Telegram Notifications */}
                 <>
-                  <div className="border-t border-slate-200 dark:border-slate-800"></div>
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">Telegram Notifications 🤖</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Receive job alerts and resume files on Telegram</p>
+                  <hr className="border-slate-200 dark:border-slate-800 mb-6" />
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm mb-6">
+                    <h3 className="text-[18px] font-semibold text-slate-900 dark:text-white mb-1">Telegram Notifications 🤖</h3>
+                    <p className="text-[13px] text-slate-500 dark:text-slate-400 mb-4">Receive job alerts and resume files on Telegram</p>
 
                     {telegramLinked ? (
                       <>
-                        <div className="rounded-lg bg-green-50 border border-green-200 p-4 mb-4">
-                          <p className="text-green-700 font-medium">✅ Telegram Connected</p>
-                          <p className="text-sm text-green-600 mt-1">You will receive job alerts and resume files here</p>
+                        <div className="rounded-[8px] bg-[#f0fdf4] border border-[#bbf7d0] p-4 mb-4">
+                          <p className="text-[#16a34a] font-medium">✅ Telegram Connected</p>
+                          <p className="text-sm text-[#16a34a] mt-1 opacity-80">You will receive job alerts and resume files here</p>
                         </div>
                         <Button
                           onClick={handleDisconnectTelegram}
                           disabled={telegramLoading}
                           variant="outline"
-                          className="border-red-200 text-red-600 hover:bg-red-50"
+                          className="border-[1.5px] border-red-600 text-red-600 hover:bg-red-50 bg-transparent rounded-[8px] py-[10px] px-[20px]"
                           size="sm"
                         >
                           {telegramLoading ? 'Disconnecting...' : 'Disconnect'}
@@ -481,7 +507,7 @@ export const Profile: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <div className="rounded-lg bg-slate-100 dark:bg-slate-800 p-4 mb-4 text-sm text-slate-700 dark:text-slate-300">
+                        <div className="rounded-[8px] bg-slate-100 dark:bg-slate-800 p-4 mb-4 text-sm text-slate-700 dark:text-slate-300">
                           <p className="font-medium mb-2">Connect Telegram to receive:</p>
                           <p>🎯 Job match alerts instantly</p>
                           <p>📄 Tailored resume PDF files</p>
@@ -492,13 +518,13 @@ export const Profile: React.FC = () => {
                           <Button
                             onClick={handleConnectTelegram}
                             disabled={telegramLoading}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            className="bg-blue-600 hover:bg-blue-700 text-white rounded-[8px] py-[10px] px-[20px]"
                           >
                             {telegramLoading ? 'Loading...' : 'Connect Telegram'}
                           </Button>
                         ) : (
-                          <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-6 border border-slate-200 dark:border-slate-700">
-                            <h4 className="font-semibold text-slate-900 dark:text-white mb-4">Scan QR or click the link</h4>
+                          <div className="bg-slate-50 dark:bg-slate-800 rounded-[8px] p-6 border border-slate-200 dark:border-slate-700">
+                            <h4 className="font-semibold text-slate-900 dark:text-white mb-4 text-center">Scan QR or click the link</h4>
 
                             {qrImageUrl && (
                               <div className="flex flex-col items-center mb-6">
@@ -507,7 +533,7 @@ export const Profile: React.FC = () => {
                                   alt="Telegram QR Code"
                                   width="180"
                                   height="180"
-                                  className="rounded-xl border-2 border-slate-300 dark:border-slate-600"
+                                  className="rounded-[12px] border-2 border-slate-300 dark:border-slate-600"
                                 />
                               </div>
                             )}
@@ -519,35 +545,36 @@ export const Profile: React.FC = () => {
                             </div>
 
                             {telegramLink && (
-                              <Button
-                                onClick={() => window.open(telegramLink, '_blank')}
-                                variant="outline"
-                                className="w-full mb-4"
-                              >
-                                Open Telegram →
-                              </Button>
+                              <div className="flex justify-center mb-4">
+                                <Button
+                                  onClick={() => window.open(telegramLink, '_blank')}
+                                  variant="outline"
+                                  className="border-[1.5px] border-blue-600 text-blue-600 bg-transparent rounded-[8px] py-[10px] px-[20px]"
+                                >
+                                  Open Telegram →
+                                </Button>
+                              </div>
                             )}
 
-                            <p className="text-xs text-slate-600 dark:text-slate-400 text-center leading-relaxed">
-                              1. Scan QR or tap Open Telegram<br />
-                              2. Press START in the Telegram bot<br />
-                              3. This page will update automatically
-                            </p>
+                            <div className="text-[13px] text-slate-600 dark:text-slate-400 leading-relaxed max-w-[250px] mx-auto">
+                              <p>1. Scan QR or tap Open Telegram</p>
+                              <p>2. Press START in the Telegram bot</p>
+                              <p>3. This page will update automatically</p>
+                            </div>
                           </div>
                         )}
                       </>
                     )}
 
                     {telegramMessage && (
-                      <p
-                        className={`mt-4 rounded-lg px-3 py-2 text-sm font-medium ${
-                          telegramMessage.type === 'success'
-                            ? 'bg-green-50 text-green-700 border border-green-200'
-                            : 'bg-red-50 text-red-700 border border-red-200'
-                        }`}
-                      >
+                      <div className={cn(
+                        "mt-4 border p-[10px] rounded-[8px] text-sm font-medium",
+                        telegramMessage.type === 'success'
+                          ? "bg-[#f0fdf4] text-[#16a34a] border-[#bbf7d0]"
+                          : "bg-[#fef2f2] text-[#dc2626] border-[#fecaca]"
+                      )}>
                         {telegramMessage.text}
-                      </p>
+                      </div>
                     )}
                   </div>
                 </>

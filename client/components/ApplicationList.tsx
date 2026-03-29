@@ -99,7 +99,7 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
                     className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getStatusColor(app.status)}`}
                   >
                     {getStatusIcon(app.status)}
-                    {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                    {(app.status || "").charAt(0).toUpperCase() + (app.status || "").slice(1)}
                   </div>
 
                   <div className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
@@ -160,7 +160,7 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
                               : "bg-muted hover:bg-muted/80"
                           }`}
                         >
-                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                          {(status || "").charAt(0).toUpperCase() + (status || "").slice(1)}
                         </button>
                       ))}
                     </div>

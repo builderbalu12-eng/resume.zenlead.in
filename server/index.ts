@@ -10,6 +10,9 @@ import {
   saveApplication,
   updateApplicationStatus,
 } from "./routes/resume";
+import { getMe, updateMe, changePassword } from "./routes/user";
+import { getStatus, getLink, getQR, unlink } from "./routes/telegram";
+import { authMiddleware } from "./middleware/auth";
 import {
   createPlan,
   listPlans,
@@ -51,8 +54,17 @@ export function createServer(): Express {
 
   // User routes
   app.post("/api/users", saveUser);
+  app.get("/api/user/me", authMiddleware, getMe);
+  app.patch("/api/user/me", authMiddleware, updateMe);
+  app.post("/api/user/me/change-password", authMiddleware, changePassword);
   app.get("/api/users/:userId/resume", getUserResume);
   app.post("/api/users/:userId/resume", saveUserResume);
+
+  // Telegram routes
+  app.get("/api/telegram/status", authMiddleware, getStatus);
+  app.get("/api/telegram/link", authMiddleware, getLink);
+  app.get("/api/telegram/qr", authMiddleware, getQR);
+  app.delete("/api/telegram/unlink", authMiddleware, unlink);
 
   // Application routes
   app.get("/api/applications", getApplicationHistory);

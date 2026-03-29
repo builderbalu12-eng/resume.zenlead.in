@@ -159,15 +159,31 @@ const couponSchema = new mongoose.Schema(
 const userSchema = new mongoose.Schema(
   {
     _id: String, // Will be set to user ID
+    firstName: String,
+    lastName: String,
     email: {
       type: String,
       unique: true,
       sparse: true,
     },
+    password: {
+      type: String,
+      select: false,
+    },
+    auth_provider: {
+      type: String,
+      default: "local",
+    },
     credits: {
       type: Number,
       default: 0,
     },
+    telegramLinked: {
+      type: Boolean,
+      default: false,
+    },
+    telegramChatId: String,
+    telegramToken: String,
     masterResume: {
       type: mongoose.Schema.Types.Mixed,
       default: null,
