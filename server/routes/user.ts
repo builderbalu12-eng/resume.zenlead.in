@@ -7,7 +7,19 @@ export const getMe = async (req: AuthRequest, res: Response) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  res.json(req.user);
+  // Remove password from response for security
+  const userResponse = { ...req.user.toObject ? req.user.toObject() : req.user };
+  delete userResponse.password;
+
+  // Return response in proper format
+  res.json({
+    status: 200,
+    success: true,
+    message: "User retrieved successfully",
+    data: {
+      user: userResponse,
+    },
+  });
 };
 
 export const updateMe = async (req: AuthRequest, res: Response) => {
@@ -27,9 +39,26 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
     if (lastName) user.lastName = lastName;
 
     await user.save();
-    res.json(user);
+
+    // Remove password from response for security
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    // Return response in proper format
+    res.json({
+      status: 200,
+      success: true,
+      message: "Profile updated successfully",
+      data: {
+        user: userResponse,
+      },
+    });
   } catch (err: any) {
-    res.status(500).json({ message: err.message || "Failed to update user" });
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: err.message || "Failed to update user"
+    });
   }
 };
 
@@ -41,10 +70,23 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
   const { current_password, new_password, confirm_password } = req.body;
 
   if (new_password !== confirm_password) {
-    return res.status(400).json({ error: "Passwords do not match" });
+    return res.status(400).json({
+      status: 400,
+      success: false,
+      message: "New password and confirm password do not match"
+    });
+  }
+
+  if (!new_password || new_password.length < 6) {
+    return res.status(400).json({
+      status: 400,
+      success: false,
+      message: "New password must be at least 6 characters"
+    });
   }
 
   try {
+    // Need to select password field explicitly since it's set to select: false in schema
     const user = await UserModel.findById(req.user._id).select("+password");
     if (!user) {
       return res.status(404).json({ error: "User not found" });
@@ -52,21 +94,35 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
 
     // Check auth provider
     if (user.auth_provider === "google") {
-      return res.status(400).json({ error: "Cannot change password for Google account" });
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Password change not available for Google login accounts"
+      });
     }
 
-    // In a real app, you'd compare hashes here.
-    // Since we're in a starter, we'll assume the password is plaintext for now or we just update it.
-    // If user has a password set, we should check it.
-    if (user.password && user.password !== current_password) {
-      return res.status(401).json({ message: "Current password is incorrect" });
+    // Check current password
+    if (!user.password || user.password !== current_password) {
+      return res.status(401).json({
+        status: 401,
+        success: false,
+        message: "Current password is incorrect"
+      });
     }
 
     user.password = new_password;
     await user.save();
 
-    res.json({ success: true, message: "Password updated successfully" });
+    res.json({
+      status: 200,
+      success: true,
+      message: "Password changed successfully"
+    });
   } catch (err: any) {
-    res.status(500).json({ message: err.message || "Failed to update password" });
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: err.message || "Failed to update password"
+    });
   }
 };
