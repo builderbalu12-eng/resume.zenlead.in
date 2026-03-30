@@ -66,6 +66,7 @@ export interface Client {
   phone?: string;
   address?: string;
   rating?: number;
+  rating_count?: number;
   category?: string;
   status?: string;
   source?: string;

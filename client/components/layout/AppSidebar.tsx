@@ -21,12 +21,19 @@ import { Button } from "@/components/ui/button";
 import { ACCOUNT_NAV, PRIMARY_NAV } from "./nav";
 
 export function AppSidebar() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
   const navItems = PRIMARY_NAV;
-  const accountItems = ACCOUNT_NAV;
+  const accountItems = React.useMemo(
+    () =>
+      ACCOUNT_NAV.filter(
+        (item) =>
+          item.path !== "/billing" || user?.has_payments !== false,
+      ),
+    [user],
+  );
 
   const guardNav = React.useCallback(
     (item: { path: string; requiresAuth?: boolean }) =>

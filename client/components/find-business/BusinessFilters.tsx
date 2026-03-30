@@ -19,8 +19,12 @@ function Chip({
     <Button
       type="button"
       size="sm"
-      variant={active ? "default" : "outline"}
-      className={active ? "h-8 rounded-full px-3 text-xs" : "h-8 rounded-full px-3 text-xs"}
+      variant="outline"
+      className={
+        active
+          ? "h-8 rounded-full px-3 text-xs border-transparent text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-600 hover:to-purple-600"
+          : "h-8 rounded-full px-3 text-xs border-border text-muted-foreground bg-background/40 hover:bg-muted/50 hover:text-foreground"
+      }
       onClick={onClick}
     >
       {children}
@@ -30,9 +34,10 @@ function Chip({
 
 export function BusinessFilters({ filters, onChange }: BusinessFiltersProps) {
   return (
-    <div className="flex flex-col gap-2 rounded-xl border bg-background/60 p-3 text-xs md:flex-row md:items-center md:justify-between">
+    <div className="rounded-xl border bg-background/60 p-3">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-semibold text-muted-foreground">Website:</span>
+        <span className="mr-1 text-xs font-semibold text-muted-foreground">Website:</span>
         <Chip active={filters.has_website === undefined} onClick={() => onChange({ has_website: undefined })}>
           All
         </Chip>
@@ -45,7 +50,7 @@ export function BusinessFilters({ filters, onChange }: BusinessFiltersProps) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-semibold text-muted-foreground">Status:</span>
+        <span className="mr-1 text-xs font-semibold text-muted-foreground">Status:</span>
         <Chip active={!filters.status} onClick={() => onChange({ status: "" })}>
           All
         </Chip>
@@ -64,7 +69,7 @@ export function BusinessFilters({ filters, onChange }: BusinessFiltersProps) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-semibold text-muted-foreground">Rating:</span>
+        <span className="mr-1 text-xs font-semibold text-muted-foreground">Rating:</span>
         <Chip active={!filters.rating_min} onClick={() => onChange({ rating_min: 0 })}>
           All
         </Chip>
@@ -77,7 +82,7 @@ export function BusinessFilters({ filters, onChange }: BusinessFiltersProps) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-semibold text-muted-foreground">Source:</span>
+        <span className="mr-1 text-xs font-semibold text-muted-foreground">Source:</span>
         <Chip active={!filters.source} onClick={() => onChange({ source: "" })}>
           All
         </Chip>
@@ -91,7 +96,7 @@ export function BusinessFilters({ filters, onChange }: BusinessFiltersProps) {
           Manual
         </Chip>
 
-        <span className="ml-2 hidden font-semibold text-muted-foreground md:inline">Sort:</span>
+        <span className="ml-2 mr-1 hidden text-xs font-semibold text-muted-foreground md:inline">Sort:</span>
         <Chip active={filters.sort === "newest"} onClick={() => onChange({ sort: "newest" })}>
           Newest
         </Chip>
@@ -101,6 +106,7 @@ export function BusinessFilters({ filters, onChange }: BusinessFiltersProps) {
         <Chip active={filters.sort === "name"} onClick={() => onChange({ sort: "name" })}>
           Name A–Z
         </Chip>
+      </div>
       </div>
     </div>
   );

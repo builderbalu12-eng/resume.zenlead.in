@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const CATEGORIES = [
   "restaurant",
@@ -49,7 +50,7 @@ export function BusinessSearchBar({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm md:flex-row md:items-center"
+      className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm md:flex-row md:items-end md:gap-3"
     >
       <div className="flex-1 space-y-1">
         <label className="text-xs font-medium text-muted-foreground">City / Area</label>
@@ -57,13 +58,14 @@ export function BusinessSearchBar({
           placeholder="Enter city e.g. Karol Bagh, Delhi"
           value={city}
           onChange={(e) => setCity(e.target.value)}
+          className="h-10"
         />
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-1 md:w-[190px]">
         <label className="text-xs font-medium text-muted-foreground">Category</label>
         <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="w-[170px]">
+          <SelectTrigger className="h-10 w-full border-border bg-background hover:bg-muted/40">
             <SelectValue placeholder="Select category" />
           </SelectTrigger>
           <SelectContent>
@@ -77,10 +79,10 @@ export function BusinessSearchBar({
         </Select>
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-1 md:w-[140px]">
         <label className="text-xs font-medium text-muted-foreground">Radius</label>
         <Select value={String(radius)} onValueChange={(v) => setRadius(Number(v))}>
-          <SelectTrigger className="w-[120px]">
+          <SelectTrigger className="h-10 w-full border-border bg-background hover:bg-muted/40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -93,7 +95,7 @@ export function BusinessSearchBar({
         </Select>
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-1 md:w-[210px]">
         <label className="text-xs font-medium text-muted-foreground">Leads</label>
         <div className="flex items-center gap-2">
           <input
@@ -104,30 +106,40 @@ export function BusinessSearchBar({
             onChange={(e) =>
               onChangeSearchLimit(Math.min(50, Math.max(1, Number(e.target.value) || 0)))
             }
-            className="w-20 rounded-md border bg-background px-3 py-2 text-sm text-center"
+            className="h-10 w-20 rounded-md border border-border bg-background px-3 py-2 text-sm text-center shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             placeholder="10"
           />
-          <span className="whitespace-nowrap text-sm text-muted-foreground">
-            {isCostLoading ? (
-              <span>Fetching cost...</span>
-            ) : costPerLead && costPerLead > 0 ? (
-              <>
-                leads ={" "}
-                <span className="font-semibold text-primary">
-                  {searchLimit * costPerLead} credits
-                </span>
-                <span className="ml-1 text-[11px] text-muted-foreground">
-                  ({costPerLead} credits per lead)
-                </span>
-              </>
-            ) : (
-              <span className="text-[11px]">Cost info unavailable</span>
-            )}
-          </span>
+          {isCostLoading ? (
+            <span className="text-xs text-muted-foreground">Fetching cost…</span>
+          ) : (
+            costPerLead != null &&
+            costPerLead > 0 && (
+              <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-xs text-muted-foreground hover:bg-muted/60"
+                    >
+                      ℹ️
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    {costPerLead} credits will be deducted per lead
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )
+          )}
         </div>
       </div>
 
-      <Button type="submit" className="mt-1 w-full md:mt-5 md:w-auto" disabled={isLoading}>
+      <Button
+        type="submit"
+        variant="gradient"
+        className="mt-1 h-10 w-full md:mt-0 md:w-auto"
+        disabled={isLoading}
+      >
         {isLoading ? (
           <span className="flex items-center gap-2">
             <Search className="h-4 w-4 animate-spin" />

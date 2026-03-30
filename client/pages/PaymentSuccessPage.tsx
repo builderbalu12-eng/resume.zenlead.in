@@ -33,7 +33,7 @@ export function PaymentSuccessPage() {
         });
     }
 
-    const t = window.setTimeout(() => navigate("/"), 4000);
+    const t = window.setTimeout(() => navigate("/billing"), 4000);
     return () => window.clearTimeout(t);
   }, [navigate, params, updateCurrentUser]);
 
@@ -56,14 +56,14 @@ export function PaymentSuccessPage() {
         <div className="mt-6">
           <Button
             type="button"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/billing")}
             className="h-11 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-bold"
           >
-            Go to Dashboard
+            Go to Billing
           </Button>
         </div>
         <p className="mt-3 text-xs text-slate-500 dark:text-slate-500">
-          Redirecting automatically in 4 seconds…
+          Redirecting to billing in 4 seconds…
         </p>
       </div>
     </div>

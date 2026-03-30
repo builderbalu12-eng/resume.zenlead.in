@@ -1,11 +1,14 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { ActiveSubscription } from "@/components/payment/ActiveSubscription";
 import { BillingTable } from "@/components/payment/BillingTable";
+import { Button } from "@/components/ui/button";
 import { paymentService, type BillingHistoryItem, type SubscriptionItem } from "@/services/paymentService";
 
 export function BillingPage() {
+  const navigate = useNavigate();
   const [loading, setLoading] = React.useState(true);
   const [canceling, setCanceling] = React.useState(false);
   const [active, setActive] = React.useState<SubscriptionItem | null>(null);
@@ -56,24 +59,55 @@ export function BillingPage() {
           Billing
         </h1>
         <p className="mt-2 text-slate-600 dark:text-slate-400">
-          Manage your subscription and view your billing history.
+          Manage your plan, view payments, and add more credits.
         </p>
       </div>
 
       {loading ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <p className="text-sm text-slate-600 dark:text-slate-400">Loading…</p>
         </div>
       ) : (
         <>
-          <ActiveSubscription subscription={active} onCancel={cancel} canceling={canceling} />
-
-          <div className="space-y-3">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              Billing History
+          {/* SECTION 1 — Current Plan */}
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
+              💳 Current Plan
             </h2>
+            <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+              View your active subscription, renewal date, and manage cancellations.
+            </p>
+            <ActiveSubscription subscription={active} onCancel={cancel} canceling={canceling} />
+          </section>
+
+          {/* SECTION 2 — Payment History */}
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
+              🧾 Payment History
+            </h2>
+            <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+              All your previous payments, amounts, credits, and statuses in one place.
+            </p>
             <BillingTable items={history} />
-          </div>
+          </section>
+
+          {/* SECTION 3 — Add Credits */}
+          <section className="mb-2 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
+              ➕ Add More Credits
+            </h2>
+            <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+              Need more credits for tailoring or lead finding? Visit the pricing page to top up.
+            </p>
+            <Button
+              type="button"
+              variant="gradient"
+              className="h-10 px-5"
+              onClick={() => navigate("/pricing")}
+            >
+              View Pricing Plans
+            </Button>
+          </section>
         </>
       )}
     </div>

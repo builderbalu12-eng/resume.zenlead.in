@@ -27,6 +27,7 @@ export function PricingPage() {
   const [couponCode, setCouponCode] = React.useState("");
   const [coupon, setCoupon] = React.useState<CouponState>({ status: "idle" });
   const [processingPlanId, setProcessingPlanId] = React.useState<string | null>(null);
+  const [showCoupon, setShowCoupon] = React.useState(false);
 
   React.useEffect(() => {
     let active = true;
@@ -218,19 +219,6 @@ export function PricingPage() {
           </button>
         </div>
 
-        <div className="max-w-xl flex-1 sm:max-w-md">
-          <CouponInput
-            value={couponCode}
-            onChange={(v) => {
-              setCouponCode(v);
-              if (coupon.status === "error") setCoupon({ status: "idle" });
-            }}
-            onApply={applyCoupon}
-            isApplying={coupon.status === "applying"}
-            error={coupon.status === "error" ? coupon.message : null}
-            appliedLabel={coupon.status === "applied" ? `✓ ${coupon.code} applied` : null}
-          />
-        </div>
       </div>
 
       {loadingPlans ? (
@@ -238,24 +226,55 @@ export function PricingPage() {
           <p className="text-sm text-slate-600 dark:text-slate-400">Loading plans…</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {plans.map((plan) => {
-            const isMostPopular = plan._id === mostPopularId;
-            const { amount, label } = getDiscountedAmountForPlan(plan);
-            return (
-              <PlanCard
-                key={plan._id}
-                plan={plan}
-                billingCycle={billingCycle}
-                isMostPopular={!!isMostPopular}
-                discountedAmount={amount}
-                discountLabel={label}
-                onGetStarted={() => startPayment(plan)}
-                isLoading={processingPlanId === plan._id}
-              />
-            );
-          })}
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {plans.map((plan) => {
+              const isMostPopular = plan._id === mostPopularId;
+              const { amount, label } = getDiscountedAmountForPlan(plan);
+              return (
+                <PlanCard
+                  key={plan._id}
+                  plan={plan}
+                  billingCycle={billingCycle}
+                  isMostPopular={!!isMostPopular}
+                  discountedAmount={amount}
+                  discountLabel={label}
+                  onGetStarted={() => startPayment(plan)}
+                  isLoading={processingPlanId === plan._id}
+                />
+              );
+            })}
+          </div>
+
+          <div className="mt-6 max-w-xl">
+            <button
+              type="button"
+              onClick={() => setShowCoupon((prev) => !prev)}
+              className="text-sm text-muted-foreground underline underline-offset-2"
+            >
+              Have a coupon code? Click here
+            </button>
+            <div
+              className={`overflow-hidden transition-all duration-200 ${
+                showCoupon ? "mt-3 max-h-40 opacity-100" : "max-h-0 opacity-0"
+              }`}
+            >
+              {showCoupon && (
+                <CouponInput
+                  value={couponCode}
+                  onChange={(v) => {
+                    setCouponCode(v);
+                    if (coupon.status === "error") setCoupon({ status: "idle" });
+                  }}
+                  onApply={applyCoupon}
+                  isApplying={coupon.status === "applying"}
+                  error={coupon.status === "error" ? coupon.message : null}
+                  appliedLabel={coupon.status === "applied" ? `✓ ${coupon.code} applied` : null}
+                />
+              )}
+            </div>
+          </div>
+        </>
       )}
 
       <div className="mt-10 rounded-2xl border border-indigo-200 bg-indigo-50 p-6 dark:border-indigo-900/40 dark:bg-indigo-950/20">

@@ -4,7 +4,6 @@ import {
   Clock,
   CreditCard,
   Home,
-  Upload,
   User,
   Wand2,
 } from "lucide-react";
@@ -18,8 +17,7 @@ export type NavItem = {
 
 export const PRIMARY_NAV: NavItem[] = [
   { label: "Dashboard", path: "/", icon: Home },
-  { label: "Upload", path: "/upload", icon: Upload, requiresAuth: true },
-  { label: "Tailor", path: "/tailor", icon: Wand2, requiresAuth: true },
+  { label: "Resume", path: "/resume", icon: Wand2, requiresAuth: true },
   { label: "Find Jobs", path: "/findjob", icon: Briefcase, requiresAuth: true },
   {
     label: "Find Business",
@@ -41,6 +39,13 @@ export function getRouteTitle(pathname: string): string {
   const exact = all.find((i) => i.path === pathname)?.label;
   if (exact) return exact;
 
+  if (
+    pathname.startsWith("/resume") ||
+    pathname.startsWith("/upload") ||
+    pathname.startsWith("/tailor")
+  ) {
+    return "Resume";
+  }
   if (pathname.startsWith("/payment")) return "Payment";
   if (pathname.startsWith("/auth")) return "Authentication";
   return "ResumeMatch";

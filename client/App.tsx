@@ -1,7 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Dashboard } from "./pages/Dashboard";
-import { UploadResume } from "./pages/UploadResume";
-import { TailorResume } from "./pages/TailorResume";
 import { History } from "./pages/History";
 import { NotFound } from "./pages/NotFound";
 import { Login } from "./pages/Login";
@@ -16,6 +14,7 @@ import { AppShell } from "./components/layout/AppShell";
 import { PricingPage } from "./pages/PricingPage";
 import { BillingPage } from "./pages/BillingPage";
 import { PaymentSuccessPage } from "./pages/PaymentSuccessPage";
+import { ResumeWorkspace } from "./pages/ResumeWorkspace";
 import { Toaster } from "@/components/ui/sonner";
 import { usePageTracking } from "@/hooks/usePageTracking";
 
@@ -70,11 +69,21 @@ function AppContent() {
 
         {/* Protected Feature Routes */}
         <Route
+          path="/resume"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <ResumeWorkspace />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/upload"
           element={
             <ProtectedRoute>
               <AppShell>
-                <UploadResume />
+                <ResumeWorkspace initialView="upload" />
               </AppShell>
             </ProtectedRoute>
           }
@@ -84,7 +93,7 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <AppShell>
-                <TailorResume />
+                <ResumeWorkspace initialView="tailor" />
               </AppShell>
             </ProtectedRoute>
           }

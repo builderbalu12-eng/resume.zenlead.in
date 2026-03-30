@@ -23,6 +23,7 @@ export interface User {
   email: string;
   credits: number;
   auth_provider: string;
+  has_payments?: boolean;
 }
 
 export interface SubscriptionPlan {

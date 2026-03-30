@@ -59,7 +59,7 @@ export function FindBusinessPage() {
   };
 
   return (
-    <Page size="full" className="flex h-[calc(100vh-80px)] flex-col gap-4">
+    <Page size="xl" className="mx-0 max-w-none flex h-[calc(100vh-80px)] flex-col gap-4">
       <div className="space-y-3">
         <div className="flex items-center gap-3">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-tr from-blue-500 to-purple-500 text-white shadow-sm">

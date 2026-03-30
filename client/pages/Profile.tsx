@@ -273,292 +273,300 @@ export const Profile: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-10">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
-              {getInitials(authUser.firstName, authUser.lastName) || '?'}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-cyan-700 dark:text-cyan-300 mb-1">Your workspace</p>
-              <h1 className="text-3xl font-black text-slate-900 dark:text-white">{authUser.firstName} {authUser.lastName}</h1>
-              <p className="text-slate-600 dark:text-slate-400 mt-1">{authUser.email}</p>
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mt-2">Available credits: {authUser.credits}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 mb-6">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const selected = tab.id === activeTab;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${
-                  selected
-                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            );
-          })}
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white">Profile</h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            Manage your workspace, personal details, security, and Telegram notifications.
+          </p>
         </div>
 
         {isLoading && !user ? (
           <div className="py-16 text-center">
-            <Loader2 className="h-10 w-10 animate-spin mx-auto text-slate-500" />
+            <Loader2 className="mx-auto h-10 w-10 animate-spin text-slate-500" />
           </div>
         ) : (
-          <>
-            {activeTab === 'account' && user && (
-              <div className="space-y-6">
-                {/* Personal Information */}
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm mb-6">
-                  <h3 className="text-[18px] font-semibold text-slate-900 dark:text-white mb-4">Personal Information</h3>
-                  <div className="grid md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <p className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">First name</p>
-                      <Input
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        className="rounded-[8px] py-[10px] px-[14px] w-full"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Last name</p>
-                      <Input
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        className="rounded-[8px] py-[10px] px-[14px] w-full"
-                      />
-                    </div>
+          user && (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {/* Card 1 — Workspace Settings */}
+              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-cyan-600 dark:text-cyan-300">
+                  🏢 Workspace Settings
+                </p>
+                <div className="mt-2 flex items-center gap-4">
+                  <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-xl font-bold text-white">
+                    {getInitials(authUser.firstName, authUser.lastName) || "?"}
                   </div>
-                  <div className="mb-4">
-                    <p className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Email</p>
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                      {authUser.firstName} {authUser.lastName}
+                    </h2>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{authUser.email}</p>
+                    <p className="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      Credits available: {authUser.credits}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2 — Personal Information */}
+              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  👤 Personal Information
+                </p>
+                <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
+                  Update your basic details
+                </h2>
+                <div className="mb-4 grid gap-4 md:grid-cols-2">
+                  <div>
+                    <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">First name</p>
                     <Input
-                      value={user.email}
-                      disabled
-                      className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-[8px] py-[10px] px-[14px] w-full opacity-60 cursor-not-allowed"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="w-full rounded-[8px] px-[14px] py-[10px]"
                     />
                   </div>
+                  <div>
+                    <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Last name</p>
+                    <Input
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="w-full rounded-[8px] px-[14px] py-[10px]"
+                    />
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Email</p>
+                  <Input
+                    value={user.email}
+                    disabled
+                    className="w-full cursor-not-allowed rounded-[8px] px-[14px] py-[10px] bg-slate-100 text-slate-600 opacity-60 dark:bg-slate-800 dark:text-slate-400"
+                  />
+                </div>
 
-                  {personalMessage && (
-                    <div className={cn(
-                      "mb-4 border p-[10px] rounded-[8px] text-sm font-medium",
-                      personalMessage.type === 'success'
+                {personalMessage && (
+                  <div
+                    className={cn(
+                      "mb-4 rounded-[8px] border p-[10px] text-sm font-medium",
+                      personalMessage.type === "success"
                         ? "bg-[#f0fdf4] text-[#16a34a] border-[#bbf7d0]"
-                        : "bg-[#fef2f2] text-[#dc2626] border-[#fecaca]"
-                    )}>
-                      {personalMessage.text}
+                        : "bg-[#fef2f2] text-[#dc2626] border-[#fecaca]",
+                    )}
+                  >
+                    {personalMessage.text}
+                  </div>
+                )}
+
+                <Button
+                  onClick={handleSaveProfile}
+                  disabled={isSaving}
+                  className="rounded-[8px] bg-[#7c3aed] px-[20px] py-[10px] text-white hover:bg-[#6d28d9]"
+                >
+                  {isSaving ? "Saving..." : "Save profile"}
+                </Button>
+              </div>
+
+              {/* Card 3 — Change Password (hidden for Google auth) */}
+              {user.auth_provider !== "google" && (
+                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    🔒 Change Password
+                  </p>
+                  <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
+                    Keep your account secure
+                  </h2>
+
+                  <div className="mb-4 space-y-4">
+                    {/* Current Password */}
+                    <div>
+                      <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Current Password</p>
+                      <div className="relative">
+                        <Input
+                          type={showCurrentPassword ? "text" : "password"}
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          className="w-full rounded-[8px] px-[14px] py-[10px]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                          className="absolute right-3 top-2.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                        >
+                          {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* New Password */}
+                    <div>
+                      <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">New Password</p>
+                      <div className="relative">
+                        <Input
+                          type={showNewPassword ? "text" : "password"}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="w-full rounded-[8px] px-[14px] py-[10px]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-2.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                        >
+                          {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Confirm Password */}
+                    <div>
+                      <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Confirm Password</p>
+                      <div className="relative">
+                        <Input
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="w-full rounded-[8px] px-[14px] py-[10px]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-2.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {passwordMessage && (
+                    <div
+                      className={cn(
+                        "mb-4 rounded-[8px] border p-[10px] text-sm font-medium",
+                        passwordMessage.type === "success"
+                          ? "bg-[#f0fdf4] text-[#16a34a] border-[#bbf7d0]"
+                          : "bg-[#fef2f2] text-[#dc2626] border-[#fecaca]",
+                      )}
+                    >
+                      {passwordMessage.text}
                     </div>
                   )}
 
                   <Button
-                    onClick={handleSaveProfile}
-                    disabled={isSaving}
-                    className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white rounded-[8px] py-[10px] px-[20px]"
+                    onClick={handleChangePassword}
+                    disabled={isUpdatingPassword}
+                    variant="outline"
+                    className="rounded-[8px] border-[1.5px] border-current bg-transparent px-[20px] py-[10px] text-[#7c3aed]"
                   >
-                    {isSaving ? 'Saving...' : 'Save profile'}
+                    {isUpdatingPassword ? "Updating..." : "Update Password"}
                   </Button>
                 </div>
+              )}
 
-                {/* Change Password - only for local auth */}
-                {user.auth_provider === 'local' && (
+              {/* Card 4 — Telegram Connection */}
+              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  📱 Telegram Connection
+                </p>
+                <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
+                  Get job and resume alerts on Telegram
+                </h2>
+
+                {telegramLinked ? (
                   <>
-                    <hr className="border-slate-200 dark:border-slate-800 mb-6" />
-                    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm mb-6">
-                      <h3 className="text-[18px] font-semibold text-slate-900 dark:text-white mb-1">Change Password</h3>
-                      <p className="text-[13px] text-slate-500 dark:text-slate-400 mb-4">Update your password to keep your account secure</p>
+                    <div className="mb-4 rounded-[8px] border border-[#bbf7d0] bg-[#f0fdf4] p-4">
+                      <p className="font-medium text-[#16a34a]">✅ Telegram Connected</p>
+                      <p className="mt-1 text-sm text-[#16a34a] opacity-80">
+                        You will receive job alerts and resume files here.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={handleDisconnectTelegram}
+                      disabled={telegramLoading}
+                      variant="outline"
+                      className="rounded-[8px] border-[1.5px] border-red-600 bg-transparent px-[20px] py-[10px] text-red-600 hover:bg-red-50"
+                      size="sm"
+                    >
+                      {telegramLoading ? "Disconnecting..." : "Disconnect"}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="mb-4 rounded-[8px] bg-slate-100 p-4 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                      <p className="mb-2 font-medium">Connect Telegram to receive:</p>
+                      <p>🎯 Job match alerts instantly</p>
+                      <p>📄 Tailored resume PDF files</p>
+                      <p>🔔 Application update notifications</p>
+                    </div>
 
-                      <div className="space-y-4 mb-4">
-                        {/* Current Password */}
-                        <div>
-                          <p className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Current Password</p>
-                          <div className="relative">
-                            <Input
-                              type={showCurrentPassword ? 'text' : 'password'}
-                              value={currentPassword}
-                              onChange={(e) => setCurrentPassword(e.target.value)}
-                              className="rounded-[8px] py-[10px] px-[14px] w-full"
+                    {!telegramExpanded ? (
+                      <Button
+                        onClick={handleConnectTelegram}
+                        disabled={telegramLoading}
+                        className="rounded-[8px] bg-blue-600 px-[20px] py-[10px] text-white hover:bg-blue-700"
+                      >
+                        {telegramLoading ? "Loading..." : "Connect Telegram"}
+                      </Button>
+                    ) : (
+                      <div className="rounded-[8px] border border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-800">
+                        <h4 className="mb-4 text-center font-semibold text-slate-900 dark:text-white">
+                          Scan QR or click the link
+                        </h4>
+
+                        {qrImageUrl && (
+                          <div className="mb-6 flex flex-col items-center">
+                            <img
+                              src={qrImageUrl}
+                              alt="Telegram QR Code"
+                              width="180"
+                              height="180"
+                              className="rounded-[12px] border-2 border-slate-300 dark:border-slate-600"
                             />
-                            <button
-                              type="button"
-                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                              className="absolute right-3 top-2.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-                            >
-                              {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
                           </div>
+                        )}
+
+                        <div className="my-4 flex items-center gap-3">
+                          <div className="flex-1 border-t border-slate-300 dark:border-slate-600" />
+                          <span className="text-sm text-slate-500 dark:text-slate-400">OR</span>
+                          <div className="flex-1 border-t border-slate-300 dark:border-slate-600" />
                         </div>
 
-                        {/* New Password */}
-                        <div>
-                          <p className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">New Password</p>
-                          <div className="relative">
-                            <Input
-                              type={showNewPassword ? 'text' : 'password'}
-                              value={newPassword}
-                              onChange={(e) => setNewPassword(e.target.value)}
-                              className="rounded-[8px] py-[10px] px-[14px] w-full"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowNewPassword(!showNewPassword)}
-                              className="absolute right-3 top-2.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                        {telegramLink && (
+                          <div className="mb-4 flex justify-center">
+                            <Button
+                              onClick={() => window.open(telegramLink, "_blank")}
+                              variant="outline"
+                              className="rounded-[8px] border-[1.5px] border-blue-600 bg-transparent px-[20px] py-[10px] text-blue-600"
                             >
-                              {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
+                              Open Telegram →
+                            </Button>
                           </div>
-                        </div>
+                        )}
 
-                        {/* Confirm Password */}
-                        <div>
-                          <p className="text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Confirm Password</p>
-                          <div className="relative">
-                            <Input
-                              type={showConfirmPassword ? 'text' : 'password'}
-                              value={confirmPassword}
-                              onChange={(e) => setConfirmPassword(e.target.value)}
-                              className="rounded-[8px] py-[10px] px-[14px] w-full"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                              className="absolute right-3 top-2.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-                            >
-                              {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </button>
-                          </div>
+                        <div className="mx-auto max-w-[250px] text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">
+                          <p>1. Scan QR or tap Open Telegram</p>
+                          <p>2. Press START in the Telegram bot</p>
+                          <p>3. This page will update automatically</p>
                         </div>
                       </div>
-
-                      {passwordMessage && (
-                        <div className={cn(
-                          "mb-4 border p-[10px] rounded-[8px] text-sm font-medium",
-                          passwordMessage.type === 'success'
-                            ? "bg-[#f0fdf4] text-[#16a34a] border-[#bbf7d0]"
-                            : "bg-[#fef2f2] text-[#dc2626] border-[#fecaca]"
-                        )}>
-                          {passwordMessage.text}
-                        </div>
-                      )}
-
-                      <Button
-                        onClick={handleChangePassword}
-                        disabled={isUpdatingPassword}
-                        variant="outline"
-                        className="border-[1.5px] border-current text-[#7c3aed] bg-transparent rounded-[8px] py-[10px] px-[20px]"
-                      >
-                        {isUpdatingPassword ? 'Updating...' : 'Update Password'}
-                      </Button>
-                    </div>
+                    )}
                   </>
                 )}
 
-                {/* Telegram Notifications */}
-                <>
-                  <hr className="border-slate-200 dark:border-slate-800 mb-6" />
-                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm mb-6">
-                    <h3 className="text-[18px] font-semibold text-slate-900 dark:text-white mb-1">Telegram Notifications 🤖</h3>
-                    <p className="text-[13px] text-slate-500 dark:text-slate-400 mb-4">Receive job alerts and resume files on Telegram</p>
-
-                    {telegramLinked ? (
-                      <>
-                        <div className="rounded-[8px] bg-[#f0fdf4] border border-[#bbf7d0] p-4 mb-4">
-                          <p className="text-[#16a34a] font-medium">✅ Telegram Connected</p>
-                          <p className="text-sm text-[#16a34a] mt-1 opacity-80">You will receive job alerts and resume files here</p>
-                        </div>
-                        <Button
-                          onClick={handleDisconnectTelegram}
-                          disabled={telegramLoading}
-                          variant="outline"
-                          className="border-[1.5px] border-red-600 text-red-600 hover:bg-red-50 bg-transparent rounded-[8px] py-[10px] px-[20px]"
-                          size="sm"
-                        >
-                          {telegramLoading ? 'Disconnecting...' : 'Disconnect'}
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <div className="rounded-[8px] bg-slate-100 dark:bg-slate-800 p-4 mb-4 text-sm text-slate-700 dark:text-slate-300">
-                          <p className="font-medium mb-2">Connect Telegram to receive:</p>
-                          <p>🎯 Job match alerts instantly</p>
-                          <p>📄 Tailored resume PDF files</p>
-                          <p>🔔 Application update notifications</p>
-                        </div>
-
-                        {!telegramExpanded ? (
-                          <Button
-                            onClick={handleConnectTelegram}
-                            disabled={telegramLoading}
-                            className="bg-blue-600 hover:bg-blue-700 text-white rounded-[8px] py-[10px] px-[20px]"
-                          >
-                            {telegramLoading ? 'Loading...' : 'Connect Telegram'}
-                          </Button>
-                        ) : (
-                          <div className="bg-slate-50 dark:bg-slate-800 rounded-[8px] p-6 border border-slate-200 dark:border-slate-700">
-                            <h4 className="font-semibold text-slate-900 dark:text-white mb-4 text-center">Scan QR or click the link</h4>
-
-                            {qrImageUrl && (
-                              <div className="flex flex-col items-center mb-6">
-                                <img
-                                  src={qrImageUrl}
-                                  alt="Telegram QR Code"
-                                  width="180"
-                                  height="180"
-                                  className="rounded-[12px] border-2 border-slate-300 dark:border-slate-600"
-                                />
-                              </div>
-                            )}
-
-                            <div className="flex items-center gap-3 my-4">
-                              <div className="flex-1 border-t border-slate-300 dark:border-slate-600"></div>
-                              <span className="text-sm text-slate-500 dark:text-slate-400">OR</span>
-                              <div className="flex-1 border-t border-slate-300 dark:border-slate-600"></div>
-                            </div>
-
-                            {telegramLink && (
-                              <div className="flex justify-center mb-4">
-                                <Button
-                                  onClick={() => window.open(telegramLink, '_blank')}
-                                  variant="outline"
-                                  className="border-[1.5px] border-blue-600 text-blue-600 bg-transparent rounded-[8px] py-[10px] px-[20px]"
-                                >
-                                  Open Telegram →
-                                </Button>
-                              </div>
-                            )}
-
-                            <div className="text-[13px] text-slate-600 dark:text-slate-400 leading-relaxed max-w-[250px] mx-auto">
-                              <p>1. Scan QR or tap Open Telegram</p>
-                              <p>2. Press START in the Telegram bot</p>
-                              <p>3. This page will update automatically</p>
-                            </div>
-                          </div>
-                        )}
-                      </>
+                {telegramMessage && (
+                  <div
+                    className={cn(
+                      "mt-4 rounded-[8px] border p-[10px] text-sm font-medium",
+                      telegramMessage.type === "success"
+                        ? "bg-[#f0fdf4] text-[#16a34a] border-[#bbf7d0]"
+                        : "bg-[#fef2f2] text-[#dc2626] border-[#fecaca]",
                     )}
-
-                    {telegramMessage && (
-                      <div className={cn(
-                        "mt-4 border p-[10px] rounded-[8px] text-sm font-medium",
-                        telegramMessage.type === 'success'
-                          ? "bg-[#f0fdf4] text-[#16a34a] border-[#bbf7d0]"
-                          : "bg-[#fef2f2] text-[#dc2626] border-[#fecaca]"
-                      )}>
-                        {telegramMessage.text}
-                      </div>
-                    )}
+                  >
+                    {telegramMessage.text}
                   </div>
-                </>
+                )}
               </div>
-            )}
-          </>
+            </div>
+          )
         )}
       </div>
     </div>
