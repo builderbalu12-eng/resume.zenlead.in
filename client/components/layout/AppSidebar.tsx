@@ -1,0 +1,134 @@
+import * as React from "react";
+import { NavLink, useLocation } from "react-router-dom";
+import { Sparkles } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarSeparator,
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { ACCOUNT_NAV, PRIMARY_NAV } from "./nav";
+
+export function AppSidebar() {
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+
+  const navItems = PRIMARY_NAV.filter(
+    (i) => !i.requiresAuth || isAuthenticated,
+  );
+  const accountItems = ACCOUNT_NAV.filter(
+    (i) => !i.requiresAuth || isAuthenticated,
+  );
+
+  return (
+    <Sidebar variant="inset" collapsible="icon" className="border-sidebar-border">
+      <SidebarHeader className="p-3">
+        <NavLink
+          to="/"
+          className={({ isActive }) =>
+            cn(
+              "flex items-center gap-3 rounded-xl px-3 py-2 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+              isActive
+                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                : "hover:bg-sidebar-accent",
+            )
+          }
+        >
+          <span className="grid size-9 place-items-center rounded-xl bg-gradient-primary text-white shadow-sm">
+            <Sparkles className="size-4" />
+          </span>
+          <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
+            <span className="text-sm font-semibold">ResumeMatch</span>
+            <span className="text-xs text-sidebar-foreground/70">
+              Premium tailoring
+            </span>
+          </div>
+        </NavLink>
+      </SidebarHeader>
+
+      <SidebarSeparator />
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const active = location.pathname === item.path;
+                return (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      tooltip={item.label}
+                    >
+                      <NavLink to={item.path}>
+                        <Icon className="size-4" />
+                        <span>{item.label}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {accountItems.map((item) => {
+                const Icon = item.icon;
+                const active = location.pathname === item.path;
+                return (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      tooltip={item.label}
+                    >
+                      <NavLink to={item.path}>
+                        <Icon className="size-4" />
+                        <span>{item.label}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="p-3">
+        {!isAuthenticated && (
+          <div className="rounded-xl border border-sidebar-border bg-background p-3 group-data-[collapsible=icon]:hidden">
+            <p className="text-xs font-semibold text-sidebar-foreground">
+              Sign in to unlock tailoring
+            </p>
+            <p className="mt-1 text-xs text-sidebar-foreground/70">
+              Upload, tailor, and track applications.
+            </p>
+            <Button className="mt-3 w-full" variant="gradient" asChild>
+              <NavLink to="/login">Sign in</NavLink>
+            </Button>
+          </div>
+        )}
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
+

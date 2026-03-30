@@ -4,6 +4,10 @@ import { ArrowLeft, CheckCircle } from "lucide-react";
 import { ResumeUpload } from "@/components/ResumeUpload";
 import { Settings } from "@/components/Settings";
 import { ResumeData } from "@/types";
+import { Page } from "@/components/layout/Page";
+import { PremiumCard } from "@/components/premium/PremiumCard";
+import { SectionHeader } from "@/components/premium/SectionHeader";
+import { Button } from "@/components/ui/button";
 import {
   setMasterResume,
   setUserId,
@@ -121,32 +125,26 @@ export const UploadResume: React.FC = () => {
 
   if (resume) {
     return (
-      <div className="min-h-screen bg-background py-12">
-        <div className="max-w-2xl mx-auto px-4">
-          <button
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </button>
+      <Page size="md">
+        <Button variant="ghost" onClick={() => navigate("/")} className="-ml-2 mb-6">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Button>
 
-          <div className="text-center py-12">
-            <div className="flex justify-center mb-6">
-              <div className="rounded-full bg-green-100 dark:bg-green-900/20 p-6">
-                <CheckCircle className="h-12 w-12 text-green-600" />
-              </div>
+        <PremiumCard className="p-8" hover={false}>
+          <div className="text-center">
+            <div className="mx-auto mb-6 grid size-16 place-items-center rounded-2xl bg-green-600/10 border border-green-600/20">
+              <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
 
-            <h1 className="text-3xl sm:text-4xl font-bold font-heading mb-4">
-              Resume Successfully Uploaded!
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-2">
+              Resume uploaded
             </h1>
-            <p className="text-lg text-muted-foreground mb-4">
-              Your master resume has been saved and is ready to be tailored for
-              job applications.
+            <p className="text-sm sm:text-base text-muted-foreground mb-6">
+              Your master resume is saved and ready to tailor for job applications.
             </p>
 
-            <div className="bg-card border border-border rounded-lg p-6 mb-8 text-left space-y-6 max-h-[600px] overflow-y-auto">
+            <PremiumCard className="p-6 text-left space-y-6 max-h-[560px] overflow-y-auto" hover={false}>
               {/* Contact Info */}
               <div>
                 <h3 className="font-semibold text-base mb-2">
@@ -282,7 +280,10 @@ export const UploadResume: React.FC = () => {
                           : publication &&
                               typeof publication === "object" &&
                               "title" in publication
-                            ? `${publication.title}${publication.publisher ? ` (${publication.publisher})` : ""}${publication.date ? ` - ${publication.date}` : ""}`
+                            ? (() => {
+                                const p = publication as any;
+                                return `${p.title}${p.publisher ? ` (${p.publisher})` : ""}${p.date ? ` - ${p.date}` : ""}`;
+                              })()
                             : String(publication);
                       return (
                         <li key={i} className="text-sm text-muted-foreground">
@@ -312,58 +313,40 @@ export const UploadResume: React.FC = () => {
                   </div>
                 </div>
               )}
-            </div>
+            </PremiumCard>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button
-                onClick={() => navigate("/tailor")}
-                className="px-6 py-3 rounded-lg bg-gradient-primary text-primary-foreground font-semibold hover:shadow-glow transition-all"
-              >
-                🚀 Tailor Resume
-              </button>
-              <button
-                onClick={() => {
-                  setResume(null);
-                }}
-                className="px-6 py-3 rounded-lg border border-border hover:bg-muted transition-colors font-semibold"
-              >
-                📤 Upload New
-              </button>
-              <button
-                onClick={() => navigate("/")}
-                className="px-6 py-3 rounded-lg bg-background border-2 border-primary text-primary font-semibold hover:bg-primary/5 transition-colors"
-              >
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+              <Button variant="gradient" onClick={() => navigate("/tailor")}>
+                Tailor resume
+              </Button>
+              <Button variant="outline" onClick={() => setResume(null)}>
+                Upload new
+              </Button>
+              <Button variant="secondary" onClick={() => navigate("/")}>
                 Dashboard
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
+        </PremiumCard>
+      </Page>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-12">
-      <div className="max-w-2xl mx-auto px-4">
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
-        </button>
+    <Page size="md">
+      <Button variant="ghost" onClick={() => navigate("/")} className="-ml-2 mb-6">
+        <ArrowLeft className="h-4 w-4" />
+        Back to Dashboard
+      </Button>
 
-        <div className="mb-12">
-          <h1 className="text-3xl sm:text-4xl font-bold font-heading mb-4">
-            Upload Your Master Resume
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Upload your professional resume as a DOCX file. We'll parse it and
-            use it to tailor resumes for job applications.
-          </p>
-        </div>
+      <div className="mb-8">
+        <SectionHeader
+          title="Upload your master resume"
+          description="Upload a DOCX resume once. We’ll parse it and use it to tailor resumes for job applications."
+        />
+      </div>
 
-        <div className="bg-card border border-border rounded-xl p-8 mb-8">
+      <PremiumCard className="p-6 sm:p-8 mb-8" hover={false}>
           <ResumeUpload
             onUploadSuccess={handleUploadSuccess}
             isLoading={isLoading}
@@ -381,34 +364,33 @@ export const UploadResume: React.FC = () => {
               <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
-        </div>
+      </PremiumCard>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="bg-muted/50 rounded-lg p-6">
-            <h3 className="font-semibold mb-3">Resume Requirements</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+      <div className="grid md:grid-cols-2 gap-6">
+        <PremiumCard className="p-6" hover={false}>
+          <h3 className="font-semibold mb-3">Resume requirements</h3>
+          <ul className="space-y-2 text-sm text-muted-foreground">
               <li>✓ DOCX format (.docx file)</li>
               <li>✓ Contact information</li>
               <li>✓ Professional summary or objective</li>
               <li>✓ Skills section</li>
               <li>✓ Work experience</li>
               <li>✓ Education</li>
-            </ul>
-          </div>
+          </ul>
+        </PremiumCard>
 
-          <div className="bg-muted/50 rounded-lg p-6">
-            <h3 className="font-semibold mb-3">Tips for Best Results</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+        <PremiumCard className="p-6" hover={false}>
+          <h3 className="font-semibold mb-3">Tips for best results</h3>
+          <ul className="space-y-2 text-sm text-muted-foreground">
               <li>• Use clear section headers</li>
               <li>• Include quantifiable achievements</li>
               <li>• List relevant technical skills</li>
               <li>• Keep formatting simple</li>
               <li>• Proofread for typos</li>
               <li>• Update with recent experience</li>
-            </ul>
-          </div>
-        </div>
+          </ul>
+        </PremiumCard>
       </div>
-    </div>
+    </Page>
   );
 };

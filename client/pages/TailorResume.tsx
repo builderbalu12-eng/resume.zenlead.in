@@ -9,6 +9,11 @@ import { TemplateSelector } from "@/components/TemplateSelector";
 import { apiClient } from "@/services/api";
 import { generateResumeDocx } from "@/services/resumeGenerator";
 import { saveApplication } from "@/services/mongodb";
+import { Page } from "@/components/layout/Page";
+import { PremiumCard } from "@/components/premium/PremiumCard";
+import { SectionHeader } from "@/components/premium/SectionHeader";
+import { Button } from "@/components/ui/button";
+import { ErrorState, LoadingState } from "@/components/premium/States";
 
 export const TailorResume: React.FC = () => {
   const navigate = useNavigate();
@@ -276,40 +281,30 @@ export const TailorResume: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background py-12 flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <div className="rounded-full bg-primary/20 p-6 mx-auto mb-6 inline-block">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-          <h2 className="text-xl font-semibold mb-2">Loading your resume</h2>
-          <p className="text-muted-foreground mb-4">
-            Retrieving your master resume...
-          </p>
-          <div className="w-full max-w-xs mx-auto h-2 bg-muted rounded-full overflow-hidden">
-            <div className="h-full bg-primary animate-pulse" />
-          </div>
-        </div>
-      </div>
+      <Page size="lg">
+        <LoadingState
+          title="Loading your resume"
+          description="Retrieving your master resume…"
+          className="max-w-xl"
+        />
+      </Page>
     );
   }
 
   if (!masterResume) {
     return (
-      <div className="min-h-screen bg-background py-12">
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="text-center py-12">
-            <p className="text-lg text-red-600 mb-4">{error}</p>
-            <p className="text-muted-foreground">
-              Redirecting to upload page...
-            </p>
-          </div>
-        </div>
-      </div>
+      <Page size="md">
+        <ErrorState
+          title="No master resume found"
+          description={error ?? "Please upload a master resume first."}
+          className="max-w-xl"
+        />
+      </Page>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-12">
+    <Page size="xl">
       {/* Template Selector Modal */}
       {showTemplateSelector && tailorState.tailored && tailorState.jobData && (
         <TemplateSelector
@@ -319,23 +314,17 @@ export const TailorResume: React.FC = () => {
         />
       )}
 
-      <div className="max-w-6xl mx-auto px-4">
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
-        </button>
+      <Button variant="ghost" onClick={() => navigate("/")} className="-ml-2 mb-6">
+        <ArrowLeft className="h-4 w-4" />
+        Back to Dashboard
+      </Button>
 
-        <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold font-heading mb-2">
-            Tailor Your Resume
-          </h1>
-          <p className="text-muted-foreground">
-            View your master resume and tailor it for any job
-          </p>
-        </div>
+      <div className="mb-8">
+        <SectionHeader
+          title="Tailor your resume"
+          description="Use your master resume and tailor it for any job description."
+        />
+      </div>
 
         {/* Error and Success Messages */}
         {error && (
@@ -358,19 +347,21 @@ export const TailorResume: React.FC = () => {
 
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Left: Master Resume Preview */}
-          <div className="bg-card border border-border rounded-xl p-6">
+          <PremiumCard className="p-6" hover={false}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold">Your Master Resume</h2>
-              <button
+              <Button
                 onClick={() => setShowResume(!showResume)}
-                className="p-2 hover:bg-muted rounded-lg transition-colors"
+                variant="ghost"
+                size="icon"
+                className="rounded-xl"
               >
                 {showResume ? (
                   <Eye className="h-4 w-4" />
                 ) : (
                   <EyeOff className="h-4 w-4" />
                 )}
-              </button>
+              </Button>
             </div>
 
             {showResume && (
@@ -506,7 +497,10 @@ export const TailorResume: React.FC = () => {
                               : publication &&
                                   typeof publication === "object" &&
                                   "title" in publication
-                                ? `${publication.title}${publication.publisher ? ` (${publication.publisher})` : ""}${publication.date ? ` - ${publication.date}` : ""}`
+                                ? (() => {
+                                    const p = publication as any;
+                                    return `${p.title}${p.publisher ? ` (${p.publisher})` : ""}${p.date ? ` - ${p.date}` : ""}`;
+                                  })()
                                 : String(publication);
                           return (
                             <li
@@ -553,12 +547,12 @@ export const TailorResume: React.FC = () => {
                 </button>
               </div>
             )}
-          </div>
+          </PremiumCard>
 
           {/* Right: Job Description Input and Tailoring */}
           <div className="space-y-6">
             {/* Job Description Input */}
-            <div className="bg-card border border-border rounded-xl p-6">
+            <PremiumCard className="p-6" hover={false}>
               <h2 className="text-xl font-semibold mb-4">Job Description</h2>
               <textarea
                 value={jobDescription}
@@ -567,10 +561,11 @@ export const TailorResume: React.FC = () => {
                 className="w-full h-[300px] p-3 border border-border rounded-lg bg-background text-foreground font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
               />
 
-              <button
+              <Button
                 onClick={handleTailor}
                 disabled={isTailoring || !jobDescription.trim()}
-                className="w-full mt-4 px-6 py-3 rounded-lg bg-gradient-primary text-primary-foreground font-semibold hover:shadow-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full mt-4"
+                variant="gradient"
               >
                 {isTailoring ? (
                   <>
@@ -578,9 +573,9 @@ export const TailorResume: React.FC = () => {
                     Tailoring your resume...
                   </>
                 ) : (
-                  <>�� Tailor Resume</>
+                  <>Tailor resume</>
                 )}
-              </button>
+              </Button>
 
               {isTailoring && (
                 <div className="mt-4 p-4 rounded-lg bg-blue-600/10 border border-blue-600/20">
@@ -602,11 +597,11 @@ export const TailorResume: React.FC = () => {
                   </div>
                 </div>
               )}
-            </div>
+            </PremiumCard>
 
             {/* Results */}
             {tailorState.tailored && (
-              <div className="bg-card border border-border rounded-xl p-6">
+              <PremiumCard className="p-6" hover={false}>
                 <h2 className="text-xl font-semibold mb-4">Results</h2>
 
                 <div className="space-y-4">
@@ -656,21 +651,23 @@ export const TailorResume: React.FC = () => {
                     )}
 
                   <div className="flex gap-3">
-                    <button
+                    <Button
                       onClick={handleOpenTemplateSelector}
-                      className="flex-1 px-4 py-2 rounded-lg bg-gradient-primary text-primary-foreground hover:shadow-glow transition-all font-medium"
+                      className="flex-1"
+                      variant="gradient"
                     >
-                      📄 Choose Template & Download
-                    </button>
-                    <button
+                      Choose template & download
+                    </Button>
+                    <Button
                       onClick={handleSaveApplication}
-                      className="flex-1 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors font-medium"
+                      className="flex-1"
+                      variant="outline"
                     >
-                      💾 Save to History
-                    </button>
+                      Save to history
+                    </Button>
                   </div>
 
-                  <button
+                  <Button
                     onClick={() => {
                       setTailorState({
                         tailored: null,
@@ -681,10 +678,11 @@ export const TailorResume: React.FC = () => {
                       setSuccess(null);
                       setMissingContentSections([]);
                     }}
-                    className="w-full px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors font-medium"
+                    className="w-full"
+                    variant="secondary"
                   >
-                    ⚡ Tailor Another
-                  </button>
+                    Tailor another
+                  </Button>
 
                   {/* Missing Content Sections Warning */}
                   {missingContentSections.length > 0 && (
@@ -731,11 +729,10 @@ export const TailorResume: React.FC = () => {
                     </div>
                   )}
                 </div>
-              </div>
+              </PremiumCard>
             )}
           </div>
         </div>
-      </div>
-    </div>
+    </Page>
   );
 };
