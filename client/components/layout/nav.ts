@@ -4,6 +4,7 @@ import {
   Clock,
   CreditCard,
   Home,
+  MessageCircle,
   User,
   Wand2,
 } from "lucide-react";
@@ -26,6 +27,7 @@ export const PRIMARY_NAV: NavItem[] = [
     requiresAuth: true,
   },
   { label: "History", path: "/history", icon: Clock, requiresAuth: true },
+  { label: "AI Chat", path: "/chat", icon: MessageCircle, requiresAuth: true },
 ];
 
 export const ACCOUNT_NAV: NavItem[] = [

@@ -14,6 +14,7 @@ import { getMasterResume } from "@/utils/storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { WhatYouCanObtain } from "@/components/WhatYouCanObtain";
 import Lottie from "lottie-react";
+import { FloatingChatButton } from "@/components/chat/FloatingChatButton";
 
 export const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -874,6 +875,9 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Floating AI Chat Button - only for authenticated users */}
+      {isAuthenticated && <FloatingChatButton />}
     </div>
   );
 };

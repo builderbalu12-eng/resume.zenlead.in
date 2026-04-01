@@ -8,6 +8,7 @@ import { AuthCallback } from "./pages/AuthCallback";
 import { Profile } from "./pages/Profile";
 import { FindJob } from "./pages/FindJob";
 import { FindBusinessPage } from "./pages/FindBusinessPage";
+import ChatPage from "./pages/Chat";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AppShell } from "./components/layout/AppShell";
@@ -134,6 +135,16 @@ function AppContent() {
             <ProtectedRoute>
               <AppShell>
                 <Profile />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <ChatPage />
               </AppShell>
             </ProtectedRoute>
           }
