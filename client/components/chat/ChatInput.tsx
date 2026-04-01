@@ -2,7 +2,7 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Plus } from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -10,11 +10,10 @@ interface ChatInputProps {
   placeholder?: string;
 }
 
-export function ChatInput({ onSend, disabled, placeholder = 'Try "I need a video editor for a 2-week project"' }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, placeholder = 'Message Maya...' }: ChatInputProps) {
   const [message, setMessage] = React.useState('');
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
-  // Auto-focus on mount
   React.useEffect(() => {
     if (!disabled && textareaRef.current) {
       textareaRef.current.focus();
@@ -25,7 +24,6 @@ export function ChatInput({ onSend, disabled, placeholder = 'Try "I need a video
     if (message.trim() && !disabled) {
       onSend(message.trim());
       setMessage('');
-      // Reset textarea height
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
@@ -41,58 +39,56 @@ export function ChatInput({ onSend, disabled, placeholder = 'Try "I need a video
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
-    // Auto-resize textarea
     const target = e.target;
     target.style.height = 'auto';
-    target.style.height = `${Math.min(target.scrollHeight, 120)}px`;
+    target.style.height = `${Math.min(target.scrollHeight, 160)}px`;
   };
 
+  const hasContent = message.trim().length > 0;
+
   return (
-    <div className="px-4 pb-6">
-      <div
-        className={cn(
-          'relative flex items-end gap-2 rounded-2xl border bg-background p-3 shadow-sm',
-          'focus-within:ring-1 focus-within:ring-ring/20 focus-within:border-ring/50',
-          'transition-all duration-200 max-w-2xl mx-auto'
-        )}
-      >
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
-          disabled={disabled}
-        >
-          <Plus className="h-5 w-5" />
-        </Button>
-
-        <Textarea
-          ref={textareaRef}
-          value={message}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={disabled}
+    <div className="px-4 pb-6 pt-2">
+      <div className="max-w-3xl mx-auto">
+        <div
           className={cn(
-            'min-h-[24px] max-h-[120px] resize-none border-0 bg-transparent px-2 py-1.5',
-            'focus-visible:ring-0 focus-visible:ring-offset-0',
-            'placeholder:text-muted-foreground/60 text-base'
-          )}
-          rows={1}
-        />
-
-        <Button
-          onClick={handleSubmit}
-          disabled={disabled || !message.trim()}
-          size="icon"
-          className={cn(
-            'h-8 w-8 shrink-0 rounded-full transition-all',
-            message.trim() && !disabled
-              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-              : 'bg-muted text-muted-foreground'
+            'relative flex items-end gap-2 rounded-2xl border bg-background px-4 py-3',
+            'shadow-[0_2px_16px_rgba(0,0,0,0.08)]',
+            'transition-shadow duration-200',
+            'focus-within:shadow-[0_2px_24px_rgba(99,102,241,0.15)] focus-within:border-primary/30'
           )}
         >
-          <Send className="h-4 w-4" />
-        </Button>
+          <Textarea
+            ref={textareaRef}
+            value={message}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            disabled={disabled}
+            className={cn(
+              'min-h-[28px] max-h-[160px] resize-none border-0 bg-transparent px-0 py-1',
+              'focus-visible:ring-0 focus-visible:ring-offset-0',
+              'placeholder:text-muted-foreground/50 text-sm leading-relaxed'
+            )}
+            rows={1}
+          />
+
+          <Button
+            onClick={handleSubmit}
+            disabled={disabled || !hasContent}
+            size="icon"
+            className={cn(
+              'h-8 w-8 shrink-0 rounded-full transition-all duration-200',
+              hasContent && !disabled
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
+                : 'bg-muted text-muted-foreground cursor-not-allowed'
+            )}
+          >
+            <ArrowUp className="h-4 w-4" />
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground text-center mt-2">
+          Press Enter to send · Shift+Enter for new line
+        </p>
       </div>
     </div>
   );

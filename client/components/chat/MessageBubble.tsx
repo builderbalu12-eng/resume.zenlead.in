@@ -1,8 +1,7 @@
-import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { ChatMessage } from '@/types/chat';
 import ReactMarkdown from 'react-markdown';
-import { Bot, User } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -11,75 +10,61 @@ interface MessageBubbleProps {
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
 
+  if (isUser) {
+    return (
+      <div className="flex justify-end mb-4 animate-in fade-in slide-in-from-bottom-1 duration-200">
+        <div className="max-w-[72%]">
+          <div className="bg-primary text-primary-foreground px-4 py-3 rounded-2xl rounded-tr-sm text-sm leading-relaxed shadow-sm">
+            <p className="whitespace-pre-wrap m-0">{message.content}</p>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1 text-right pr-1">
+            {new Date(message.timestamp).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={cn(
-        'flex w-full gap-3 p-4',
-        isUser ? 'flex-row-reverse' : 'flex-row'
-      )}
-    >
-      {/* Avatar */}
-      <div
-        className={cn(
-          'flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full',
-          isUser
-            ? 'bg-gradient-to-br from-purple-500 to-pink-500'
-            : 'bg-gradient-to-br from-cyan-500 to-blue-500'
-        )}
-      >
-        {isUser ? (
-          <User className="h-4 w-4 text-white" />
-        ) : (
-          <Bot className="h-4 w-4 text-white" />
-        )}
+    <div className="flex gap-3 mb-6 animate-in fade-in slide-in-from-bottom-1 duration-200">
+      {/* AI Avatar */}
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 shadow-sm mt-0.5">
+        <Sparkles className="h-4 w-4 text-white" />
       </div>
 
-      {/* Message Content */}
-      <div
-        className={cn(
-          'flex max-w-[85%] flex-col gap-1',
-          isUser ? 'items-end' : 'items-start'
-        )}
-      >
-        {/* Bubble */}
+      {/* AI Message - no bubble, plain text */}
+      <div className="flex-1 min-w-0 pt-0.5">
+        <p className="text-xs font-semibold text-foreground mb-1.5">Maya</p>
         <div
           className={cn(
-            'prose prose-sm max-w-none px-4 py-3',
-            isUser
-              ? 'rounded-2xl rounded-tr-sm bg-gradient-to-r from-purple-500 to-pink-600 text-white'
-              : 'rounded-2xl rounded-tl-sm bg-muted text-foreground'
+            'text-sm leading-relaxed text-foreground',
+            '[&_p]:mb-3 [&_p]:last:mb-0',
+            '[&_ul]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1',
+            '[&_ol]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1',
+            '[&_li]:leading-relaxed',
+            '[&_strong]:font-semibold [&_strong]:text-foreground',
+            '[&_h1]:text-lg [&_h1]:font-bold [&_h1]:mb-2 [&_h1]:mt-1',
+            '[&_h2]:text-base [&_h2]:font-semibold [&_h2]:mb-2 [&_h2]:mt-1',
+            '[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-1 [&_h3]:mt-1',
+            '[&_code]:bg-muted [&_code]:text-primary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono',
+            '[&_pre]:bg-muted [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:mb-3 [&_pre]:overflow-x-auto',
+            '[&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-foreground',
+            '[&_blockquote]:border-l-2 [&_blockquote]:border-primary/40 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-muted-foreground'
           )}
         >
-          {isUser ? (
-            <p className="whitespace-pre-wrap m-0">{message.content}</p>
-          ) : (
-            <div className={cn(
-              "[&_p]:m-0 [&_p]:mb-2 [&_p]:last:mb-0",
-              "[&_ul]:m-0 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-4",
-              "[&_ol]:m-0 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:pl-4",
-              "[&_li]:mb-1",
-              "[&_strong]:font-bold [&_strong]:text-primary",
-              "[&_h1]:text-lg [&_h1]:font-bold [&_h1]:mb-2",
-              "[&_h2]:text-base [&_h2]:font-bold [&_h2]:mb-2",
-              "[&_h3]:text-sm [&_h3]:font-bold [&_h3]:mb-1",
-              "[&_code]:bg-primary/20 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs",
-              "[&_pre]:bg-primary/10 [&_pre]:p-2 [&_pre]:rounded-lg [&_pre]:mb-2",
-              "[&_pre_code]:bg-transparent [&_pre_code]:p-0",
-              "[&_blockquote]:border-l-2 [&_blockquote]:border-primary/50 [&_blockquote]:pl-3 [&_blockquote]:italic"
-            )}>
-              <ReactMarkdown>{message.content}</ReactMarkdown>
-            </div>
-          )}
+          <ReactMarkdown>{message.content}</ReactMarkdown>
         </div>
 
-        {/* Meta info */}
-        <div className="flex items-center gap-2 px-1">
-          {message.intent && !isUser && (
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+        <div className="flex items-center gap-2 mt-2">
+          {message.intent && (
+            <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full capitalize">
               {message.intent.replace(/_/g, ' ')}
             </span>
           )}
-          <span className="text-xs text-muted-foreground">
+          <span className="text-[11px] text-muted-foreground">
             {new Date(message.timestamp).toLocaleTimeString([], {
               hour: '2-digit',
               minute: '2-digit',
