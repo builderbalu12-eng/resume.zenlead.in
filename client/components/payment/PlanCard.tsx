@@ -30,7 +30,7 @@ export function PlanCard({
   isLoading: boolean;
 }) {
   const isFree = plan.amount === 0;
-  const baseAmount = billingCycle === "yearly" ? plan.amount * 10 : plan.amount;
+  const baseAmount = plan.amount;
   const finalAmount = discountedAmount ?? baseAmount;
 
   return (
@@ -77,7 +77,7 @@ export function PlanCard({
             </span>
           </div>
 
-          {billingCycle === "yearly" && (
+          {plan.billing_cycle === "yearly" && (
             <div className="mt-2 inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
               Save 2 months
             </div>

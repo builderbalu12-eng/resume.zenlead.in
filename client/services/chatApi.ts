@@ -1,7 +1,6 @@
 import {
   ApiResponse,
   ChatResponse,
-  ChatSession,
   ChatHistoryResponse,
   ChatSessionsResponse,
   NewSessionResponse,
@@ -35,7 +34,7 @@ class ChatApiService {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || `HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(error.detail || error.message || `HTTP ${response.status}: ${response.statusText}`);
     }
 
     return response.json();
@@ -77,20 +76,20 @@ class ChatApiService {
     return this.handleResponse<DeleteSessionResponse>(response);
   }
 
+  async cleanupEmptySessions(): Promise<void> {
+    const response = await fetch(`${CHAT_BASE}/sessions/empty`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+    await this.handleResponse(response);
+  }
+
   async getAllSessions(): Promise<ApiResponse<ChatSessionsResponse>> {
-    const url = `${CHAT_BASE}/sessions`;
-    console.log('[ChatApi] GET', url);
-    try {
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: this.getAuthHeaders(),
-      });
-      console.log('[ChatApi] Response status:', response.status);
-      return this.handleResponse<ChatSessionsResponse>(response);
-    } catch (error) {
-      console.error('[ChatApi] Fetch error:', error);
-      throw error;
-    }
+    const response = await fetch(`${CHAT_BASE}/sessions`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+    return this.handleResponse<ChatSessionsResponse>(response);
   }
 }
 

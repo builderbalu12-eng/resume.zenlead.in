@@ -5,6 +5,23 @@ import {
 
 let injectedButton = false;
 
+// Proactively save the auth token to chrome.storage.sync whenever we are on a ZenLead page.
+// This ensures the sidebar can find the token even if the ZenLead tab is later closed.
+(function autosaveAuthToken() {
+  const hostname = window.location.hostname;
+  if (hostname.includes("zenlead.in") || hostname === "localhost" || hostname === "127.0.0.1") {
+    const token =
+      localStorage.getItem("access_token") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("auth_token");
+    if (token) {
+      chrome.storage.sync.set({ resumematch_auth_token: token }, () => {
+        console.log("[Content Script] ✓ Auth token auto-saved to chrome.storage.sync");
+      });
+    }
+  }
+})();
+
 // Listen for messages from the web app via window.postMessage
 // This allows the web app (localhost) to communicate with the extension
 window.addEventListener("message", (event) => {
@@ -180,8 +197,8 @@ function injectButton() {
               button.disabled = false;
             } else if (response?.success) {
               console.log("[Content Script] Message sent successfully");
-              // Show success feedback
-              button.textContent = "✓ Analyzed! Opening...";
+              // Show success feedback — instruct user to open the side panel via icon
+              button.textContent = "✓ Captured! Click extension icon →";
               button.style.background =
                 "linear-gradient(135deg, #10b981 0%, #059669 100%)";
 
@@ -191,7 +208,7 @@ function injectButton() {
                 button.disabled = false;
                 button.style.background =
                   "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
-              }, 2000);
+              }, 3000);
             } else {
               console.error("[Content Script] No success response");
               alert("Failed to process page. Please try again.");
@@ -241,6 +258,18 @@ setTimeout(() => {
 // Listen for messages from background or popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log("[Content Script] Received message:", request.action);
+
+  if (request.action === "getAuthToken") {
+    // Read the auth token from this page's localStorage (web app context)
+    const token =
+      localStorage.getItem("access_token") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("auth_token") ||
+      null;
+    console.log("[Content Script] getAuthToken →", token ? "found" : "not found");
+    sendResponse({ token });
+    return true;
+  }
 
   if (request.action === "getResume") {
     // Send resume from chrome.storage.sync

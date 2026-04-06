@@ -2,6 +2,8 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   intent?: string;
+  action_type?: string;   // "jobs_results" | "leads_results" | "tailored_resume"
+  action_data?: any;
   timestamp: string;
 }
 
@@ -22,6 +24,8 @@ export interface ChatResponse {
   session_id: string;
   message: string;
   intent: string;
+  action_type?: string;
+  action_data?: any;
   timestamp: string;
 }
 

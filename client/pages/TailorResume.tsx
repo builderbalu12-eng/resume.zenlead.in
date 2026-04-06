@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { ResumeData, JobDescription } from "@/types";
 import {
   getMasterResume,
@@ -31,10 +31,12 @@ export const TailorResume: React.FC = () => {
   const [tailorState, setTailorState] = useState<{
     tailored: ResumeData | null;
     atsScore: number;
+    originalAtsScore: number;
     jobData: JobDescription | null;
   }>({
     tailored: null,
     atsScore: 0,
+    originalAtsScore: 0,
     jobData: null,
   });
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
@@ -103,6 +105,7 @@ export const TailorResume: React.FC = () => {
       setTailorState({
         tailored: null,
         atsScore: 0,
+        originalAtsScore: 0,
         jobData: null,
       });
       setJobDescription("");
@@ -177,28 +180,31 @@ export const TailorResume: React.FC = () => {
       // Convert resume to string for API
       const resumeStr = JSON.stringify(masterResume);
 
-      // Call backend APIs
-      const [tailorResult, atsResult, parseResult] = await Promise.all([
+      // Step 1: tailor + parse job in parallel; original ATS score also in parallel
+      const [tailorResult, parseResult, originalAtsResult] = await Promise.all([
         apiClient.tailorResume(resumeStr, jobDescription),
-        apiClient.getATSScore(resumeStr, jobDescription),
         apiClient.parseJob(jobDescription),
+        apiClient.getATSScore(resumeStr, jobDescription), // score the ORIGINAL resume for comparison
       ]);
 
-      // Parse the tailored resume response
+      // tailorResult.estimatedATSScore is now cross-validated (scored on the TAILORED resume by the backend)
+      const tailoredAtsScore: number = tailorResult.estimatedATSScore || 0;
+      const originalAtsScore: number = originalAtsResult.atsScore || 0;
+
       const tailored: ResumeData = {
         ...masterResume,
-        // Update with tailored version info if backend returns structured data
       };
 
       clearTimeout(tailorTimeout);
       setTailorState({
         tailored,
-        atsScore: atsResult.atsScore || 0,
+        atsScore: tailoredAtsScore,
+        originalAtsScore,
         jobData: parseResult,
       });
 
       setMissingContentSections([]);
-      setSuccess(`✅ Resume tailored! ATS Score: ${atsResult.atsScore || 0}%`);
+      setSuccess(`✅ Resume tailored! ATS Score improved from ${originalAtsScore}% → ${tailoredAtsScore}%`);
     } catch (err) {
       clearTimeout(tailorTimeout);
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -313,11 +319,6 @@ export const TailorResume: React.FC = () => {
           onClose={() => setShowTemplateSelector(false)}
         />
       )}
-
-      <Button variant="ghost" onClick={() => navigate("/")} className="-ml-2 mb-6">
-        <ArrowLeft className="h-4 w-4" />
-        Back to Dashboard
-      </Button>
 
       <div className="mb-8">
         <SectionHeader
@@ -605,11 +606,25 @@ export const TailorResume: React.FC = () => {
                 <h2 className="text-xl font-semibold mb-4">Results</h2>
 
                 <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">ATS Score</p>
-                    <p className="text-3xl font-bold text-primary">
-                      {tailorState.atsScore}%
-                    </p>
+                  <div className="flex items-end gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Before</p>
+                      <p className="text-3xl font-bold text-muted-foreground">
+                        {tailorState.originalAtsScore}%
+                      </p>
+                    </div>
+                    <div className="text-2xl text-muted-foreground mb-1">→</div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">After Tailoring</p>
+                      <p className="text-3xl font-bold text-primary">
+                        {tailorState.atsScore}%
+                      </p>
+                    </div>
+                    {tailorState.atsScore > tailorState.originalAtsScore && (
+                      <div className="mb-1 text-green-500 text-sm font-semibold">
+                        +{tailorState.atsScore - tailorState.originalAtsScore} pts
+                      </div>
+                    )}
                   </div>
 
                   {tailorState.jobData && (
@@ -672,6 +687,7 @@ export const TailorResume: React.FC = () => {
                       setTailorState({
                         tailored: null,
                         atsScore: 0,
+                        originalAtsScore: 0,
                         jobData: null,
                       });
                       setJobDescription("");

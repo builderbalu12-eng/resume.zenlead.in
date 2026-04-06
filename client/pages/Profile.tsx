@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Loader2, PencilLine } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { apiClient, User } from '@/services/api';
+import { apiClient, User, CreditLogEntry } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -37,6 +37,10 @@ export const Profile: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  // Credits history
+  const [creditsHistory, setCreditsHistory] = useState<CreditLogEntry[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // Telegram
   const [telegramLinked, setTelegramLinked] = useState(false);
@@ -76,6 +80,15 @@ export const Profile: React.FC = () => {
     if (isAuthenticated && !user) {
       loadUserProfile();
     }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    setLoadingHistory(true);
+    apiClient.getCreditsHistory(0, 30)
+      .then((res) => setCreditsHistory(res.items))
+      .catch(() => {})
+      .finally(() => setLoadingHistory(false));
   }, [isAuthenticated]);
 
   // Load telegram status when account tab is active
@@ -287,6 +300,7 @@ export const Profile: React.FC = () => {
           </div>
         ) : (
           user && (
+            <div className="space-y-6">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               {/* Card 1 — Workspace Settings */}
               <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
@@ -565,6 +579,61 @@ export const Profile: React.FC = () => {
                   </div>
                 )}
               </div>
+            </div>
+            {/* Credits History — full width below the grid */}
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                💳 Credits History
+              </p>
+              <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
+                Your credit activity
+              </h2>
+              {loadingHistory ? (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                </div>
+              ) : creditsHistory.length === 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400">No credit activity yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-700">
+                        <th className="text-left py-2 pr-4 font-semibold text-slate-600 dark:text-slate-300">Feature</th>
+                        <th className="text-center py-2 pr-4 font-semibold text-slate-600 dark:text-slate-300">Credits</th>
+                        <th className="text-center py-2 pr-4 font-semibold text-slate-600 dark:text-slate-300">Balance After</th>
+                        <th className="text-right py-2 font-semibold text-slate-600 dark:text-slate-300">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {creditsHistory.map((entry, i) => {
+                        const isDeduction = entry.type === "deduction";
+                        const sign = isDeduction ? "−" : "+";
+                        const color = isDeduction
+                          ? "text-red-600 dark:text-red-400"
+                          : "text-green-600 dark:text-green-400";
+                        return (
+                          <tr key={i} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
+                            <td className="py-2.5 pr-4">
+                              <span className="font-medium text-slate-800 dark:text-slate-200">{entry.display_name || entry.feature}</span>
+                            </td>
+                            <td className={cn("py-2.5 pr-4 text-center font-semibold tabular-nums", color)}>
+                              {sign}{entry.amount} cr
+                            </td>
+                            <td className="py-2.5 pr-4 text-center text-slate-500 dark:text-slate-400 tabular-nums">
+                              {entry.balance_after} cr
+                            </td>
+                            <td className="py-2.5 text-right text-xs text-slate-400 dark:text-slate-500">
+                              {new Date(entry.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
             </div>
           )
         )}

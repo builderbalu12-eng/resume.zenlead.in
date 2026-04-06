@@ -4,9 +4,13 @@ let pageData: {
   pageURL: string;
 } | null = null;
 
-// Log when extension is installed
+// Log when extension is installed and configure side panel behaviour
 chrome.runtime.onInstalled.addListener(() => {
   console.log("[Background] ResumeMatch Pro extension installed");
+  // Make clicking the extension icon open/close the side panel automatically
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {
+    console.warn("[Background] Could not set panel behaviour (Chrome 114+ required)");
+  });
 });
 
 // Handle messages from content script and popup
@@ -249,13 +253,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     sendResponse({ success: true });
 
-    // Open the popup after a short delay to ensure it can fetch the data
-    console.log("[Background] Opening popup...");
-    setTimeout(() => {
-      chrome.action.openPopup().catch((error) => {
-        console.warn("[Background] Could not open popup:", error.message);
-      });
-    }, 200);
+    // Notify the sidebar (if it is open) that fresh page data is available.
+    // We cannot call sidePanel.open() here because Chrome 116+ requires it to be
+    // triggered by a direct user gesture — a background message handler doesn't qualify.
+    // The user opens the panel by clicking the extension icon (handled by setPanelBehavior).
+    console.log("[Background] Broadcasting pageDataReady to sidebar...");
+    chrome.runtime.sendMessage({ action: "pageDataReady", pageData }).catch(() => {
+      // Sidebar is not open yet — that's fine, it will fetch the data via getPageData on init.
+    });
   } else if (request.action === "getPageData") {
     console.log(
       "[Background] Popup requesting page data:",

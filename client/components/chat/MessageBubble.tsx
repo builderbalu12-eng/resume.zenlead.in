@@ -1,11 +1,189 @@
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { ChatMessage } from '@/types/chat';
 import ReactMarkdown from 'react-markdown';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Download, FileSpreadsheet, FileText, TrendingUp, ExternalLink } from 'lucide-react';
+import { exportToCSV, exportToDocx } from '@/utils/exportUtils';
 
 interface MessageBubbleProps {
   message: ChatMessage;
 }
+
+// ── Shared tiny table ────────────────────────────────────────────────────────
+
+function InlineTable({ columns, rows }: { columns: string[]; rows: Record<string, any>[] }) {
+  return (
+    <div className="overflow-x-auto rounded-lg border border-border/50 mt-2">
+      <table className="w-full text-[11px] border-collapse">
+        <thead>
+          <tr className="bg-muted/60">
+            {columns.map((col) => (
+              <th key={col} className="px-2 py-1.5 text-left font-medium text-muted-foreground whitespace-nowrap border-b border-border/40">
+                {col}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i} className="border-b border-border/20 last:border-0 hover:bg-muted/20 transition-colors">
+              {columns.map((col) => {
+                const val = row[col];
+                const isUrl = col === 'URL' && typeof val === 'string' && val.startsWith('http');
+                return (
+                  <td key={col} className="px-2 py-1.5 align-top max-w-[180px] truncate">
+                    {isUrl ? (
+                      <a href={val} target="_blank" rel="noopener noreferrer"
+                        className="text-primary inline-flex items-center gap-0.5 hover:underline">
+                        Apply <ExternalLink className="h-2.5 w-2.5" />
+                      </a>
+                    ) : (
+                      <span title={String(val ?? '')}>{String(val ?? '') || '—'}</span>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Action cards ─────────────────────────────────────────────────────────────
+
+function JobsActionCard({ data }: { data: any }) {
+  const jobs: Record<string, any>[] = data?.jobs ?? [];
+  if (!jobs.length) return null;
+
+  const columns = ['Title', 'Company', 'Location', 'Experience', 'URL'];
+  const tableRows = jobs.map((j) => ({
+    Title: j.Title ?? j.title ?? '',
+    Company: j.Company ?? j.company ?? '',
+    Location: j.Location ?? j.location ?? '',
+    Experience: j.Experience ?? j.experience ?? '',
+    URL: j.URL ?? j.url ?? j.job_url ?? '',
+  }));
+
+  return (
+    <div className="mt-3 rounded-xl border bg-muted/30 p-3 space-y-2.5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FileSpreadsheet className="h-4 w-4 text-primary shrink-0" />
+          <span className="text-xs font-medium text-foreground">{jobs.length} jobs found</span>
+        </div>
+        <button
+          onClick={() => exportToCSV(jobs, `jobs_${Date.now()}.csv`)}
+          className="flex items-center gap-1.5 h-7 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+        >
+          <Download className="h-3 w-3" />
+          Download CSV
+        </button>
+      </div>
+      <InlineTable columns={columns} rows={tableRows} />
+    </div>
+  );
+}
+
+function LeadsActionCard({ data }: { data: any }) {
+  const leads: Record<string, any>[] = data?.leads ?? [];
+  if (!leads.length) return null;
+
+  const city = data?.city ? ` · ${data.city}` : '';
+  const cat = data?.category ? ` · ${data.category}` : '';
+
+  const columns = ['Name', 'Phone', 'Address', 'Has Website', 'Rating'];
+  const tableRows = leads.map((l) => ({
+    Name: l.Name ?? l.name ?? '',
+    Phone: l.Phone ?? l.phone ?? '',
+    Address: l.Address ?? l.address ?? '',
+    'Has Website': l['Has Website'] ?? (l.has_website ? 'Yes' : 'No'),
+    Rating: l.Rating ?? l.rating ?? '',
+  }));
+
+  return (
+    <div className="mt-3 rounded-xl border bg-muted/30 p-3 space-y-2.5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <span className="text-xs font-medium text-foreground">
+            {leads.length} leads{city}{cat}
+          </span>
+        </div>
+        <button
+          onClick={() => exportToCSV(leads, `leads_${Date.now()}.csv`)}
+          className="flex items-center gap-1.5 h-7 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+        >
+          <Download className="h-3 w-3" />
+          Download CSV
+        </button>
+      </div>
+      <InlineTable columns={columns} rows={tableRows} />
+    </div>
+  );
+}
+
+function TailoredResumeCard({ data }: { data: any }) {
+  const text: string = data?.tailored_resume ?? '';
+  const ats: number = data?.ats_score ?? 0;
+  const [loading, setLoading] = useState(false);
+
+  if (!text) return null;
+
+  const scoreColor =
+    ats >= 80
+      ? 'text-green-600 dark:text-green-400'
+      : ats >= 60
+        ? 'text-amber-600 dark:text-amber-400'
+        : 'text-red-600 dark:text-red-400';
+
+  const handleDocx = async () => {
+    setLoading(true);
+    try {
+      await exportToDocx(text, `tailored_resume_${Date.now()}.docx`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mt-3 rounded-xl border bg-muted/30 p-3 space-y-2.5">
+      <div className="flex items-center gap-3">
+        <TrendingUp className="h-4 w-4 text-primary shrink-0" />
+        <span className="text-xs font-medium text-foreground">
+          ATS Score: <span className={scoreColor}>{ats}%</span>
+        </span>
+        <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+          <div
+            className={`h-full rounded-full ${ats >= 80 ? 'bg-green-500' : ats >= 60 ? 'bg-amber-400' : 'bg-red-500'}`}
+            style={{ width: `${ats}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={handleDocx}
+          disabled={loading}
+          className="flex items-center gap-1.5 h-7 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+        >
+          <FileText className="h-3 w-3" />
+          {loading ? 'Generating…' : 'Download DOCX'}
+        </button>
+        <button
+          onClick={() => exportToCSV([{ resume: text }], `tailored_resume_${Date.now()}.txt`)}
+          className="flex items-center gap-1.5 h-7 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+        >
+          <Download className="h-3 w-3" />
+          Download as TXT
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main bubble ──────────────────────────────────────────────────────────────
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
@@ -35,9 +213,10 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         <Sparkles className="h-4 w-4 text-white" />
       </div>
 
-      {/* AI Message - no bubble, plain text */}
+      {/* AI Message */}
       <div className="flex-1 min-w-0 pt-0.5">
         <p className="text-xs font-semibold text-foreground mb-1.5">Maya</p>
+
         <div
           className={cn(
             'text-sm leading-relaxed text-foreground',
@@ -52,18 +231,24 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             '[&_code]:bg-muted [&_code]:text-primary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono',
             '[&_pre]:bg-muted [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:mb-3 [&_pre]:overflow-x-auto',
             '[&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-foreground',
-            '[&_blockquote]:border-l-2 [&_blockquote]:border-primary/40 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-muted-foreground'
+            '[&_blockquote]:border-l-2 [&_blockquote]:border-primary/40 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-muted-foreground',
           )}
         >
           <ReactMarkdown>{message.content}</ReactMarkdown>
         </div>
 
+        {/* Action cards */}
+        {message.action_type === 'jobs_results' && (
+          <JobsActionCard data={message.action_data} />
+        )}
+        {message.action_type === 'leads_results' && (
+          <LeadsActionCard data={message.action_data} />
+        )}
+        {message.action_type === 'tailored_resume' && (
+          <TailoredResumeCard data={message.action_data} />
+        )}
+
         <div className="flex items-center gap-2 mt-2">
-          {message.intent && (
-            <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full capitalize">
-              {message.intent.replace(/_/g, ' ')}
-            </span>
-          )}
           <span className="text-[11px] text-muted-foreground">
             {new Date(message.timestamp).toLocaleTimeString([], {
               hour: '2-digit',

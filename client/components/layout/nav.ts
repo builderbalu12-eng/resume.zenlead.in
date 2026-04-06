@@ -1,10 +1,10 @@
 import {
   Briefcase,
   Building2,
-  Clock,
   CreditCard,
   Home,
   MessageCircle,
+  Shield,
   User,
   Wand2,
 } from "lucide-react";
@@ -26,7 +26,6 @@ export const PRIMARY_NAV: NavItem[] = [
     icon: Building2,
     requiresAuth: true,
   },
-  { label: "History", path: "/history", icon: Clock, requiresAuth: true },
   { label: "AI Chat", path: "/chat", icon: MessageCircle, requiresAuth: true },
 ];
 
@@ -34,6 +33,10 @@ export const ACCOUNT_NAV: NavItem[] = [
   { label: "Profile", path: "/profile", icon: User, requiresAuth: true },
   { label: "Pricing", path: "/pricing", icon: CreditCard },
   { label: "Billing", path: "/billing", icon: CreditCard, requiresAuth: true },
+];
+
+export const ADMIN_NAV: NavItem[] = [
+  { label: "Admin", path: "/admin", icon: Shield, requiresAuth: true },
 ];
 
 export function getRouteTitle(pathname: string): string {
@@ -50,6 +53,7 @@ export function getRouteTitle(pathname: string): string {
   }
   if (pathname.startsWith("/payment")) return "Payment";
   if (pathname.startsWith("/auth")) return "Authentication";
+  if (pathname.startsWith("/admin")) return "Admin";
   return "ResumeMatch";
 }
 

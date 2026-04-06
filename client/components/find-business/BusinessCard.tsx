@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { MessageCircle, Phone, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,9 +7,18 @@ import type { Client, ClientStatus } from "@/services/businessService";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import * as QRCode from "qrcode";
 
+const STATUS_STYLES: Record<string, string> = {
+  lead:      "border-amber-400  bg-amber-50   text-amber-700  dark:bg-amber-900/30  dark:text-amber-300",
+  active:    "border-green-400  bg-green-50   text-green-700  dark:bg-green-900/30  dark:text-green-300",
+  completed: "border-blue-400   bg-blue-50    text-blue-700   dark:bg-blue-900/30   dark:text-blue-300",
+  lost:      "border-red-400    bg-red-50     text-red-700    dark:bg-red-900/30    dark:text-red-300",
+};
+
 export interface BusinessCardProps {
   client: Client;
   selected?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
   onSelect?: () => void;
   onChangeStatus?: (status: ClientStatus) => void;
   onDelete?: () => void;
@@ -35,6 +45,8 @@ function buildVCard(client: Client, digits: string) {
 export function BusinessCard({
   client,
   selected,
+  isSelected,
+  onToggleSelect,
   onSelect,
   onChangeStatus,
   onDelete,
@@ -66,7 +78,7 @@ export function BusinessCard({
 
   return (
     <Card
-      className={`cursor-pointer border transition-all ${
+      className={`group relative cursor-pointer border transition-all ${
         selected
           ? "border-primary shadow-lg"
           : "hover:border-primary/60 hover:shadow-md"
@@ -76,6 +88,19 @@ export function BusinessCard({
       <CardHeader className="space-y-3 p-4 pb-2">
         {/* Top row */}
         <div className="flex items-start justify-between gap-3">
+          {onToggleSelect && (
+            <div
+              className={`mt-0.5 shrink-0 transition-opacity ${isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+              onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}
+            >
+              <input
+                type="checkbox"
+                checked={!!isSelected}
+                onChange={() => {}}
+                className="h-4 w-4 cursor-pointer rounded accent-primary"
+              />
+            </div>
+          )}
           <CardTitle className="text-sm font-semibold leading-tight md:text-base">
             {client.name || "Unnamed Business"}
           </CardTitle>
@@ -121,7 +146,8 @@ export function BusinessCard({
                 e.stopPropagation();
                 onChangeStatus(e.target.value as ClientStatus);
               }}
-              className="h-9 rounded-md border border-border bg-background px-2 text-xs font-medium shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={`h-8 rounded-full border px-2.5 text-xs font-semibold shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${STATUS_STYLES[status] ?? STATUS_STYLES.lead}`}
+              onClick={(e) => e.stopPropagation()}
             >
               <option value="lead">Lead</option>
               <option value="active">Active</option>
@@ -131,47 +157,52 @@ export function BusinessCard({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {waUrl && (
             <Button
               type="button"
-              size="sm"
+              size="icon"
               variant="outline"
-              className="h-9"
+              className="h-8 w-8"
+              title="WhatsApp"
               onClick={(e) => {
                 e.stopPropagation();
                 window.open(waUrl, "_blank");
               }}
             >
-              💬 WhatsApp
+              <MessageCircle className="h-3.5 w-3.5" />
             </Button>
           )}
           {digits && (
             <Button
               type="button"
-              size="sm"
+              size="icon"
               variant="outline"
-              className="h-9"
+              className="h-8 w-8"
+              title="Call"
               onClick={(e) => {
                 e.stopPropagation();
                 openCallDialog();
               }}
             >
-              📞 Call
+              <Phone className="h-3.5 w-3.5" />
             </Button>
           )}
           {onDelete && (
             <Button
               type="button"
-              size="sm"
+              size="icon"
               variant="ghost"
-              className="h-9 text-destructive hover:text-destructive"
+              className="h-8 w-8 text-destructive hover:text-destructive"
+              title="Delete"
               onClick={(e) => {
                 e.stopPropagation();
-                onDelete();
+                if (window.confirm(`Delete "${client.name ?? "this business"}"?`)) {
+                  onDelete();
+                }
               }}
             >
-              🗑️ Delete
+              <Trash2 className="h-3.5 w-3.5" />
             </Button>
           )}
         </div>

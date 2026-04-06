@@ -13,7 +13,7 @@ import {
   updateApplicationStatus,
 } from "@/services/mongodb";
 
-export const History: React.FC = () => {
+export const History: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const navigate = useNavigate();
   const [applications, setApplications] = useState<ApplicationRecord[]>([]);
   const [filteredApplications, setFilteredApplications] = useState<
@@ -104,12 +104,14 @@ export const History: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  return (
-    <Page size="xl">
-      <Button variant="ghost" onClick={() => navigate("/")} className="-ml-2 mb-6">
-        <ArrowLeft className="h-4 w-4" />
-        Back to Dashboard
-      </Button>
+  const content = (
+    <>
+      {!embedded && (
+        <Button variant="ghost" onClick={() => navigate("/")} className="-ml-2 mb-6">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Button>
+      )}
 
       <div className="mb-8">
         <SectionHeader
@@ -168,6 +170,12 @@ export const History: React.FC = () => {
             isLoading={isLoading}
           />
       </PremiumCard>
-    </Page>
+    </>
   );
+
+  if (embedded) {
+    return <div>{content}</div>;
+  }
+
+  return <Page size="xl">{content}</Page>;
 };

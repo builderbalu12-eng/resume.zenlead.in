@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { ChatContainer } from './ChatContainer';
 import { chatApi } from '@/services/chatApi';
 import { ChatSession } from '@/types/chat';
-import { toast } from 'sonner';
 
 interface FloatingChatButtonProps {
   className?: string;
@@ -29,9 +28,10 @@ export function FloatingChatButton({ className }: FloatingChatButtonProps) {
     try {
       const response = await chatApi.getAllSessions();
       if (response.success) {
-        setSessions(response.data.sessions);
-        if (!currentSession && response.data.sessions.length > 0) {
-          const mostRecent = response.data.sessions.sort(
+        const withMessages = response.data.sessions.filter((s: any) => s.message_count > 0);
+        setSessions(withMessages);
+        if (!currentSession && withMessages.length > 0) {
+          const mostRecent = [...withMessages].sort(
             (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
           )[0];
           setCurrentSession(mostRecent.session_id);
@@ -43,15 +43,9 @@ export function FloatingChatButton({ className }: FloatingChatButtonProps) {
   };
 
   const createNewSession = async () => {
-    try {
-      const response = await chatApi.createSession();
-      if (response.success) {
-        setCurrentSession(response.data.session_id);
-        await loadSessions();
-      }
-    } catch (error) {
-      toast.error('Failed to create new chat');
-    }
+    chatApi.cleanupEmptySessions().catch(() => {});
+    setCurrentSession(null);
+    await loadSessions();
   };
 
   const handleSessionSelect = (sessionId: string) => {
@@ -119,13 +113,14 @@ export function FloatingChatButton({ className }: FloatingChatButtonProps) {
           </div>
 
           {/* Chat Container */}
-          <div className="h-[500px]">
+          <div className="h-[500px] overflow-hidden">
             <ChatContainer
               currentSession={currentSession}
               sessions={sessions}
               onNewSession={createNewSession}
               onSessionSelect={handleSessionSelect}
               onSessionsChange={loadSessions}
+              hideSidebar
             />
           </div>
         </div>

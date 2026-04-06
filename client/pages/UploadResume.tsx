@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { ResumeUpload } from "@/components/ResumeUpload";
 import { Settings } from "@/components/Settings";
 import { ResumeData } from "@/types";
@@ -126,11 +126,6 @@ export const UploadResume: React.FC = () => {
   if (resume) {
     return (
       <Page size="md">
-        <Button variant="ghost" onClick={() => navigate("/")} className="-ml-2 mb-6">
-          <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
-        </Button>
-
         <PremiumCard className="p-8" hover={false}>
           <div className="text-center">
             <div className="mx-auto mb-6 grid size-16 place-items-center rounded-2xl bg-green-600/10 border border-green-600/20">
@@ -334,11 +329,6 @@ export const UploadResume: React.FC = () => {
 
   return (
     <Page size="md">
-      <Button variant="ghost" onClick={() => navigate("/")} className="-ml-2 mb-6">
-        <ArrowLeft className="h-4 w-4" />
-        Back to Dashboard
-      </Button>
-
       <div className="mb-8">
         <SectionHeader
           title="Upload your master resume"

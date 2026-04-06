@@ -24,6 +24,7 @@ export interface User {
   credits: number;
   auth_provider: string;
   has_payments?: boolean;
+  is_admin?: boolean;
 }
 
 export interface SubscriptionPlan {
@@ -62,6 +63,16 @@ export interface PaymentLog {
   currency: string;
   credits_added: number;
   status: string;
+  created_at: string;
+}
+
+export interface CreditLogEntry {
+  type: string;
+  feature: string;
+  display_name: string;
+  amount: number;
+  balance_after: number;
+  description: string;
   created_at: string;
 }
 
@@ -142,7 +153,7 @@ class APIClient {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        errorData.message || `API Error: ${response.statusText}`
+        errorData.detail || errorData.message || `Request failed (${response.status})`
       );
     }
 
@@ -192,6 +203,20 @@ class APIClient {
     });
   }
 
+  async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
+    return this.request('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async resetPassword(token: string, new_password: string): Promise<{ success: boolean; message: string }> {
+    return this.request('/api/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, new_password }),
+    });
+  }
+
   async getGoogleAuthUrl(): Promise<{ success: boolean; auth_url: string }> {
     return this.request('/api/auth/google/url', {
       method: 'GET',
@@ -210,6 +235,11 @@ class APIClient {
     return this.request(`/api/user/${userId}/credits`, {
       method: 'GET',
     });
+  }
+
+  async getCreditsHistory(skip = 0, limit = 30): Promise<{ items: CreditLogEntry[]; total: number }> {
+    const res = await this.request(`/api/user/me/credits/history?skip=${skip}&limit=${limit}`, { method: 'GET' });
+    return res.data;
   }
 
   // Resume endpoints (placeholder for future implementation)

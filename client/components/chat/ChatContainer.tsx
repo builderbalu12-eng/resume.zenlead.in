@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { cn } from '@/lib/utils';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatWindow } from './ChatWindow';
 import { ChatInput } from './ChatInput';
@@ -14,6 +13,7 @@ interface ChatContainerProps {
   onNewSession: () => void;
   onSessionSelect: (sessionId: string) => void;
   onSessionsChange: () => void;
+  hideSidebar?: boolean;
 }
 
 export function ChatContainer({
@@ -22,14 +22,21 @@ export function ChatContainer({
   onNewSession,
   onSessionSelect,
   onSessionsChange,
+  hideSidebar = false,
 }: ChatContainerProps) {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const hasMessages = messages.length > 0;
+  // Prevent loadHistory from overwriting state when we just created a new session mid-send
+  const skipNextHistory = React.useRef(false);
 
   // Load history when session changes
   React.useEffect(() => {
     if (currentSession) {
+      if (skipNextHistory.current) {
+        skipNextHistory.current = false;
+        return;
+      }
       loadHistory(currentSession);
     } else {
       setMessages([]);
@@ -51,22 +58,6 @@ export function ChatContainer({
   const sendMessage = async (message: string) => {
     if (!message.trim() || isLoading) return;
 
-    // If no session, create one first
-    let sessionId = currentSession;
-    if (!sessionId) {
-      try {
-        const response = await chatApi.createSession();
-        if (response.success) {
-          sessionId = response.data.session_id;
-          onSessionSelect(sessionId);
-          onSessionsChange();
-        }
-      } catch (error) {
-        toast.error('Failed to create new chat session');
-        return;
-      }
-    }
-
     // Add user message immediately
     const userMessage: ChatMessage = {
       role: 'user',
@@ -78,17 +69,26 @@ export function ChatContainer({
 
     try {
       const request: SendMessageRequest = {
-        session_id: sessionId,
+        session_id: currentSession,
         message: message.trim(),
       };
 
       const response = await chatApi.sendMessage(request);
 
       if (response.success) {
+        // If no session existed, backend auto-created one — sync it to state
+        // Set flag so the resulting useEffect doesn't reload history and wipe action_data
+        if (!currentSession && response.data.session_id) {
+          skipNextHistory.current = true;
+          onSessionSelect(response.data.session_id);
+        }
+
         const assistantMessage: ChatMessage = {
           role: 'assistant',
           content: response.data.message,
           intent: response.data.intent,
+          action_type: response.data.action_type,
+          action_data: response.data.action_data,
           timestamp: response.data.timestamp,
         };
         setMessages((prev) => [...prev, assistantMessage]);
@@ -96,7 +96,12 @@ export function ChatContainer({
       }
     } catch (error) {
       console.error('Failed to send message:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to send message');
+      const errMsg = error instanceof Error ? error.message : 'Failed to send message';
+      if (errMsg.toLowerCase().includes('insufficient')) {
+        toast.error('Not enough credits. Visit /pricing to buy more.');
+      } else {
+        toast.error(errMsg);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -121,17 +126,19 @@ export function ChatContainer({
 
   return (
     <div className="flex h-full w-full overflow-hidden">
-      {/* Sidebar - hidden on mobile */}
-      <div className="hidden md:block w-64 shrink-0">
-        <ChatSidebar
-          sessions={sessions}
-          currentSession={currentSession}
-          onSessionSelect={onSessionSelect}
-          onNewSession={onNewSession}
-          onDeleteSession={handleDeleteSession}
-          disabled={isLoading}
-        />
-      </div>
+      {/* Sidebar - hidden on mobile and when hideSidebar=true */}
+      {!hideSidebar && (
+        <div className="hidden md:block w-64 shrink-0">
+          <ChatSidebar
+            sessions={sessions}
+            currentSession={currentSession}
+            onSessionSelect={onSessionSelect}
+            onNewSession={onNewSession}
+            onDeleteSession={handleDeleteSession}
+            disabled={isLoading}
+          />
+        </div>
+      )}
 
       {/* Main Chat Area */}
       <div className="flex flex-1 flex-col min-w-0 bg-background">

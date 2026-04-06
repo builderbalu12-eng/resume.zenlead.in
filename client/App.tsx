@@ -5,6 +5,8 @@ import { NotFound } from "./pages/NotFound";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { AuthCallback } from "./pages/AuthCallback";
+import { ForgotPassword } from "./pages/ForgotPassword";
+import { ResetPassword } from "./pages/ResetPassword";
 import { Profile } from "./pages/Profile";
 import { FindJob } from "./pages/FindJob";
 import { FindBusinessPage } from "./pages/FindBusinessPage";
@@ -16,6 +18,8 @@ import { PricingPage } from "./pages/PricingPage";
 import { BillingPage } from "./pages/BillingPage";
 import { PaymentSuccessPage } from "./pages/PaymentSuccessPage";
 import { ResumeWorkspace } from "./pages/ResumeWorkspace";
+import { AdminPage } from "./pages/AdminPage";
+import { AdminRoute } from "./components/AdminRoute";
 import { Toaster } from "@/components/ui/sonner";
 import { usePageTracking } from "@/hooks/usePageTracking";
 
@@ -29,6 +33,8 @@ function AppContent() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Public Landing Page - No Auth Required */}
         <Route
@@ -147,6 +153,18 @@ function AppContent() {
                 <ChatPage />
               </AppShell>
             </ProtectedRoute>
+          }
+        />
+
+        {/* Admin */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AppShell>
+                <AdminPage />
+              </AppShell>
+            </AdminRoute>
           }
         />
 

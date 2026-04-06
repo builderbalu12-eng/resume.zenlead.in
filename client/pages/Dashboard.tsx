@@ -6,7 +6,10 @@ import {
   BarChart3,
   ArrowRight,
   Briefcase,
-  Users,
+  MapPin,
+  MessageSquare,
+  TrendingUp,
+  Clock,
 } from "lucide-react";
 import { ResumeData, ApplicationRecord } from "@/types";
 import { getApplicationHistory } from "@/services/mongodb";
@@ -254,6 +257,153 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="-mx-4 -my-6 md:-mx-6 md:-my-8 bg-gradient-to-b from-background via-background to-background">
+
+      {/* ── Authenticated Workspace Strip ─────────────────── */}
+      {isAuthenticated && user && (
+        <div className="border-b bg-card/90 backdrop-blur-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-4">
+
+            {/* Greeting + credits */}
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                  Welcome back, {user.firstName}! 👋
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {masterResume
+                    ? `Resume: ${masterResume.contact?.name ?? "Loaded"}`
+                    : "Upload your resume to get started"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`rounded-full border px-3 py-1.5 text-xs font-medium ${user.has_payments ? "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-300" : "border-border bg-muted text-muted-foreground"}`}>
+                  {user.has_payments ? "Pro" : "Free"}
+                </span>
+                <div className="flex items-center gap-2 rounded-full border border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-900/20 px-4 py-1.5">
+                  <Zap className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+                  <span className="text-sm font-bold text-cyan-700 dark:text-cyan-300">
+                    {user.credits ?? 0} credits
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats row — only when there's data */}
+            {stats.totalApps > 0 && (
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl border bg-background px-4 py-3 flex items-center gap-3">
+                  <div className="rounded-lg bg-blue-100 dark:bg-blue-900/30 p-2">
+                    <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-black text-slate-900 dark:text-slate-100 leading-none">{stats.totalApps}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Applications</p>
+                  </div>
+                </div>
+                <div className="rounded-xl border bg-background px-4 py-3 flex items-center gap-3">
+                  <div className="rounded-lg bg-purple-100 dark:bg-purple-900/30 p-2">
+                    <BarChart3 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-black text-slate-900 dark:text-slate-100 leading-none">{stats.avgScore}%</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Avg ATS Score</p>
+                  </div>
+                </div>
+                <div className="rounded-xl border bg-background px-4 py-3 flex items-center gap-3">
+                  <div className="rounded-lg bg-green-100 dark:bg-green-900/30 p-2">
+                    <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-black text-slate-900 dark:text-slate-100 leading-none">{stats.successRate}%</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Success Rate</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Quick actions */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <Link
+                to={masterResume ? "/tailor" : "/upload"}
+                className="group flex flex-col gap-2 rounded-xl border bg-background p-4 transition-all hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/20"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="rounded-lg bg-purple-100 dark:bg-purple-900/30 p-2 transition-transform group-hover:scale-110">
+                    <Zap className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  </span>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-purple-700 dark:group-hover:text-purple-300">
+                    {masterResume ? "Tailor Resume" : "Upload Resume"}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {masterResume ? "AI-optimized for every job" : "Get started in 30 seconds"}
+                  </p>
+                </div>
+              </Link>
+              <Link
+                to="/findjob"
+                className="group flex flex-col gap-2 rounded-xl border bg-background p-4 transition-all hover:border-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/20"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="rounded-lg bg-pink-100 dark:bg-pink-900/30 p-2 transition-transform group-hover:scale-110">
+                    <Briefcase className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                  </span>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-pink-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-pink-700 dark:group-hover:text-pink-300">
+                    Find Jobs
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    AI-curated daily matches
+                  </p>
+                </div>
+              </Link>
+              <Link
+                to="/find-business"
+                className="group flex flex-col gap-2 rounded-xl border bg-background p-4 transition-all hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="rounded-lg bg-emerald-100 dark:bg-emerald-900/30 p-2 transition-transform group-hover:scale-110">
+                    <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  </span>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-emerald-700 dark:group-hover:text-emerald-300">
+                    Find Clients
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    Local leads on a live map
+                  </p>
+                </div>
+              </Link>
+              <Link
+                to="/chat"
+                className="group flex flex-col gap-2 rounded-xl border bg-background p-4 transition-all hover:border-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-950/20"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="rounded-lg bg-cyan-100 dark:bg-cyan-900/30 p-2 transition-transform group-hover:scale-110">
+                    <MessageSquare className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                  </span>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-cyan-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-cyan-700 dark:group-hover:text-cyan-300">
+                    AI Chat
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    Ask anything, get answers
+                  </p>
+                </div>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section - Modern Design */}
       <div className="relative overflow-hidden">
         {/* Animated Background Elements */}

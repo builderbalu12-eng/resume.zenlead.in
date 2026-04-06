@@ -3,7 +3,7 @@
   "name": "ResumeMatch Pro",
   "version": "1.0.0",
   "description": "AI-powered resume tailoring for job applications",
-  "permissions": ["storage", "tabs", "scripting", "downloads"],
+  "permissions": ["storage", "tabs", "scripting", "downloads", "sidePanel"],
   "host_permissions": [
     "https://*.zenlead.in/*",
     "https://resume.zenlead.in/*",
@@ -16,8 +16,10 @@
   "background": {
     "service_worker": "background.js"
   },
+  "side_panel": {
+    "default_path": "sidebar.html"
+  },
   "action": {
-    "default_popup": "popup.html",
     "default_title": "ResumeMatch Pro",
     "default_icons": {
       "16": "favicon.ico",
@@ -33,7 +35,7 @@
   "content_scripts": [
     {
       "matches": [
-        "*://resume.zenlead.in/*",
+        "*://*.zenlead.in/*",
         "*://*.linkedin.com/*",
         "*://*.naukri.com/*",
         "*://*.indeed.com/*",
@@ -51,7 +53,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["popup.html"],
+      "resources": ["popup.html", "sidebar.html"],
       "matches": ["*://*/*"]
     }
   ]

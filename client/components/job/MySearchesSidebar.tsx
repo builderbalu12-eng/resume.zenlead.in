@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Loader2, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface MySearchesSidebarProps {
@@ -26,7 +26,7 @@ export const MySearchesSidebar: React.FC<MySearchesSidebarProps> = ({
         <h2 className="text-lg font-bold text-slate-900 dark:text-white">My Searches</h2>
         <Button
           onClick={onNewSearch}
-          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+          className="w-full bg-primary hover:bg-primary/90"
         >
           <Plus className="h-4 w-4 mr-2" />
           New Search
@@ -64,12 +64,13 @@ export const MySearchesSidebar: React.FC<MySearchesSidebarProps> = ({
                     }`}>
                       {search.search_term}
                     </h3>
-                    <p className={`text-xs truncate ${
+                    <p className={`flex items-center gap-1 text-xs truncate ${
                       selectedListId === search.list_id
                         ? 'text-purple-700 dark:text-purple-400'
                         : 'text-slate-600 dark:text-slate-400'
                     }`}>
-                      📍 {search.location}
+                      <MapPin className="h-3 w-3 shrink-0" />
+                      {search.location}
                     </p>
                     <div className={`text-xs mt-1 ${
                       selectedListId === search.list_id

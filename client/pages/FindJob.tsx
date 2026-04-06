@@ -133,7 +133,14 @@ export const FindJob: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Search failed');
+        const errData = await response.json().catch(() => ({}));
+        const msg: string = errData?.detail || errData?.message || 'Search failed';
+        if (response.status === 403 || msg.toLowerCase().includes('insufficient')) {
+          alert('Not enough credits to search for jobs. Visit /pricing to buy more credits.');
+        } else {
+          alert('Something went wrong. Please try again.');
+        }
+        return;
       }
 
       const data = await response.json();
@@ -299,22 +306,23 @@ export const FindJob: React.FC = () => {
         <div className="flex-1 overflow-hidden flex flex-col">
           {/* Header */}
           {selectedListMeta && (
-            <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-6">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                {selectedListMeta.search_term} • {selectedListMeta.location}
-              </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                {selectedListMeta.total_jobs} jobs found • searched on{' '}
-                {new Date(selectedListMeta.created_at).toLocaleDateString()}
-              </p>
-
-              {/* Sort */}
-              <div className="mt-4 flex items-center gap-2">
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sort by:</span>
+            <div className="border-b bg-card px-6 py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-base font-semibold text-foreground leading-snug">
+                    {selectedListMeta.search_term}
+                    <span className="mx-1.5 text-muted-foreground font-normal">·</span>
+                    <span className="text-muted-foreground font-normal">{selectedListMeta.location}</span>
+                  </h2>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {selectedListMeta.total_jobs} jobs · searched{' '}
+                    {new Date(selectedListMeta.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                  className="h-7 cursor-pointer rounded-md border border-border/70 bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring shrink-0"
                 >
                   <option value="best_match">Best Match</option>
                   <option value="fit_score">Highest Score</option>

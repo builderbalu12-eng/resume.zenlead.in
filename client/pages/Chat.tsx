@@ -17,7 +17,8 @@ export default function ChatPage() {
     try {
       const response = await chatApi.getAllSessions();
       if (response.success) {
-        setSessions(response.data.sessions);
+        // Only show sessions that have at least one message
+        setSessions(response.data.sessions.filter((s: any) => s.message_count > 0));
       }
     } catch (error) {
       console.error('Failed to load sessions:', error);
@@ -27,15 +28,11 @@ export default function ChatPage() {
   };
 
   const handleNewSession = async () => {
-    try {
-      const response = await chatApi.createSession();
-      if (response.success) {
-        setCurrentSession(response.data.session_id);
-        await loadSessions();
-      }
-    } catch {
-      toast.error('Failed to create chat');
-    }
+    // Silently delete all empty sessions first
+    chatApi.cleanupEmptySessions().catch(() => {});
+    // Just clear current session — backend auto-creates when user sends first message
+    setCurrentSession(null);
+    await loadSessions();
   };
 
   if (!isReady) {

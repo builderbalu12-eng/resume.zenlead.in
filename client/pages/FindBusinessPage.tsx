@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Building2 } from "lucide-react";
+import { Building2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Page } from "@/components/layout/Page";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useBusinessSearch } from "@/hooks/useBusinessSearch";
@@ -7,7 +8,7 @@ import { BusinessSearchBar } from "@/components/find-business/BusinessSearchBar"
 import { BusinessFilters } from "@/components/find-business/BusinessFilters";
 import { BusinessMap } from "@/components/find-business/BusinessMap";
 import { BusinessResultsList } from "@/components/find-business/BusinessResultsList";
-import { businessService } from "@/services/businessService";
+import { businessService, type ClientStatus } from "@/services/businessService";
 
 export function FindBusinessPage() {
   const {
@@ -25,6 +26,7 @@ export function FindBusinessPage() {
     showingHistory,
   } = useBusinessSearch();
   const [activeTab, setActiveTab] = useState<"map" | "list">("map");
+  const [mapCollapsed, setMapCollapsed] = useState(false);
   const [searchLimit, setSearchLimit] = useState(10);
   const [costPerLead, setCostPerLead] = useState<number | null>(null);
   const [isCostLoading, setIsCostLoading] = useState(true);
@@ -56,6 +58,14 @@ export function FindBusinessPage() {
 
   const handleSearch = (params: { city: string; category: string; radius_km: number }) => {
     search({ ...params, limit: searchLimit });
+  };
+
+  const handleBulkChangeStatus = async (ids: string[], status: ClientStatus) => {
+    await Promise.all(ids.map((id) => updateLeadStatus(id, status)));
+  };
+
+  const handleBulkDelete = async (ids: string[]) => {
+    await Promise.all(ids.map((id) => deleteLead(id)));
   };
 
   return (
@@ -91,9 +101,9 @@ export function FindBusinessPage() {
       </div>
 
       <div className="flex-1 overflow-hidden rounded-xl border bg-card">
-        {/* Desktop layout: side-by-side */}
-        <div className="hidden h-full md:grid md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          <div className="border-r">
+        {/* Desktop layout: side-by-side with collapsible map */}
+        <div className={`hidden h-full md:grid ${mapCollapsed ? "md:grid-cols-[0fr_1fr]" : "md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]"} transition-[grid-template-columns] duration-300`}>
+          <div className={`overflow-hidden border-r transition-all duration-300 ${mapCollapsed ? "w-0 border-r-0" : ""}`}>
             <BusinessMap
               leads={filteredLeads}
               selectedLead={selectedLead}
@@ -101,15 +111,27 @@ export function FindBusinessPage() {
             />
           </div>
           <div className="flex h-full flex-col gap-2 overflow-y-auto p-3">
-            {showingHistory ? (
-              <span className="text-xs text-muted-foreground rounded-full bg-muted px-2 py-1">
-                📋 Showing last search results — search again to refresh
-              </span>
-            ) : (
-              <span className="text-xs text-green-600 dark:text-green-400 rounded-full bg-green-500/10 px-2 py-1">
-                ✅ Fresh results from Google Maps
-              </span>
-            )}
+            <div className="flex items-center justify-between gap-2">
+              {showingHistory ? (
+                <span className="text-xs text-muted-foreground rounded-full bg-muted px-2 py-1">
+                  📋 Showing last search results — search again to refresh
+                </span>
+              ) : (
+                <span className="text-xs text-green-600 dark:text-green-400 rounded-full bg-green-500/10 px-2 py-1">
+                  ✅ Fresh results from Google Maps
+                </span>
+              )}
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 shrink-0"
+                title={mapCollapsed ? "Show map" : "Hide map"}
+                onClick={() => setMapCollapsed((v) => !v)}
+              >
+                {mapCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+              </Button>
+            </div>
             <BusinessResultsList
               leads={filteredLeads}
               isLoading={isLoading}
@@ -117,6 +139,8 @@ export function FindBusinessPage() {
               onSelectLead={(client) => setSelectedLead(client)}
               onChangeStatus={updateLeadStatus}
               onDelete={deleteLead}
+              onBulkChangeStatus={handleBulkChangeStatus}
+              onBulkDelete={handleBulkDelete}
               stats={stats}
             />
           </div>
@@ -162,6 +186,8 @@ export function FindBusinessPage() {
                 onSelectLead={(client) => setSelectedLead(client)}
                 onChangeStatus={updateLeadStatus}
                 onDelete={deleteLead}
+                onBulkChangeStatus={handleBulkChangeStatus}
+                onBulkDelete={handleBulkDelete}
                 stats={stats}
               />
             </TabsContent>

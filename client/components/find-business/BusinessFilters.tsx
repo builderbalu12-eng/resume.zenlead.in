@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import type { BusinessFilters } from "@/hooks/useBusinessSearch";
 
 export interface BusinessFiltersProps {
@@ -6,109 +5,89 @@ export interface BusinessFiltersProps {
   onChange: (partial: Partial<BusinessFilters>) => void;
 }
 
-function Chip({
-  active,
-  children,
-  onClick,
-}: {
-  active?: boolean;
-  children: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <Button
-      type="button"
-      size="sm"
-      variant="outline"
-      className={
-        active
-          ? "h-8 rounded-full px-3 text-xs border-transparent text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-600 hover:to-purple-600"
-          : "h-8 rounded-full px-3 text-xs border-border text-muted-foreground bg-background/40 hover:bg-muted/50 hover:text-foreground"
-      }
-      onClick={onClick}
-    >
-      {children}
-    </Button>
-  );
-}
+const selectClass =
+  "h-7 cursor-pointer rounded-md border border-border/70 bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring hover:border-border transition-colors";
 
 export function BusinessFilters({ filters, onChange }: BusinessFiltersProps) {
   return (
-    <div className="rounded-xl border bg-background/60 p-3">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-xs font-semibold text-muted-foreground">Website:</span>
-        <Chip active={filters.has_website === undefined} onClick={() => onChange({ has_website: undefined })}>
-          All
-        </Chip>
-        <Chip active={filters.has_website === false} onClick={() => onChange({ has_website: false })}>
-          No Website ❌
-        </Chip>
-        <Chip active={filters.has_website === true} onClick={() => onChange({ has_website: true })}>
-          Has Website ✅
-        </Chip>
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-background/80 px-3 py-2">
+
+      {/* Website — segmented control (all 3 options always visible) */}
+      <div className="flex overflow-hidden rounded-md border border-border/70 text-xs">
+        {(
+          [
+            { label: "All",         value: undefined   },
+            { label: "No website",  value: false       },
+            { label: "Has website", value: true        },
+          ] as const
+        ).map(({ label, value }, i) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => onChange({ has_website: value })}
+            className={[
+              "px-2.5 py-1 transition-colors",
+              i > 0 ? "border-l border-border/70" : "",
+              filters.has_website === value
+                ? "bg-foreground text-background font-medium"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted",
+            ].join(" ")}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-xs font-semibold text-muted-foreground">Status:</span>
-        <Chip active={!filters.status} onClick={() => onChange({ status: "" })}>
-          All
-        </Chip>
-        <Chip active={filters.status === "lead"} onClick={() => onChange({ status: "lead" })}>
-          Lead
-        </Chip>
-        <Chip active={filters.status === "active"} onClick={() => onChange({ status: "active" })}>
-          Active
-        </Chip>
-        <Chip active={filters.status === "completed"} onClick={() => onChange({ status: "completed" })}>
-          Completed
-        </Chip>
-        <Chip active={filters.status === "lost"} onClick={() => onChange({ status: "lost" })}>
-          Lost
-        </Chip>
-      </div>
+      {/* Status */}
+      <select
+        value={filters.status ?? ""}
+        onChange={(e) => onChange({ status: e.target.value })}
+        className={selectClass}
+      >
+        <option value="">Status: All</option>
+        <option value="lead">Lead</option>
+        <option value="active">Active</option>
+        <option value="completed">Completed</option>
+        <option value="lost">Lost</option>
+      </select>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-xs font-semibold text-muted-foreground">Rating:</span>
-        <Chip active={!filters.rating_min} onClick={() => onChange({ rating_min: 0 })}>
-          All
-        </Chip>
-        <Chip active={filters.rating_min === 4} onClick={() => onChange({ rating_min: 4 })}>
-          4+ ⭐
-        </Chip>
-        <Chip active={filters.rating_min === 3} onClick={() => onChange({ rating_min: 3 })}>
-          3+ ⭐
-        </Chip>
-      </div>
+      {/* Rating */}
+      <select
+        value={filters.rating_min || ""}
+        onChange={(e) =>
+          onChange({ rating_min: e.target.value ? Number(e.target.value) : 0 })
+        }
+        className={selectClass}
+      >
+        <option value="">Rating: All</option>
+        <option value="4">4+ stars</option>
+        <option value="3">3+ stars</option>
+      </select>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-xs font-semibold text-muted-foreground">Source:</span>
-        <Chip active={!filters.source} onClick={() => onChange({ source: "" })}>
-          All
-        </Chip>
-        <Chip
-          active={filters.source === "googlemaps"}
-          onClick={() => onChange({ source: "googlemaps" })}
-        >
-          Google Maps
-        </Chip>
-        <Chip active={filters.source === "manual"} onClick={() => onChange({ source: "manual" })}>
-          Manual
-        </Chip>
+      {/* Source */}
+      <select
+        value={filters.source ?? ""}
+        onChange={(e) => onChange({ source: e.target.value })}
+        className={selectClass}
+      >
+        <option value="">Source: All</option>
+        <option value="googlemaps">Google Maps</option>
+        <option value="manual">Manual</option>
+      </select>
 
-        <span className="ml-2 mr-1 hidden text-xs font-semibold text-muted-foreground md:inline">Sort:</span>
-        <Chip active={filters.sort === "newest"} onClick={() => onChange({ sort: "newest" })}>
-          Newest
-        </Chip>
-        <Chip active={filters.sort === "rating"} onClick={() => onChange({ sort: "rating" })}>
-          Rating ↓
-        </Chip>
-        <Chip active={filters.sort === "name"} onClick={() => onChange({ sort: "name" })}>
-          Name A–Z
-        </Chip>
-      </div>
-      </div>
+      {/* Sort */}
+      <select
+        value={filters.sort ?? "newest"}
+        onChange={(e) =>
+          onChange({ sort: e.target.value as BusinessFilters["sort"] })
+        }
+        className={selectClass}
+      >
+        <option value="newest">Sort: Newest</option>
+        <option value="rating">Sort: Rating</option>
+        <option value="name">Sort: Name A–Z</option>
+      </select>
+
     </div>
   );
 }
-

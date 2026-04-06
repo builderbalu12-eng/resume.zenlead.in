@@ -32,6 +32,15 @@ export default defineConfig({
           console.log("✓ popup.html");
         }
 
+        // Copy sidebar HTML
+        if (fs.existsSync("client/extension/sidebar.html")) {
+          fs.copyFileSync(
+            "client/extension/sidebar.html",
+            `${distDir}/sidebar.html`,
+          );
+          console.log("✓ sidebar.html");
+        }
+
         // Copy debug HTML
         if (fs.existsSync("client/extension/debug.html")) {
           fs.copyFileSync(
@@ -64,6 +73,7 @@ export default defineConfig({
         background: "client/extension/background.ts",
         content: "client/extension/content.ts",
         popup: "client/extension/popup.ts",
+        sidebar: "client/extension/sidebar.ts",
       },
       formats: ["es"],
       fileName: (format, entryName) => `${entryName}.js`,

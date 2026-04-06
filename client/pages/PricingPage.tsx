@@ -49,11 +49,17 @@ export function PricingPage() {
     };
   }, []);
 
+  // Show only plans matching the current billing cycle toggle; Free (amount=0) always shows
+  const visiblePlans = React.useMemo(
+    () => plans.filter((p) => p.amount === 0 || p.billing_cycle === billingCycle),
+    [plans, billingCycle]
+  );
+
   const mostPopularId = React.useMemo(() => {
-    if (!plans.length) return null;
-    const sorted = [...plans].sort((a, b) => (a.amount ?? 0) - (b.amount ?? 0));
-    return sorted[sorted.length - 1]?._id ?? null;
-  }, [plans]);
+    const paid = visiblePlans.filter((p) => p.amount > 0).sort((a, b) => a.amount - b.amount);
+    // Mark the second-most-expensive paid plan as Most Popular (Pro slot)
+    return paid.length >= 2 ? paid[paid.length - 2]._id : paid[paid.length - 1]?._id ?? null;
+  }, [visiblePlans]);
 
   const applyCoupon = async () => {
     const code = couponCode.trim();
@@ -228,7 +234,7 @@ export function PricingPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {plans.map((plan) => {
+            {visiblePlans.map((plan) => {
               const isMostPopular = plan._id === mostPopularId;
               const { amount, label } = getDiscountedAmountForPlan(plan);
               return (
