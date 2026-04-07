@@ -33,11 +33,15 @@ export const TailorResume: React.FC = () => {
     atsScore: number;
     originalAtsScore: number;
     jobData: JobDescription | null;
+    scoreBreakdown: Record<string, number>;
+    issueCount: number;
   }>({
     tailored: null,
     atsScore: 0,
     originalAtsScore: 0,
     jobData: null,
+    scoreBreakdown: {},
+    issueCount: 0,
   });
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
 
@@ -107,6 +111,8 @@ export const TailorResume: React.FC = () => {
         atsScore: 0,
         originalAtsScore: 0,
         jobData: null,
+        scoreBreakdown: {},
+        issueCount: 0,
       });
       setJobDescription("");
       setSuccess(null);
@@ -201,6 +207,8 @@ export const TailorResume: React.FC = () => {
         atsScore: tailoredAtsScore,
         originalAtsScore,
         jobData: parseResult,
+        scoreBreakdown: (originalAtsResult as any).scoreBreakdown || {},
+        issueCount: ((originalAtsResult as any).improvements || []).length,
       });
 
       setMissingContentSections([]);
@@ -606,37 +614,80 @@ export const TailorResume: React.FC = () => {
                 <h2 className="text-xl font-semibold mb-4">Results</h2>
 
                 <div className="space-y-4">
-                  <div className="flex items-end gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Before</p>
-                      <p className="text-3xl font-bold text-muted-foreground">
-                        {tailorState.originalAtsScore}%
-                      </p>
-                    </div>
-                    <div className="text-2xl text-muted-foreground mb-1">→</div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">After Tailoring</p>
-                      <p className="text-3xl font-bold text-primary">
-                        {tailorState.atsScore}%
-                      </p>
-                    </div>
-                    {tailorState.atsScore > tailorState.originalAtsScore && (
-                      <div className="mb-1 text-green-500 text-sm font-semibold">
-                        +{tailorState.atsScore - tailorState.originalAtsScore} pts
+                  {/* ── ATS Overview ─────────────────────────────────── */}
+                  <div className="flex items-center gap-6">
+                    {/* Semicircle gauge */}
+                    <div className="relative flex-shrink-0" style={{ width: 140, height: 76 }}>
+                      <svg viewBox="0 0 120 64" width="140" height="76">
+                        <defs>
+                          <linearGradient id="atsGrad" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%"   stopColor="#ef4444"/>
+                            <stop offset="40%"  stopColor="#f97316"/>
+                            <stop offset="70%"  stopColor="#eab308"/>
+                            <stop offset="100%" stopColor="#22c55e"/>
+                          </linearGradient>
+                        </defs>
+                        {/* Track */}
+                        <path d="M10,60 A50,50 0 0,1 110,60" fill="none" stroke="#e5e7eb" strokeWidth="10" strokeLinecap="round"/>
+                        {/* Score arc */}
+                        <path d="M10,60 A50,50 0 0,1 110,60" fill="none"
+                          stroke="url(#atsGrad)" strokeWidth="10" strokeLinecap="round"
+                          strokeDasharray={`${(tailorState.atsScore / 100) * 157} 157`}/>
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-end" style={{ paddingBottom: 4 }}>
+                        <span className="text-lg font-bold leading-none">{tailorState.atsScore}/100</span>
+                        {tailorState.issueCount > 0 && (
+                          <span className="text-xs text-muted-foreground">{tailorState.issueCount} Issues</span>
+                        )}
                       </div>
-                    )}
+                    </div>
+
+                    {/* Before → After numbers */}
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Before</p>
+                        <p className="text-2xl font-bold text-muted-foreground">{tailorState.originalAtsScore}%</p>
+                      </div>
+                      <span className="text-muted-foreground text-xl">→</span>
+                      <div>
+                        <p className="text-xs text-muted-foreground">After</p>
+                        <p className="text-2xl font-bold text-primary">{tailorState.atsScore}%</p>
+                      </div>
+                      {tailorState.atsScore > tailorState.originalAtsScore && (
+                        <span className="text-green-500 text-sm font-semibold self-end mb-1">
+                          +{tailorState.atsScore - tailorState.originalAtsScore} pts
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  {tailorState.jobData && (
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">
-                        Job Details
-                      </p>
-                      <p className="font-semibold">
-                        {tailorState.jobData.title}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
+                  {/* ── Score breakdown bars ──────────────────────────── */}
+                  {Object.keys(tailorState.scoreBreakdown).length > 0 && (
+                    <div className="space-y-2">
+                      {Object.entries(tailorState.scoreBreakdown).map(([key, val]) => (
+                        <div key={key} className="flex items-center gap-3">
+                          <span className="text-xs text-muted-foreground w-20 capitalize">{key}</span>
+                          <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-primary transition-all duration-500"
+                              style={{ width: `${val}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-medium w-8 text-right">{val}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* ── Job info ─────────────────────────────────────── */}
+                  {tailorState.jobData && (tailorState.jobData.title || tailorState.jobData.company) && (
+                    <div className="border-t border-border pt-3">
+                      {tailorState.jobData.title && (
+                        <p className="font-semibold text-sm">{tailorState.jobData.title}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
                         {tailorState.jobData.company}
+                        {tailorState.jobData.location && ` • ${tailorState.jobData.location}`}
                       </p>
                     </div>
                   )}
@@ -689,6 +740,8 @@ export const TailorResume: React.FC = () => {
                         atsScore: 0,
                         originalAtsScore: 0,
                         jobData: null,
+                        scoreBreakdown: {},
+                        issueCount: 0,
                       });
                       setJobDescription("");
                       setSuccess(null);

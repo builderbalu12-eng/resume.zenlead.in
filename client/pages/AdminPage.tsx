@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { LayoutDashboard, Users, Zap, Tag, Trash2, Plus, Save, Loader2, Eye, CreditCard } from "lucide-react";
+import { LayoutDashboard, Users, Zap, Tag, Trash2, Plus, Save, Loader2, Eye, CreditCard, Cpu, RefreshCw, EyeOff, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -17,18 +17,21 @@ import {
   listAdminCoupons, createAdminCoupon, deleteAdminCoupon, getCouponUsage,
   getUserCreditsLog, getUserBilling,
   getAdminAnalytics,
+  getGeminiResource, updateGeminiConfig, listGeminiModels, getMongoDBResource,
   AdminStats, AdminUser, FeatureCost, AdminCoupon, CreateCouponData, CouponUsageEntry,
   AdminCreditLogEntry, AdminUserBilling,
   AnalyticsData, AnalyticsPeriod,
+  GeminiResource, GeminiModel, MongoDBResource,
 } from "@/services/adminService";
 
-type Tab = "overview" | "features" | "users" | "coupons";
+type Tab = "overview" | "features" | "users" | "coupons" | "resources";
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "features", label: "Feature Credits", icon: Zap },
-  { id: "users", label: "Users", icon: Users },
-  { id: "coupons", label: "Coupons", icon: Tag },
+  { id: "overview",   label: "Overview",        icon: LayoutDashboard },
+  { id: "features",   label: "Feature Credits", icon: Zap },
+  { id: "users",      label: "Users",           icon: Users },
+  { id: "coupons",    label: "Coupons",         icon: Tag },
+  { id: "resources",  label: "Resources",       icon: Cpu },
 ];
 
 // ── Helpers ───────────────────────────────────────────────
@@ -963,6 +966,379 @@ function CouponsTab() {
   );
 }
 
+// ── Resources Tab ─────────────────────────────────────────
+
+type ResourceSubTab = "google" | "mongodb" | "vercel";
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+// ── Google sub-tab ─────────────────────────────────────────
+
+function GoogleResourcePanel() {
+  const [data, setData] = useState<GeminiResource | null>(null);
+  const [models, setModels] = useState<GeminiModel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [selectedModel, setSelectedModel] = useState("");
+
+  const load = () => {
+    setLoading(true);
+    Promise.all([getGeminiResource(), listGeminiModels()])
+      .then(([res, mods]) => {
+        setData(res);
+        setModels(mods);
+        setApiKey(res.api_key_full || "");
+        setSelectedModel(res.model);
+      })
+      .catch(() => toast.error("Failed to load Gemini data"))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const update: Record<string, string> = {};
+      if (apiKey && apiKey !== data?.api_key_full) update.api_key = apiKey;
+      if (selectedModel !== data?.model) update.model = selectedModel;
+      if (Object.keys(update).length === 0) { toast.info("Nothing changed"); return; }
+      await updateGeminiConfig(update);
+      toast.success("Config saved — applied immediately");
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return (
+    <div className="flex justify-center py-12">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  );
+
+  const usagePct = data ? Math.min(100, Math.round((data.today_usage / data.daily_limit) * 100)) : 0;
+  const usageColor = usagePct >= 90 ? "#ef4444" : usagePct >= 70 ? "#f97316" : "#10b981";
+  const activeModel = models.find((m) => m.id === (data?.model ?? ""));
+
+  return (
+    <PremiumCard className="p-6" hover={false}>
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Cpu className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold">Gemini API</h2>
+            {data?.updated_by && (
+              <p className="text-xs text-muted-foreground">
+                Last updated by {data.updated_by}
+                {data.updated_at ? ` · ${new Date(data.updated_at).toLocaleString()}` : ""}
+              </p>
+            )}
+          </div>
+        </div>
+        <Button variant="ghost" size="icon" onClick={load} title="Refresh">
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">API Key</label>
+            <div className="flex gap-2">
+              <Input
+                type={showKey ? "text" : "password"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="AIzaSy..."
+                className="font-mono text-sm"
+              />
+              <Button variant="ghost" size="icon" onClick={() => setShowKey(!showKey)}>
+                {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Active Model</label>
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <Button onClick={handleSave} disabled={saving} className="w-full" variant="gradient">
+            {saving ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving…</> : <><Save className="h-4 w-4 mr-2" />Save Config</>}
+          </Button>
+        </div>
+
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-3">Today's Usage</p>
+          <div className="flex items-end gap-2 mb-2">
+            <span className="text-3xl font-bold" style={{ color: usageColor }}>{data?.today_usage ?? 0}</span>
+            <span className="text-sm text-muted-foreground mb-1">/ {data?.daily_limit ?? 1500} req/day</span>
+          </div>
+          <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden mb-1">
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${usagePct}%`, background: usageColor }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">{usagePct}% used · {activeModel?.rpm ?? "—"} RPM limit</p>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <p className="text-xs font-medium text-muted-foreground mb-3">Available Models (Free Tier)</p>
+        <div className="rounded-lg border border-border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">Model</th>
+                <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">Req/Day</th>
+                <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">Req/Min</th>
+                <th className="px-4 py-2 text-xs font-medium text-muted-foreground"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {models.map((m) => (
+                <tr key={m.id} className={cn("border-b border-border last:border-0", m.id === data?.model && "bg-primary/5")}>
+                  <td className="px-4 py-2.5 font-medium">{m.name}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">{m.rpd.toLocaleString()}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums">{m.rpm}</td>
+                  <td className="px-4 py-2.5 text-right">
+                    {m.id === data?.model ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-primary font-medium">
+                        <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />Active
+                      </span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-xs px-2"
+                        onClick={() => setSelectedModel(m.id)}
+                      >
+                        Switch
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {data?.usage_history && data.usage_history.length > 0 && (
+        <div className="mt-6">
+          <p className="text-xs font-medium text-muted-foreground mb-3">30-Day Usage</p>
+          <ResponsiveContainer width="100%" height={80}>
+            <BarChart data={data.usage_history} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+              <XAxis dataKey="date" hide />
+              <YAxis hide />
+              <Tooltip
+                contentStyle={tooltipStyle}
+                formatter={(v: number) => [v, "Requests"]}
+                labelFormatter={(l) => l}
+              />
+              <Bar dataKey="count" fill="#667eea" radius={[2, 2, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </PremiumCard>
+  );
+}
+
+// ── MongoDB sub-tab ────────────────────────────────────────
+
+function MongoDBResourcePanel() {
+  const [data, setData] = useState<MongoDBResource | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = () => {
+    setLoading(true);
+    getMongoDBResource()
+      .then(setData)
+      .catch(() => toast.error("Failed to load MongoDB stats"))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  if (loading) return (
+    <div className="flex justify-center py-12">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  );
+
+  if (!data) return null;
+
+  const storagePct = Math.min(100, Math.round((data.storage_size_bytes / data.free_tier_limit_bytes) * 100));
+  const storageColor = storagePct >= 90 ? "#ef4444" : storagePct >= 70 ? "#f97316" : "#10b981";
+
+  return (
+    <div className="space-y-6">
+      <PremiumCard className="p-6" hover={false}>
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+              <Database className="h-4 w-4 text-green-500" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold">MongoDB Atlas</h2>
+              <p className="text-xs text-muted-foreground">Database: {data.db_name}</p>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" onClick={load} title="Refresh">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Storage gauge */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-muted-foreground">Storage Usage (Free Tier: 512 MB)</p>
+            <span className="text-xs font-medium" style={{ color: storageColor }}>{storagePct}%</span>
+          </div>
+          <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${storagePct}%`, background: storageColor }}
+            />
+          </div>
+          <div className="flex justify-between mt-1">
+            <span className="text-xs text-muted-foreground">{formatBytes(data.storage_size_bytes)} used</span>
+            <span className="text-xs text-muted-foreground">{formatBytes(data.free_tier_limit_bytes)} total</span>
+          </div>
+        </div>
+
+        {/* Stats grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {[
+            { label: "Collections", value: data.collections },
+            { label: "Documents", value: data.objects.toLocaleString() },
+            { label: "Data Size", value: formatBytes(data.data_size_bytes) },
+            { label: "Index Size", value: formatBytes(data.index_size_bytes) },
+          ].map(({ label, value }) => (
+            <div key={label} className="rounded-lg border border-border bg-muted/20 px-4 py-3">
+              <p className="text-xs text-muted-foreground mb-1">{label}</p>
+              <p className="text-lg font-bold tabular-nums">{value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Per-collection table */}
+        {data.collection_details.length > 0 && (
+          <>
+            <p className="text-xs font-medium text-muted-foreground mb-3">Collections</p>
+            <div className="rounded-lg border border-border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">Collection</th>
+                    <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">Documents</th>
+                    <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">Data Size</th>
+                    <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">Storage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.collection_details.map((col) => (
+                    <tr key={col.name} className="border-b border-border last:border-0 hover:bg-muted/20">
+                      <td className="px-4 py-2.5 font-mono text-xs">{col.name}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">{col.count.toLocaleString()}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{formatBytes(col.size_bytes)}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{formatBytes(col.storage_bytes)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </PremiumCard>
+    </div>
+  );
+}
+
+// ── Vercel sub-tab ─────────────────────────────────────────
+
+function VercelResourcePanel() {
+  return (
+    <PremiumCard className="p-6" hover={false}>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="h-8 w-8 rounded-lg bg-foreground/10 flex items-center justify-center">
+          <span className="text-base">▲</span>
+        </div>
+        <div>
+          <h2 className="text-base font-semibold">Vercel</h2>
+          <p className="text-xs text-muted-foreground">Deployment & bandwidth usage</p>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
+        Bandwidth, build minutes, and deployment history — coming soon.
+      </p>
+    </PremiumCard>
+  );
+}
+
+// ── Resources Tab (outer, with inner sub-tabs) ─────────────
+
+function ResourcesTab() {
+  const [subTab, setSubTab] = useState<ResourceSubTab>("google");
+
+  const SUB_TABS: { id: ResourceSubTab; label: string; icon: string }[] = [
+    { id: "google",  label: "Google",  icon: "✦" },
+    { id: "mongodb", label: "MongoDB", icon: "🍃" },
+    { id: "vercel",  label: "Vercel",  icon: "▲" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Inner sub-tab bar */}
+      <div className="flex gap-1 p-1 bg-muted/40 rounded-lg w-fit">
+        {SUB_TABS.map(({ id, label, icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setSubTab(id)}
+            className={cn(
+              "flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
+              subTab === id
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <span>{icon}</span>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {subTab === "google"  && <GoogleResourcePanel />}
+      {subTab === "mongodb" && <MongoDBResourcePanel />}
+      {subTab === "vercel"  && <VercelResourcePanel />}
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────
 
 export const AdminPage: React.FC = () => {
@@ -998,10 +1374,11 @@ export const AdminPage: React.FC = () => {
         </nav>
       </div>
 
-      {activeTab === "overview" && <OverviewTab />}
-      {activeTab === "features" && <FeaturesTab />}
-      {activeTab === "users" && <UsersTab />}
-      {activeTab === "coupons" && <CouponsTab />}
+      {activeTab === "overview"   && <OverviewTab />}
+      {activeTab === "features"   && <FeaturesTab />}
+      {activeTab === "users"      && <UsersTab />}
+      {activeTab === "coupons"    && <CouponsTab />}
+      {activeTab === "resources"  && <ResourcesTab />}
     </Page>
   );
 };

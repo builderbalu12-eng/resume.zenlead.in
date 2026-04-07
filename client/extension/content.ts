@@ -19,6 +19,15 @@ let injectedButton = false;
         console.log("[Content Script] ✓ Auth token auto-saved to chrome.storage.sync");
       });
     }
+
+    // Save the current backend API URL so the sidebar can use the latest URL
+    // even if the Cloudflare Tunnel was restarted since the extension was built.
+    const apiUrl = localStorage.getItem("resumematch_api_url");
+    if (apiUrl) {
+      chrome.storage.sync.set({ resumematch_api_url: apiUrl }, () => {
+        console.log("[Content Script] ✓ API URL auto-saved to chrome.storage.sync:", apiUrl);
+      });
+    }
   }
 })();
 

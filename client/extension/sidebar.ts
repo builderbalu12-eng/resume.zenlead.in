@@ -1,5 +1,5 @@
+import { APIClient } from "@/services/api";
 import { getMasterResume, setMasterResume, getSettings } from "@/utils/storage";
-import { apiClient } from "@/services/api";
 import { downloadResume } from "@/services/resumeGenerator";
 import { ResumeData, JobDescription, ATSScore } from "@/types";
 
@@ -31,16 +31,27 @@ const $ = (id: string) => document.getElementById(id);
 
 const mainContentEl = () => $("main-content");
 
+// ─── Dynamic API URL ─────────────────────────────────────────────────────────
+// Reads the most up-to-date backend URL from chrome.storage.sync (written by
+// the content script when the user visits the ZenLead web app).  Falls back to
+// the URL that was baked in at extension build time, then to localhost.
+async function getApiBaseUrl(): Promise<string> {
+  return new Promise((resolve) =>
+    chrome.storage.sync.get(["resumematch_api_url"], (r) =>
+      resolve(
+        r["resumematch_api_url"] ||
+          (import.meta.env.VITE_API_URL as string) ||
+          "http://localhost:8000",
+      ),
+    ),
+  );
+}
+
 // ─── Standard inner HTML ────────────────────────────────────────────────────
 const STANDARD_CONTENT = `
   <div id="status" class="status">
     <div class="status-icon">⏳</div>
     <div class="status-text"><strong>Initializing…</strong><span></span></div>
-  </div>
-  <div id="custom-actions" class="card">
-    <button class="button button-secondary" id="custom-analyse-btn">
-      CustomAnaylse for current page
-    </button>
   </div>
   <div id="job-info" class="card hidden">
     <div style="margin-bottom:8px"><strong>Job Title:</strong> <span id="job-title">-</span></div>
@@ -58,6 +69,11 @@ const STANDARD_CONTENT = `
   <div id="buttons" class="hidden">
     <button class="button button-primary" id="tailor-btn">⚡ Analyze &amp; Tailor Resume</button>
     <button class="button button-secondary" id="download-btn" disabled>⬇️ Download PDF</button>
+  </div>
+  <div id="idle-actions" class="card hidden">
+    <button class="button button-secondary" id="custom-analyse-btn">
+      Analyse current tab
+    </button>
   </div>
 `;
 
@@ -114,8 +130,9 @@ function ensureStandardContent() {
 }
 
 function renderUI() {
-  // ── No resume + no page HTML: show connect screen ──────────────────────
-  if (!state.masterResume && !state.pageHTML) {
+  // ── No resume: always show connect screen ──────────────────────────────
+  // (Even if pageHTML was captured — user must log in first)
+  if (!state.masterResume) {
     showConnectScreen();
     return;
   }
@@ -123,13 +140,14 @@ function renderUI() {
   ensureStandardContent();
 
   // Re-query every time (DOM may have been rebuilt)
-  const statusEl   = $("status");
-  const jobInfoEl  = $("job-info");
-  const buttonsEl  = $("buttons");
-  const tailorBtn  = $("tailor-btn")  as HTMLButtonElement | null;
+  const statusEl    = $("status");
+  const jobInfoEl   = $("job-info");
+  const buttonsEl   = $("buttons");
+  const idleActionsEl = $("idle-actions");
+  const tailorBtn   = $("tailor-btn")   as HTMLButtonElement | null;
   const downloadBtn = $("download-btn") as HTMLButtonElement | null;
-  const errorEl    = $("error");
-  const successEl  = $("success");
+  const errorEl     = $("error");
+  const successEl   = $("success");
 
   // Hide everything first
   statusEl?.classList.add("hidden");
@@ -137,29 +155,7 @@ function renderUI() {
   errorEl?.classList.add("hidden");
   successEl?.classList.add("hidden");
   buttonsEl?.classList.add("hidden");
-
-  // ── Page captured, not yet analyzed ────────────────────────────────────
-  if (state.pageHTML && !state.jobData) {
-    statusEl?.classList.remove("hidden");
-    const icon = statusEl?.querySelector(".status-icon");
-    const text = statusEl?.querySelector(".status-text");
-
-    if (state.isJobPosting === false) {
-      if (icon) icon.textContent = "ℹ️";
-      if (text) text.innerHTML = "<strong>No Job Posting Found</strong><span>Use CustomAnalyse on a specific job page</span>";
-    } else if (!state.masterResume) {
-      if (icon) icon.textContent = "⚠️";
-      if (text) text.innerHTML = "<strong>Resume Not Loaded</strong><span>Log in to ZenLead then click Retry</span>";
-      buttonsEl?.classList.remove("hidden");
-      if (tailorBtn) { tailorBtn.textContent = "⚡ Analyze & Tailor Resume"; tailorBtn.disabled = false; }
-    } else {
-      if (icon) icon.textContent = "📄";
-      if (text) text.innerHTML = "<strong>Job Posting Detected</strong><span>Click below to analyze and tailor your resume</span>";
-      buttonsEl?.classList.remove("hidden");
-      if (tailorBtn) { tailorBtn.textContent = "⚡ Analyze & Tailor Resume"; tailorBtn.disabled = false; }
-    }
-    return;
-  }
+  idleActionsEl?.classList.add("hidden");
 
   // ── Results ready ───────────────────────────────────────────────────────
   if (state.jobData && state.tailoredResume && state.atsScore) {
@@ -170,13 +166,16 @@ function renderUI() {
     if (text) text.innerHTML = `<strong>Resume Tailored</strong><span>${state.jobData.title} at ${state.jobData.company}</span>`;
 
     jobInfoEl?.classList.remove("hidden");
-    const jobTitleEl  = $("job-title");
+    const jobTitleEl   = $("job-title");
     const jobCompanyEl = $("job-company");
-    const atsScoreEl  = $("ats-score");
-    const summaryEl   = $("summary");
+    const atsScoreEl   = $("ats-score");
+    const summaryEl    = $("summary");
 
-    if (jobTitleEl)  jobTitleEl.textContent  = state.jobData.title   || "Unknown";
-    if (jobCompanyEl) jobCompanyEl.textContent = state.jobData.company || "Unknown";
+    if (jobTitleEl)  jobTitleEl.textContent  = state.jobData.title   || "—";
+    if (jobCompanyEl) {
+      const loc = (state.jobData as any).location;
+      jobCompanyEl.textContent = [state.jobData.company, loc].filter(Boolean).join(" • ") || "—";
+    }
 
     const masterScore   = state.masterAtsScore?.score || 0;
     const tailoredScore = state.atsScore?.score        || 0;
@@ -184,22 +183,67 @@ function renderUI() {
     const color         = improvement >= 0 ? "#10b981" : "#ef4444";
 
     if (atsScoreEl) {
+      const arcLen = 157;
+      const filled = ((tailoredScore / 100) * arcLen).toFixed(1);
+      const issueCount = state.atsScore.issueCount || 0;
+
+      // Build breakdown bars HTML
+      const breakdown = state.atsScore.scoreBreakdown || {};
+      const breakdownHtml = Object.keys(breakdown).length > 0
+        ? `<div style="margin-top:10px">
+            ${Object.entries(breakdown).map(([k, v]) => `
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+                <span style="font-size:10px;color:#888;width:70px;text-transform:capitalize">${k}</span>
+                <div style="flex:1;height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden">
+                  <div style="height:100%;width:${v}%;background:#667eea;border-radius:2px"></div>
+                </div>
+                <span style="font-size:10px;font-weight:600;width:28px;text-align:right">${v}%</span>
+              </div>`).join("")}
+          </div>`
+        : "";
+
       atsScoreEl.innerHTML = `
-        <div style="display:flex;gap:12px;align-items:center;">
-          <div style="flex:1"><div style="font-size:11px;color:#999;margin-bottom:2px">Before</div>
-            <div style="font-size:20px;font-weight:700;color:#666">${masterScore}%</div></div>
-          <div style="font-size:18px;color:#ccc">→</div>
-          <div style="flex:1"><div style="font-size:11px;color:#999;margin-bottom:2px">After</div>
-            <div style="font-size:20px;font-weight:700;color:#667eea">${tailoredScore}%</div></div>
-          <div style="padding:4px 8px;background:${color}20;border-radius:4px;text-align:center;min-width:50px">
-            <div style="font-size:10px;color:${color};font-weight:600">${improvement >= 0 ? "+" : ""}${improvement}%</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <div style="position:relative;flex-shrink:0;width:90px;height:50px">
+            <svg viewBox="0 0 120 64" width="90" height="50">
+              <defs>
+                <linearGradient id="sg" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#ef4444"/>
+                  <stop offset="60%" stop-color="#eab308"/>
+                  <stop offset="100%" stop-color="#22c55e"/>
+                </linearGradient>
+              </defs>
+              <path d="M10,60 A50,50 0 0,1 110,60" fill="none" stroke="#e5e7eb" stroke-width="10" stroke-linecap="round"/>
+              <path d="M10,60 A50,50 0 0,1 110,60" fill="none" stroke="url(#sg)" stroke-width="10" stroke-linecap="round"
+                stroke-dasharray="${filled} ${arcLen}"/>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:2px">
+              <span style="font-size:13px;font-weight:700;line-height:1">${tailoredScore}/100</span>
+              ${issueCount > 0 ? `<span style="font-size:9px;color:#999">${issueCount} Issues</span>` : ""}
+            </div>
           </div>
-        </div>`;
+          <div style="display:flex;align-items:center;gap:8px">
+            <div>
+              <div style="font-size:10px;color:#999">Before</div>
+              <div style="font-size:18px;font-weight:700;color:#666">${masterScore}%</div>
+            </div>
+            <div style="font-size:16px;color:#ccc">→</div>
+            <div>
+              <div style="font-size:10px;color:#999">After</div>
+              <div style="font-size:18px;font-weight:700;color:#667eea">${tailoredScore}%</div>
+            </div>
+            <div style="padding:3px 6px;background:${color}20;border-radius:4px;align-self:flex-end;margin-bottom:2px">
+              <span style="font-size:10px;color:${color};font-weight:600">${improvement >= 0 ? "+" : ""}${improvement}%</span>
+            </div>
+          </div>
+        </div>
+        ${breakdownHtml}`;
     }
     if (summaryEl) {
-      summaryEl.innerHTML = `<div style="font-size:12px;line-height:1.4;color:#666">
-        Key Skills Matched: ${state.atsScore.keywordMatches?.slice(0, 3).join(", ") || "—"}
-      </div>`;
+      const missing = state.atsScore.missingKeywords?.slice(0, 3).join(", ");
+      summaryEl.innerHTML = missing
+        ? `<div style="font-size:11px;line-height:1.4;color:#888;margin-top:6px">Top missing: ${missing}</div>`
+        : "";
     }
 
     buttonsEl?.classList.remove("hidden");
@@ -207,20 +251,40 @@ function renderUI() {
     return;
   }
 
-  // ── Default idle ────────────────────────────────────────────────────────
+  // ── Page captured, not yet analyzed ────────────────────────────────────
+  if (state.pageHTML && !state.jobData) {
+    statusEl?.classList.remove("hidden");
+    const icon = statusEl?.querySelector(".status-icon");
+    const text = statusEl?.querySelector(".status-text");
+
+    if (state.isJobPosting === false) {
+      if (icon) icon.textContent = "ℹ️";
+      if (text) text.innerHTML = "<strong>No Job Posting Found</strong><span>Navigate to a specific job listing page and click Analyse</span>";
+      idleActionsEl?.classList.remove("hidden");
+    } else {
+      if (icon) icon.textContent = "📄";
+      if (text) text.innerHTML = "<strong>Job Posting Detected</strong><span>Click below to analyze and tailor your resume</span>";
+      buttonsEl?.classList.remove("hidden");
+      if (tailorBtn) { tailorBtn.textContent = "⚡ Analyze & Tailor Resume"; tailorBtn.disabled = false; }
+    }
+    return;
+  }
+
+  // ── Default idle (resume loaded, no page captured yet) ─────────────────
   statusEl?.classList.remove("hidden");
   const icon = statusEl?.querySelector(".status-icon");
   const text = statusEl?.querySelector(".status-text");
-  if (icon) icon.textContent = "ℹ️";
-  if (text) text.innerHTML = "<strong>Ready</strong><span>Click Analyse on a job posting page to begin</span>";
+  if (icon) icon.textContent = "✅";
+  if (text) text.innerHTML = `<strong>Ready</strong><span>Go to a job listing and click the Analyse button, or use the button below</span>`;
+  idleActionsEl?.classList.remove("hidden");
 }
 
 // ─── Button bindings (called after any innerHTML replacement) ────────────────
 
 function bindButtons() {
-  const tailorBtn     = $("tailor-btn")       as HTMLButtonElement | null;
-  const downloadBtn   = $("download-btn")     as HTMLButtonElement | null;
-  const customBtn     = $("custom-analyse-btn") as HTMLButtonElement | null;
+  const tailorBtn   = $("tailor-btn")         as HTMLButtonElement | null;
+  const downloadBtn = $("download-btn")        as HTMLButtonElement | null;
+  const customBtn   = $("custom-analyse-btn")  as HTMLButtonElement | null;
 
   tailorBtn?.addEventListener("click", handleTailor);
   downloadBtn?.addEventListener("click", handleDownload);
@@ -299,7 +363,11 @@ async function loadMasterResume(): Promise<ResumeData | null> {
     if (token) {
       try {
         console.log("[Sidebar] Fetching resume from backend…");
-        const response = await apiClient.getIncomingResume();
+        // Use a fresh client with the dynamic URL so a restarted tunnel works.
+        const baseUrl = await getApiBaseUrl();
+        console.log("[Sidebar] Using API base URL:", baseUrl);
+        const client = new APIClient(baseUrl);
+        const response = await client.getIncomingResume();
         if (response?.extracted_data) {
           resume = response.extracted_data;
           console.log("[Sidebar] ✓ Resume from backend:", (resume as ResumeData).contact?.name);
@@ -372,7 +440,10 @@ function listenForExtensionMessages() {
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "sync" && changes["resumematch_auth_token"]?.newValue && !state.masterResume) {
       console.log("[Sidebar] Token appeared — auto-loading resume…");
-      loadMasterResume().then(() => renderUI());
+      // Clear cached resume so we force a fresh backend fetch with the new token
+      chrome.storage.sync.remove(["resumematch_master_resume"], () => {
+        loadMasterResume().then(() => renderUI());
+      });
     }
   });
 }
@@ -406,15 +477,17 @@ async function handleTailor() {
       configuredSections = settings?.resumeContentSections || [];
     } catch { /* ignore */ }
 
-    const result = await apiClient.analyzeJobAndTailorResume(
+    const baseUrl = await getApiBaseUrl();
+    const client = new APIClient(baseUrl);
+    const result = await client.analyzeJobAndTailorResume(
       state.pageHTML,
       state.masterResume,
       configuredSections,
     );
 
-    state.jobData       = result.jobData;
+    state.jobData        = result.jobData;
     state.tailoredResume = result.tailoredResume;
-    state.atsScore      = result.atsScore;
+    state.atsScore       = result.atsScore;
     state.masterAtsScore = result.masterAtsScore || null;
 
     if (loadingEl) loadingEl.classList.add("hidden");
@@ -423,7 +496,7 @@ async function handleTailor() {
       successEl.textContent = `✓ Resume tailored! ATS Score: ${state.atsScore.score}%`;
     }
 
-    // Persist application
+    // Persist application record
     try {
       const appRecord = {
         jobTitle: state.jobData.title || "Unknown",
@@ -481,7 +554,7 @@ async function handleCustomAnalyse() {
   const customBtn = $("custom-analyse-btn") as HTMLButtonElement | null;
   const errorEl   = $("error");
 
-  if (customBtn) { customBtn.disabled = true; customBtn.textContent = "⏳ Capturing page…"; }
+  if (customBtn) { customBtn.disabled = true; customBtn.textContent = "⏳ Capturing…"; }
 
   try {
     const tabs = await new Promise<chrome.tabs.Tab[]>((resolve) =>
@@ -500,6 +573,10 @@ async function handleCustomAnalyse() {
 
     state.pageHTML     = payload.html;
     state.isJobPosting = null;
+    state.jobData      = null;
+    state.tailoredResume = null;
+    state.atsScore     = null;
+    state.masterAtsScore = null;
 
     chrome.runtime.sendMessage({ action: "analyzeJob", pageHTML: payload.html, pageURL: payload.url }, () => {});
     renderUI();
@@ -508,7 +585,7 @@ async function handleCustomAnalyse() {
     if (errorEl) { errorEl.classList.remove("hidden"); errorEl.textContent = `✗ ${error instanceof Error ? error.message : "Unknown error"}`; }
   } finally {
     const customBtn2 = $("custom-analyse-btn") as HTMLButtonElement | null;
-    if (customBtn2) { customBtn2.disabled = false; customBtn2.textContent = "CustomAnaylse for current page"; }
+    if (customBtn2) { customBtn2.disabled = false; customBtn2.textContent = "Analyse current tab"; }
   }
 }
 

@@ -254,3 +254,72 @@ export async function getUserBilling(userId: string): Promise<AdminUserBilling> 
   const res = await request<{ data: AdminUserBilling }>(`/admin/users/${userId}/billing`);
   return res.data;
 }
+
+// ── Resource Utilization ──────────────────────────────────
+
+export type GeminiModel = {
+  id: string;
+  name: string;
+  rpd: number;
+  rpm: number;
+};
+
+export type GeminiResource = {
+  api_key_masked: string;
+  api_key_full: string;
+  model: string;
+  temperature: number;
+  max_tokens: number;
+  updated_at: string | null;
+  updated_by: string | null;
+  today_usage: number;
+  daily_limit: number;
+  rpm_limit: number;
+  usage_history: { date: string; count: number }[];
+};
+
+export async function getGeminiResource(): Promise<GeminiResource> {
+  const res = await request<{ data: GeminiResource }>("/admin/resources/gemini");
+  return res.data;
+}
+
+export async function updateGeminiConfig(data: {
+  api_key?: string;
+  model?: string;
+  temperature?: number;
+  max_tokens?: number;
+}): Promise<void> {
+  await request("/admin/resources/gemini", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function listGeminiModels(): Promise<GeminiModel[]> {
+  const res = await request<{ data: GeminiModel[] }>("/admin/resources/models");
+  return res.data;
+}
+
+export type MongoCollectionDetail = {
+  name: string;
+  count: number;
+  size_bytes: number;
+  storage_bytes: number;
+  index_bytes: number;
+};
+
+export type MongoDBResource = {
+  db_name: string;
+  collections: number;
+  objects: number;
+  data_size_bytes: number;
+  storage_size_bytes: number;
+  index_size_bytes: number;
+  free_tier_limit_bytes: number;
+  collection_details: MongoCollectionDetail[];
+};
+
+export async function getMongoDBResource(): Promise<MongoDBResource> {
+  const res = await request<{ data: MongoDBResource }>("/admin/resources/mongodb");
+  return res.data;
+}

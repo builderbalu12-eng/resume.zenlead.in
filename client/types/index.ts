@@ -84,6 +84,9 @@ export interface ATSScore {
   keywordMatches: string[];
   missingKeywords: string[];
   improvements: string[];
+  scoreBreakdown?: Record<string, number>;
+  improvementsList?: Array<{ issue: string; suggestion: string; impact: string }>;
+  issueCount?: number;
 }
 
 export interface User {

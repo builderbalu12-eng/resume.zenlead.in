@@ -88,7 +88,7 @@ export interface LoginData {
   password: string;
 }
 
-class APIClient {
+export class APIClient {
   private baseUrl: string;
 
   constructor(baseUrl: string) {
@@ -502,31 +502,42 @@ class APIClient {
     masterAtsScore: any;
   }> {
     const resumeText = JSON.stringify(masterResume);
-
-    // Extract job details from HTML text (basic extraction)
     const jobDescription = this.extractJobFromHtml(jobHtml);
 
-    // Call backend APIs in parallel
-    const [tailorResult, atsResult, masterAtsResult] = await Promise.all([
+    // Run tailor + before-ATS in parallel.
+    // The "after" ATS score is returned by the tailor endpoint (it scores the
+    // tailored resume server-side), so we never send an empty jobDescription.
+    const [tailorResult, masterAtsResult] = await Promise.all([
       this.tailorResume(resumeText, jobDescription),
-      this.getATSScore(resumeText, jobDescription),
-      this.getATSScore(resumeText, ""), // Empty job description for baseline
+      this.getATSScore(resumeText, jobDescription), // before-tailoring score
     ]);
+
+    const afterScore = tailorResult.estimatedATSScore ?? masterAtsResult.atsScore ?? 0;
 
     return {
       jobData: {
-        title: "Job Title", // Will be extracted from HTML
-        company: "Company", // Will be extracted from HTML
+        title: "Job Position",
+        company: "Company",
         description: jobDescription,
       },
-      tailoredResume: masterResume, // Backend will return tailored content
+      // Keep the original structured resume for DOCX generation.
+      tailoredResume: masterResume,
       atsScore: {
-        score: atsResult.atsScore || 0,
-        matchPercentage: atsResult.atsScore || 0,
-        keywordMatches: atsResult.topMissingKeywords || [],
+        score: afterScore,
+        matchPercentage: afterScore,
+        keywordMatches: tailorResult.optimizationNotes || [],
+        missingKeywords: masterAtsResult.topMissingKeywords || [],
+        improvements: [],
+        scoreBreakdown: masterAtsResult.scoreBreakdown || {},
+        improvementsList: masterAtsResult.improvements || [],
+        issueCount: (masterAtsResult.improvements || []).length,
       },
       masterAtsScore: {
         score: masterAtsResult.atsScore || 0,
+        matchPercentage: masterAtsResult.atsScore || 0,
+        keywordMatches: [],
+        missingKeywords: [],
+        improvements: [],
       },
     };
   }
