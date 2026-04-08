@@ -8,6 +8,9 @@ import { History } from "./pages/History";
 import { NotFound } from "./pages/NotFound";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
+import { AuthCallback } from "./pages/AuthCallback";
+import { PricingHub } from "./pages/PricingHub";
+import { Header } from "./components/Header";
 import { Settings } from "./components/Settings";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -41,9 +44,13 @@ function AppContent() {
         {/* Public Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
 
         {/* Public Landing Page - No Auth Required */}
         <Route path="/" element={<Dashboard />} />
+
+        {/* Pricing & Payments Hub */}
+        <Route path="/pricing" element={<PricingHub />} />
 
         {/* Protected Feature Routes */}
         <Route
