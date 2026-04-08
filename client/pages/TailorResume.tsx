@@ -186,19 +186,62 @@ export const TailorResume: React.FC = () => {
       // Convert resume to string for API
       const resumeStr = JSON.stringify(masterResume);
 
-      // Step 1: tailor + parse job in parallel; original ATS score also in parallel
-      const [tailorResult, parseResult, originalAtsResult] = await Promise.all([
-        apiClient.tailorResume(resumeStr, jobDescription),
-        apiClient.parseJob(jobDescription),
-        apiClient.getATSScore(resumeStr, jobDescription), // score the ORIGINAL resume for comparison
-      ]);
+      // Sequential calls to avoid hitting Gemini free-tier rate limit (5 RPM)
+      const tailorResult = await apiClient.tailorResume(resumeStr, jobDescription);
+      const parseResult = await apiClient.parseJob(jobDescription);
+      const originalAtsResult = await apiClient.getATSScore(resumeStr, jobDescription);
 
       // tailorResult.estimatedATSScore is now cross-validated (scored on the TAILORED resume by the backend)
       const tailoredAtsScore: number = tailorResult.estimatedATSScore || 0;
       const originalAtsScore: number = originalAtsResult.atsScore || 0;
 
+      // Map backend parse_job fields to frontend JobDescription type
+      const jobData: JobDescription = {
+        title: parseResult.jobTitle || '',
+        company: parseResult.company || '',
+        location: parseResult.location || '',
+        description: parseResult.description || jobDescription.substring(0, 500),
+        requirements: Array.isArray(parseResult.responsibilities)
+          ? parseResult.responsibilities
+          : (parseResult.preferredSkills || []),
+        skills: parseResult.requiredSkills || [],
+      };
+
+      // Merge tailored sections from backend response into the master resume structure
       const tailored: ResumeData = {
         ...masterResume,
+        summary: tailorResult.summary || masterResume.summary,
+        skills:
+          Array.isArray(tailorResult.skills) && tailorResult.skills.length > 0
+            ? tailorResult.skills.filter((s: string) =>
+                masterResume.skills.some(
+                  (ms) => ms.toLowerCase() === s.toLowerCase(),
+                ),
+              )
+            : masterResume.skills,
+        experience: masterResume.experience.map((exp) => {
+          const t = tailorResult.experience?.find(
+            (te: any) =>
+              te.title?.toLowerCase() === exp.title.toLowerCase() &&
+              te.company?.toLowerCase() === exp.company.toLowerCase(),
+          );
+          return {
+            ...exp,
+            description:
+              t?.description?.length > 0 ? t.description : exp.description,
+          };
+        }),
+        projects: masterResume.projects?.map((proj) => {
+          const t = tailorResult.projects?.find(
+            (tp: any) =>
+              tp.title?.toLowerCase() === proj.title.toLowerCase(),
+          );
+          return {
+            ...proj,
+            description:
+              t?.description?.trim() ? t.description : proj.description,
+          };
+        }),
       };
 
       clearTimeout(tailorTimeout);
@@ -206,8 +249,8 @@ export const TailorResume: React.FC = () => {
         tailored,
         atsScore: tailoredAtsScore,
         originalAtsScore,
-        jobData: parseResult,
-        scoreBreakdown: (originalAtsResult as any).scoreBreakdown || {},
+        jobData,
+        scoreBreakdown: (tailorResult as any).scoreBreakdown || (originalAtsResult as any).scoreBreakdown || {},
         issueCount: ((originalAtsResult as any).improvements || []).length,
       });
 

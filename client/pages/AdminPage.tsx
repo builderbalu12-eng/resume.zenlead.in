@@ -1133,7 +1133,20 @@ function GoogleResourcePanel() {
                         size="sm"
                         variant="ghost"
                         className="h-6 text-xs px-2"
-                        onClick={() => setSelectedModel(m.id)}
+                        disabled={saving}
+                        onClick={async () => {
+                          setSelectedModel(m.id);
+                          setSaving(true);
+                          try {
+                            await updateGeminiConfig({ model: m.id });
+                            toast.success(`Switched to ${m.name}`);
+                            load();
+                          } catch (e: any) {
+                            toast.error(e.message || "Switch failed");
+                          } finally {
+                            setSaving(false);
+                          }
+                        }}
                       >
                         Switch
                       </Button>

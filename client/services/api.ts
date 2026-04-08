@@ -504,24 +504,52 @@ export class APIClient {
     const resumeText = JSON.stringify(masterResume);
     const jobDescription = this.extractJobFromHtml(jobHtml);
 
-    // Run tailor + before-ATS in parallel.
-    // The "after" ATS score is returned by the tailor endpoint (it scores the
-    // tailored resume server-side), so we never send an empty jobDescription.
-    const [tailorResult, masterAtsResult] = await Promise.all([
-      this.tailorResume(resumeText, jobDescription),
-      this.getATSScore(resumeText, jobDescription), // before-tailoring score
-    ]);
+    // Sequential to avoid free-tier rate limits
+    const tailorResult = await this.tailorResume(resumeText, jobDescription);
+    const masterAtsResult = await this.getATSScore(resumeText, jobDescription);
 
     const afterScore = tailorResult.estimatedATSScore ?? masterAtsResult.atsScore ?? 0;
 
+    // Apply tailored sections from backend onto the master resume structure
+    const tailoredResume = {
+      ...masterResume,
+      ...(tailorResult.summary ? { summary: tailorResult.summary } : {}),
+      ...(Array.isArray(tailorResult.skills) && tailorResult.skills.length > 0
+        ? {
+            skills: tailorResult.skills.filter((s: string) =>
+              masterResume.skills?.some(
+                (ms: string) => ms.toLowerCase() === s.toLowerCase(),
+              ),
+            ),
+          }
+        : {}),
+      experience: (masterResume.experience || []).map((exp: any) => {
+        const t = tailorResult.experience?.find(
+          (te: any) =>
+            te.title?.toLowerCase() === exp.title?.toLowerCase() &&
+            te.company?.toLowerCase() === exp.company?.toLowerCase(),
+        );
+        return t?.description?.length > 0
+          ? { ...exp, description: t.description }
+          : exp;
+      }),
+      projects: (masterResume.projects || []).map((proj: any) => {
+        const t = tailorResult.projects?.find(
+          (tp: any) => tp.title?.toLowerCase() === proj.title?.toLowerCase(),
+        );
+        return t?.description?.trim()
+          ? { ...proj, description: t.description }
+          : proj;
+      }),
+    };
+
     return {
       jobData: {
-        title: "Job Position",
-        company: "Company",
+        title: tailorResult.jobTitle || '',
+        company: tailorResult.company || '',
         description: jobDescription,
       },
-      // Keep the original structured resume for DOCX generation.
-      tailoredResume: masterResume,
+      tailoredResume,
       atsScore: {
         score: afterScore,
         matchPercentage: afterScore,
@@ -543,9 +571,15 @@ export class APIClient {
   }
 
   private extractJobFromHtml(html: string): string {
-    // Basic extraction - just return the HTML as-is for now
-    // Backend will handle parsing it into structured data
-    return html;
+    // Strip scripts, styles, and HTML tags — send clean plain text to backend
+    return (html || "")
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .substring(0, 16000);
   }
 }
 
