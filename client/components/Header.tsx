@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppConfig } from '@/contexts/AppConfigContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, Menu, X, Sparkles, Clock, UserCircle2, Briefcase, Home, Wand2 } from 'lucide-react';
 
@@ -9,6 +10,7 @@ export const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { app_name: appName } = useAppConfig();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = () => {
@@ -45,7 +47,7 @@ export const Header: React.FC = () => {
             <Sparkles className="h-5 w-5" />
           </span>
           <span className="hidden md:block">
-            <span className="block text-lg font-bold text-slate-900 whitespace-nowrap">ResumeMatch</span>
+            <span className="block text-lg font-bold text-slate-900 whitespace-nowrap">{appName}</span>
           </span>
         </button>
 

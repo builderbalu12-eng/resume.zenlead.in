@@ -421,3 +421,41 @@ export async function updateAdminPlan(id: string, data: Partial<AdminPlan>): Pro
 export async function deleteAdminPlan(id: string): Promise<void> {
   await request(`/admin/plans/${id}`, { method: "DELETE" });
 }
+
+// ── App Config (Branding) ────────────────────────────────────
+
+export type SocialLinks = {
+  twitter: string;
+  linkedin: string;
+  github: string;
+  facebook: string;
+  instagram: string;
+  youtube: string;
+};
+
+export type Collaborator = {
+  name: string;
+  role: string;
+  image_url: string;
+};
+
+export type AppConfig = {
+  app_name: string;
+  support_email: string;
+  logo_url: string;
+  social_links: SocialLinks;
+  collaborators: Collaborator[];
+};
+
+export async function getAppConfig(): Promise<AppConfig> {
+  const res = await request<{ data: AppConfig }>("/admin/settings/app-config");
+  return res.data;
+}
+
+export async function updateAppConfig(data: Partial<AppConfig>): Promise<AppConfig> {
+  const res = await request<{ data: AppConfig }>("/admin/settings/app-config", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  return res.data;
+}

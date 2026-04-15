@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { LayoutDashboard, Users, Zap, Tag, Trash2, Plus, Save, Loader2, Eye, CreditCard, Cpu, RefreshCw, EyeOff, Database } from "lucide-react";
+import { LayoutDashboard, Users, Zap, Tag, Trash2, Plus, Save, Loader2, Eye, CreditCard, Cpu, RefreshCw, EyeOff, Database, HeartHandshake, Twitter, Linkedin, Github, Facebook, Instagram, Youtube } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,14 +22,17 @@ import {
   getJSearchResource, getJSearchDailyFeed,
   getDefaultCredits, updateDefaultCredits,
   listAdminPlans, updateAdminPlan, deleteAdminPlan,
+  getAppConfig, updateAppConfig,
   AdminStats, AdminUser, FeatureCost, AdminCoupon, CreateCouponData, CouponUsageEntry,
   AdminCreditLogEntry, AdminUserBilling,
   AnalyticsData, AnalyticsPeriod,
   GeminiResource, GeminiModel, MongoDBResource, JSearchResource,
   DailyFeedEntry, DailyFeedData, AdminPlan,
+  AppConfig, Collaborator,
 } from "@/services/adminService";
+import { AvatarGroup } from "@/components/AvatarGroup";
 
-type Tab = "overview" | "features" | "users" | "coupons" | "resources" | "plans";
+type Tab = "overview" | "features" | "users" | "coupons" | "resources" | "plans" | "support";
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "overview",   label: "Overview",        icon: LayoutDashboard },
@@ -38,6 +41,7 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: st
   { id: "users",      label: "Users",           icon: Users },
   { id: "coupons",    label: "Coupons",         icon: Tag },
   { id: "resources",  label: "Resources",       icon: Cpu },
+  { id: "support",    label: "Support",         icon: HeartHandshake },
 ];
 
 // ── Helpers ───────────────────────────────────────────────
@@ -1912,6 +1916,212 @@ function ResourcesTab() {
   );
 }
 
+// ── Support Tab ───────────────────────────────────────────
+
+const DEFAULT_SOCIAL: AppConfig["social_links"] = { twitter: "", linkedin: "", github: "", facebook: "", instagram: "", youtube: "" };
+const DEFAULT_CONFIG: AppConfig = { app_name: "LandYourJob", support_email: "zenlead.info@gmail.com", logo_url: "/logo/lo9o.png", social_links: DEFAULT_SOCIAL, collaborators: [] };
+
+function SupportTab() {
+  const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
+  const [loading, setLoading] = useState(true);
+  // identity form
+  const [identity, setIdentity] = useState({ app_name: "", support_email: "", logo_url: "" });
+  const [savingIdentity, setSavingIdentity] = useState(false);
+  // social form
+  const [social, setSocial] = useState<AppConfig["social_links"]>(DEFAULT_SOCIAL);
+  const [savingSocial, setSavingSocial] = useState(false);
+  // collaborators
+  const [collabs, setCollabs] = useState<Collaborator[]>([]);
+  const [savingCollabs, setSavingCollabs] = useState(false);
+  const [newCollab, setNewCollab] = useState<Collaborator>({ name: "", role: "", image_url: "" });
+
+  useEffect(() => {
+    getAppConfig()
+      .then((cfg) => {
+        setConfig(cfg);
+        setIdentity({ app_name: cfg.app_name, support_email: cfg.support_email, logo_url: cfg.logo_url });
+        setSocial({ ...DEFAULT_SOCIAL, ...cfg.social_links });
+        setCollabs(cfg.collaborators ?? []);
+      })
+      .catch(() => toast.error("Failed to load app config"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const saveIdentity = async () => {
+    setSavingIdentity(true);
+    try {
+      const updated = await updateAppConfig(identity);
+      setConfig((c) => ({ ...c, ...updated }));
+      toast.success("App identity saved");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSavingIdentity(false);
+    }
+  };
+
+  const saveSocial = async () => {
+    setSavingSocial(true);
+    try {
+      const updated = await updateAppConfig({ social_links: social });
+      setConfig((c) => ({ ...c, ...updated }));
+      toast.success("Social links saved");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSavingSocial(false);
+    }
+  };
+
+  const saveCollabs = async (list: Collaborator[]) => {
+    setSavingCollabs(true);
+    try {
+      const updated = await updateAppConfig({ collaborators: list });
+      setConfig((c) => ({ ...c, ...updated }));
+      setCollabs(list);
+      toast.success("Collaborators saved");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSavingCollabs(false);
+    }
+  };
+
+  const addCollab = () => {
+    if (!newCollab.name.trim()) return;
+    const next = [...collabs, { ...newCollab }];
+    setNewCollab({ name: "", role: "", image_url: "" });
+    saveCollabs(next);
+  };
+
+  const removeCollab = (i: number) => {
+    const next = collabs.filter((_, idx) => idx !== i);
+    saveCollabs(next);
+  };
+
+  const SOCIAL_FIELDS: { key: keyof AppConfig["social_links"]; label: string; icon: React.ReactNode; placeholder: string }[] = [
+    { key: "twitter",   label: "Twitter / X", icon: <Twitter className="h-4 w-4" />,   placeholder: "https://twitter.com/yourhandle" },
+    { key: "linkedin",  label: "LinkedIn",     icon: <Linkedin className="h-4 w-4" />,  placeholder: "https://linkedin.com/company/yourpage" },
+    { key: "github",    label: "GitHub",       icon: <Github className="h-4 w-4" />,    placeholder: "https://github.com/yourorg" },
+    { key: "facebook",  label: "Facebook",     icon: <Facebook className="h-4 w-4" />,  placeholder: "https://facebook.com/yourpage" },
+    { key: "instagram", label: "Instagram",    icon: <Instagram className="h-4 w-4" />, placeholder: "https://instagram.com/yourhandle" },
+    { key: "youtube",   label: "YouTube",      icon: <Youtube className="h-4 w-4" />,   placeholder: "https://youtube.com/@yourchannel" },
+  ];
+
+  if (loading) return <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading config…</div>;
+
+  return (
+    <div className="space-y-6">
+      {/* Card 1 — App Identity */}
+      <PremiumCard className="p-6">
+        <h2 className="text-base font-semibold text-foreground mb-4">App Identity</h2>
+        <div className="space-y-4 max-w-lg">
+          <div>
+            <label className="text-sm font-medium text-muted-foreground block mb-1">App Name</label>
+            <Input value={identity.app_name} onChange={(e) => setIdentity((p) => ({ ...p, app_name: e.target.value }))} placeholder="LandYourJob" />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-muted-foreground block mb-1">Support Email</label>
+            <Input value={identity.support_email} onChange={(e) => setIdentity((p) => ({ ...p, support_email: e.target.value }))} placeholder="support@example.com" type="email" />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-muted-foreground block mb-1">Logo URL</label>
+            <Input value={identity.logo_url} onChange={(e) => setIdentity((p) => ({ ...p, logo_url: e.target.value }))} placeholder="/logo/lo9o.png" />
+            {identity.logo_url && (
+              <div className="mt-2">
+                <img src={identity.logo_url} alt="Logo preview" className="h-12 w-12 rounded-xl object-contain bg-white border border-border shadow-sm" />
+              </div>
+            )}
+          </div>
+          <Button onClick={saveIdentity} disabled={savingIdentity} className="mt-2">
+            {savingIdentity ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</> : <><Save className="h-4 w-4 mr-2" />Save Identity</>}
+          </Button>
+        </div>
+      </PremiumCard>
+
+      {/* Card 2 — Social Links */}
+      <PremiumCard className="p-6">
+        <h2 className="text-base font-semibold text-foreground mb-4">Social Links</h2>
+        <div className="space-y-3 max-w-lg">
+          {SOCIAL_FIELDS.map(({ key, label, icon, placeholder }) => (
+            <div key={key} className="flex items-center gap-3">
+              <div className="flex items-center gap-2 w-32 shrink-0 text-muted-foreground text-sm">
+                {icon} {label}
+              </div>
+              <Input
+                value={social[key]}
+                onChange={(e) => setSocial((p) => ({ ...p, [key]: e.target.value }))}
+                placeholder={placeholder}
+                className="flex-1"
+              />
+            </div>
+          ))}
+          <Button onClick={saveSocial} disabled={savingSocial} className="mt-2">
+            {savingSocial ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</> : <><Save className="h-4 w-4 mr-2" />Save Social Links</>}
+          </Button>
+        </div>
+      </PremiumCard>
+
+      {/* Card 3 — Collaborators */}
+      <PremiumCard className="p-6">
+        <h2 className="text-base font-semibold text-foreground mb-1">Collaborators</h2>
+        <p className="text-sm text-muted-foreground mb-4">Shown in footer as an avatar group.</p>
+
+        {/* Live preview */}
+        {collabs.length > 0 && (
+          <div className="mb-4 p-3 rounded-xl bg-slate-900 flex items-center gap-3">
+            <span className="text-xs text-slate-500">Made with ❤️ by</span>
+            <AvatarGroup collaborators={collabs} max={4} size="sm" />
+          </div>
+        )}
+
+        {/* Existing list */}
+        {collabs.length > 0 && (
+          <div className="space-y-2 mb-4">
+            {collabs.map((c, i) => (
+              <div key={i} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-muted/30">
+                <div className="h-8 w-8 rounded-full overflow-hidden border border-border bg-muted shrink-0">
+                  {c.image_url
+                    ? <img src={c.image_url} alt={c.name} className="w-full h-full object-cover" />
+                    : <div className="w-full h-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold">{c.name.charAt(0)}</div>
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{c.name}</p>
+                  {c.role && <p className="text-xs text-muted-foreground truncate">{c.role}</p>}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive hover:text-destructive shrink-0"
+                  disabled={savingCollabs}
+                  onClick={() => removeCollab(i)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add new collaborator */}
+        <div className="border border-dashed border-border rounded-xl p-4 space-y-3">
+          <p className="text-sm font-medium text-foreground">Add Collaborator</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <Input value={newCollab.name} onChange={(e) => setNewCollab((p) => ({ ...p, name: e.target.value }))} placeholder="Name *" />
+            <Input value={newCollab.role} onChange={(e) => setNewCollab((p) => ({ ...p, role: e.target.value }))} placeholder="Role (e.g. Designer)" />
+            <Input value={newCollab.image_url} onChange={(e) => setNewCollab((p) => ({ ...p, image_url: e.target.value }))} placeholder="Image URL (optional)" />
+          </div>
+          <Button onClick={addCollab} disabled={savingCollabs || !newCollab.name.trim()} size="sm">
+            {savingCollabs ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
+            Add
+          </Button>
+        </div>
+      </PremiumCard>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────
 
 export const AdminPage: React.FC = () => {
@@ -1956,6 +2166,7 @@ export const AdminPage: React.FC = () => {
       {activeTab === "users"      && <UsersTab />}
       {activeTab === "coupons"    && <CouponsTab />}
       {activeTab === "resources"  && <ResourcesTab />}
+      {activeTab === "support"    && <SupportTab />}
     </Page>
   );
 };

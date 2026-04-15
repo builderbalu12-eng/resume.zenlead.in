@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useAppConfig } from "@/contexts/AppConfigContext";
 
 interface RazorpaySubscriptionCheckoutOptions {
   key: string;
@@ -29,6 +30,7 @@ export interface UseRazorpayCheckoutParams {
 }
 
 export function useRazorpayCheckout() {
+  const { app_name: appName } = useAppConfig();
   const openCheckout = useCallback(
     ({ subscriptionId, planName, onSuccess, onFailure }: UseRazorpayCheckoutParams) => {
       const RazorpayCtor = (window as { Razorpay?: new (o: RazorpaySubscriptionCheckoutOptions) => RazorpayInstance })
@@ -43,7 +45,7 @@ export function useRazorpayCheckout() {
       const options: RazorpaySubscriptionCheckoutOptions = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID as string,
         subscription_id: subscriptionId,
-        name: "ResumeMatch Pro",
+        name: appName,
         description: planName,
         theme: {
           color: "#6366f1",
@@ -65,7 +67,7 @@ export function useRazorpayCheckout() {
       const rzp = new RazorpayCtor(options);
       rzp.open();
     },
-    []
+    [appName]
   );
 
   return { openCheckout };

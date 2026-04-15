@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppConfig } from "@/contexts/AppConfigContext";
 import {
   Sidebar,
   SidebarContent,
@@ -21,6 +22,7 @@ import { ACCOUNT_NAV, ADMIN_NAV, PRIMARY_NAV } from "./nav";
 
 export function AppSidebar() {
   const { isAuthenticated, user } = useAuth();
+  const { app_name: appName, logo_url: logoUrl } = useAppConfig();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -60,12 +62,12 @@ export function AppSidebar() {
           }
         >
           <img
-            src="/logo/lo9o.png"
+            src={logoUrl}
             alt="Logo"
             className="size-10 rounded-xl object-contain shrink-0 bg-white shadow-sm group-data-[collapsible=icon]:hidden"
           />
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-semibold">ResumeMatch</span>
+            <span className="text-sm font-semibold">{appName}</span>
             <span className="text-xs text-sidebar-foreground/70">
               Premium tailoring
             </span>

@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import { Mail, Clock, MessageSquare } from "lucide-react";
+import { useAppConfig } from "@/contexts/AppConfigContext";
 
 export function Contact() {
+  const { app_name: appName, support_email: supportEmail } = useAppConfig();
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-16 px-4">
       <div className="max-w-2xl mx-auto">
@@ -18,7 +20,7 @@ export function Contact() {
 
         <div className="space-y-4">
           <a
-            href="mailto:support@zenlead.in"
+            href={`mailto:${supportEmail}`}
             className="flex items-start gap-4 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-blue-400 dark:hover:border-blue-500 transition-colors group"
           >
             <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40 transition-colors">
@@ -26,7 +28,7 @@ export function Contact() {
             </div>
             <div>
               <p className="font-bold text-slate-900 dark:text-white">Email Support</p>
-              <p className="text-blue-600 dark:text-blue-400 font-medium">support@zenlead.in</p>
+              <p className="text-blue-600 dark:text-blue-400 font-medium">{supportEmail}</p>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 For account issues, billing questions, and general inquiries
               </p>
@@ -69,7 +71,7 @@ export function Contact() {
           <p className="text-sm text-slate-600 dark:text-slate-400">
             ZenLead
             <br />
-            ResumeMatch Pro — AI Resume Tailoring
+            {appName} — AI Resume Tailoring
             <br />
             Website:{" "}
             <a href="https://landyourjob.zenlead.in" className="text-blue-600 dark:text-blue-400 underline">

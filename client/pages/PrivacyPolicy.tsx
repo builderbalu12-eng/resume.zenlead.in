@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
+import { useAppConfig } from "@/contexts/AppConfigContext";
 
 export function PrivacyPolicy() {
+  const { app_name: appName, support_email: supportEmail } = useAppConfig();
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-16 px-4">
       <div className="max-w-3xl mx-auto">
@@ -18,13 +20,13 @@ export function PrivacyPolicy() {
           <section>
             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">1. Who We Are</h2>
             <p>
-              ResumeMatch Pro ("we", "us", "our") is operated by ZenLead and available at{" "}
+              {appName} ("we", "us", "our") is operated by ZenLead and available at{" "}
               <a href="https://landyourjob.zenlead.in" className="text-blue-600 dark:text-blue-400 underline">
                 landyourjob.zenlead.in
               </a>. We provide an AI-powered resume tailoring web application and Chrome extension.
               For privacy questions, contact us at{" "}
-              <a href="mailto:support@zenlead.in" className="text-blue-600 dark:text-blue-400 underline">
-                support@zenlead.in
+              <a href={`mailto:${supportEmail}`} className="text-blue-600 dark:text-blue-400 underline">
+                {supportEmail}
               </a>.
             </p>
           </section>
@@ -60,7 +62,7 @@ export function PrivacyPolicy() {
           <section>
             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">3. Chrome Extension Data</h2>
             <p className="mb-3">
-              When you use the ResumeMatch Pro Chrome extension on a job posting page:
+              When you use the {appName} Chrome extension on a job posting page:
             </p>
             <ul className="list-disc list-inside space-y-1">
               <li>The extension reads the job description text from the page you are viewing</li>
@@ -149,8 +151,8 @@ export function PrivacyPolicy() {
             </ul>
             <p className="mt-3">
               To exercise any of these rights, email us at{" "}
-              <a href="mailto:support@zenlead.in" className="text-blue-600 dark:text-blue-400 underline">
-                support@zenlead.in
+              <a href={`mailto:${supportEmail}`} className="text-blue-600 dark:text-blue-400 underline">
+                {supportEmail}
               </a>.
             </p>
           </section>
@@ -165,7 +167,7 @@ export function PrivacyPolicy() {
           <section>
             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">10. Children's Privacy</h2>
             <p>
-              ResumeMatch Pro is not intended for users under the age of 18. We do not knowingly collect personal data from minors.
+              {appName} is not intended for users under the age of 18. We do not knowingly collect personal data from minors.
             </p>
           </section>
 
@@ -182,8 +184,8 @@ export function PrivacyPolicy() {
               For any privacy-related questions or data requests:
               <br />
               Email:{" "}
-              <a href="mailto:support@zenlead.in" className="text-blue-600 dark:text-blue-400 underline">
-                support@zenlead.in
+              <a href={`mailto:${supportEmail}`} className="text-blue-600 dark:text-blue-400 underline">
+                {supportEmail}
               </a>
               <br />
               Website:{" "}

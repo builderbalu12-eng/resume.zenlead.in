@@ -17,6 +17,7 @@ import { FindBusinessPage } from "./pages/FindBusinessPage";
 import ChatPage from "./pages/Chat";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
+import { AppConfigProvider } from "./contexts/AppConfigContext";
 import { AppShell } from "./components/layout/AppShell";
 import { PricingPage } from "./pages/PricingPage";
 import { BillingPage } from "./pages/BillingPage";
@@ -205,9 +206,11 @@ function AppContent() {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <AppConfigProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </AppConfigProvider>
     </BrowserRouter>
   );
 }

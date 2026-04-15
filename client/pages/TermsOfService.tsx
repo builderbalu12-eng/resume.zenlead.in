@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
+import { useAppConfig } from "@/contexts/AppConfigContext";
 
 export function TermsOfService() {
+  const { app_name: appName, support_email: supportEmail } = useAppConfig();
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-16 px-4">
       <div className="max-w-3xl mx-auto">
@@ -18,18 +20,18 @@ export function TermsOfService() {
           <section>
             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">1. Acceptance of Terms</h2>
             <p>
-              By creating an account or using ResumeMatch Pro ("the Service"), you agree to these Terms of Service. If you do not agree, please do not use the Service. These terms apply to the website at{" "}
+              By creating an account or using {appName} ("the Service"), you agree to these Terms of Service. If you do not agree, please do not use the Service. These terms apply to the website at{" "}
               <a href="https://landyourjob.zenlead.in" className="text-blue-600 dark:text-blue-400 underline">
                 landyourjob.zenlead.in
               </a>{" "}
-              and the ResumeMatch Pro Chrome extension.
+              and the {appName} Chrome extension.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">2. Description of Service</h2>
             <p>
-              ResumeMatch Pro provides AI-powered resume tailoring, ATS score analysis, job search assistance, and related tools. The service uses Google Gemini AI to process resume and job description data.
+              {appName} provides AI-powered resume tailoring, ATS score analysis, job search assistance, and related tools. The service uses Google Gemini AI to process resume and job description data.
             </p>
           </section>
 
@@ -91,7 +93,7 @@ export function TermsOfService() {
             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">8. Chrome Extension</h2>
             <ul className="list-disc list-inside space-y-1">
               <li>The extension reads job description content only when you click "Analyse Job"</li>
-              <li>The extension requires a valid ResumeMatch Pro account to function</li>
+              <li>The extension requires a valid {appName} account to function</li>
               <li>Extension features are subject to availability and may change over time</li>
             </ul>
           </section>
@@ -129,8 +131,8 @@ export function TermsOfService() {
             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">13. Contact</h2>
             <p>
               For questions about these terms:{" "}
-              <a href="mailto:support@zenlead.in" className="text-blue-600 dark:text-blue-400 underline">
-                support@zenlead.in
+              <a href={`mailto:${supportEmail}`} className="text-blue-600 dark:text-blue-400 underline">
+                {supportEmail}
               </a>
             </p>
           </section>

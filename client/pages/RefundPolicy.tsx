@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
+import { useAppConfig } from "@/contexts/AppConfigContext";
 
 export function RefundPolicy() {
+  const { support_email: supportEmail } = useAppConfig();
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-16 px-4">
       <div className="max-w-3xl mx-auto">
@@ -56,8 +58,8 @@ export function RefundPolicy() {
             <p className="mb-3">To request a refund for a billing error:</p>
             <ol className="list-decimal list-inside space-y-1">
               <li>Email{" "}
-                <a href="mailto:support@zenlead.in" className="text-blue-600 dark:text-blue-400 underline">
-                  support@zenlead.in
+                <a href={`mailto:${supportEmail}`} className="text-blue-600 dark:text-blue-400 underline">
+                  {supportEmail}
                 </a>{" "}
                 with subject line: <strong>"Refund Request"</strong></li>
               <li>Include your registered email address</li>
@@ -78,8 +80,8 @@ export function RefundPolicy() {
             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">7. Contact</h2>
             <p>
               Email:{" "}
-              <a href="mailto:support@zenlead.in" className="text-blue-600 dark:text-blue-400 underline">
-                support@zenlead.in
+              <a href={`mailto:${supportEmail}`} className="text-blue-600 dark:text-blue-400 underline">
+                {supportEmail}
               </a>
               <br />
               Response time: within 2 business days

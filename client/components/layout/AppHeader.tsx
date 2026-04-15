@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppConfig } from "@/contexts/AppConfigContext";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
@@ -35,6 +36,7 @@ export function AppHeader({
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { logo_url: logoUrl } = useAppConfig();
 
   const title = getRouteTitle(location.pathname);
 
@@ -50,7 +52,7 @@ export function AppHeader({
         <SidebarTrigger className="md:mr-1" />
 
         <img
-          src="/logo/lo9o.png"
+          src={logoUrl}
           alt="Logo"
           className="h-7 w-7 rounded-lg object-contain bg-white shrink-0"
         />

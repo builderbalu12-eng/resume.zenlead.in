@@ -6,16 +6,25 @@ import {
   Briefcase,
   MapPin,
   MessageSquare,
+  Twitter,
+  Linkedin,
+  Github,
+  Facebook,
+  Instagram,
+  Youtube,
 } from "lucide-react";
 import { ResumeData } from "@/types";
 import { getMasterResume } from "@/utils/storage";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppConfig } from "@/contexts/AppConfigContext";
+import { AvatarGroup } from "@/components/AvatarGroup";
 import { WhatYouCanObtain } from "@/components/WhatYouCanObtain";
 import Lottie from "lottie-react";
 import { FloatingChatButton } from "@/components/chat/FloatingChatButton";
 
 export const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
+  const { app_name: appName, support_email: supportEmail, social_links: socialLinks, collaborators } = useAppConfig();
   const [masterResume, setMasterResume] = useState<ResumeData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedSummary, setExpandedSummary] = useState(false);
@@ -460,7 +469,7 @@ export const Dashboard: React.FC = () => {
                               <Zap className="h-4 w-4 text-white" />
                             </div>
                             <div>
-                              <p className="text-xs font-bold text-white">ResumeMatch Pro</p>
+                              <p className="text-xs font-bold text-white">{appName}</p>
                               <p className="text-[10px] text-violet-200">Chrome Extension</p>
                             </div>
                             <div className="ml-auto flex gap-1">
@@ -976,11 +985,61 @@ export const Dashboard: React.FC = () => {
               <p className="text-white font-bold mb-3 text-sm">Support</p>
               <ul className="space-y-2 text-sm">
                 <li><Link to="/contact" className="hover:text-white transition-colors">Contact Us</Link></li>
+                {supportEmail && (
+                  <li>
+                    <a href={`mailto:${supportEmail}`} className="hover:text-white transition-colors text-xs">
+                      {supportEmail}
+                    </a>
+                  </li>
+                )}
               </ul>
+              {/* Social Links */}
+              {Object.values(socialLinks).some(Boolean) && (
+                <div className="flex flex-wrap gap-3 mt-4">
+                  {socialLinks.twitter && (
+                    <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="Twitter">
+                      <Twitter className="h-4 w-4" />
+                    </a>
+                  )}
+                  {socialLinks.linkedin && (
+                    <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="LinkedIn">
+                      <Linkedin className="h-4 w-4" />
+                    </a>
+                  )}
+                  {socialLinks.github && (
+                    <a href={socialLinks.github} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="GitHub">
+                      <Github className="h-4 w-4" />
+                    </a>
+                  )}
+                  {socialLinks.facebook && (
+                    <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="Facebook">
+                      <Facebook className="h-4 w-4" />
+                    </a>
+                  )}
+                  {socialLinks.instagram && (
+                    <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="Instagram">
+                      <Instagram className="h-4 w-4" />
+                    </a>
+                  )}
+                  {socialLinks.youtube && (
+                    <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors" aria-label="YouTube">
+                      <Youtube className="h-4 w-4" />
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <div className="border-t border-slate-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-            <p>© {new Date().getFullYear()} ResumeMatch Pro · ZenLead. All rights reserved.</p>
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <p>© {new Date().getFullYear()} {appName} · ZenLead. All rights reserved.</p>
+              {collaborators.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-600">Made with ❤️ by</span>
+                  <AvatarGroup collaborators={collaborators} max={4} size="sm" />
+                </div>
+              )}
+            </div>
             <div className="flex gap-4">
               <Link to="/privacy-policy" className="hover:text-slate-300 transition-colors">Privacy</Link>
               <Link to="/terms" className="hover:text-slate-300 transition-colors">Terms</Link>

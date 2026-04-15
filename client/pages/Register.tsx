@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Loader } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppConfig } from '@/contexts/AppConfigContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -31,6 +32,7 @@ export const Register: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { register, isLoading, error, clearError, getGoogleAuthUrl } = useAuth();
+  const { app_name: appName, logo_url: logoUrl } = useAppConfig();
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -109,12 +111,12 @@ export const Register: React.FC = () => {
         <div className="bg-card border border-border rounded-lg shadow-lg p-8">
           {/* Header */}
           <div className="mb-8">
-            <img src="/logo/lo9o.png" alt="Logo" className="h-12 w-12 rounded-xl object-contain mb-4" />
+            <img src={logoUrl} alt="Logo" className="h-12 w-12 rounded-xl object-contain mb-4" />
             <h1 className="text-3xl font-bold text-foreground mb-2">
               Create Account
             </h1>
             <p className="text-muted-foreground">
-              Join ResumeMatch and start tailoring your resumes
+              Join {appName} and start tailoring your resumes
             </p>
           </div>
 
@@ -264,7 +266,7 @@ export const Register: React.FC = () => {
 
         {/* Footer */}
         <p className="text-center text-sm text-muted-foreground mt-6">
-          © 2024 ResumeMatch Pro. All rights reserved.
+          © 2024 {appName}. All rights reserved.
         </p>
       </div>
     </div>
