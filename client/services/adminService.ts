@@ -374,3 +374,50 @@ export async function getJSearchDailyFeed(date?: string, page = 1): Promise<Dail
   const res = await request<{ data: DailyFeedData }>(`/admin/resources/jsearch/daily-feed?${params}`);
   return res.data;
 }
+
+// ── Default Credits ──────────────────────────────────────────
+
+export async function getDefaultCredits(): Promise<number> {
+  const res = await request<{ default_credits: number }>("/admin/settings/default-credits");
+  return res.default_credits;
+}
+
+export async function updateDefaultCredits(credits: number): Promise<number> {
+  const res = await request<{ default_credits: number }>("/admin/settings/default-credits", {
+    method: "PATCH",
+    body: JSON.stringify({ credits }),
+  });
+  return res.default_credits;
+}
+
+// ── Plans ────────────────────────────────────────────────────
+
+export type AdminPlan = {
+  _id: string;
+  plan_name: string;
+  amount: number;
+  currency: string;
+  billing_cycle: string;
+  credits_per_cycle: number;
+  points: string[] | null;
+  description: string | null;
+  is_active: boolean;
+  razorpay_plan_id: string | null;
+  is_recurring: boolean;
+};
+
+export async function listAdminPlans(): Promise<AdminPlan[]> {
+  const res = await request<{ data: { items: AdminPlan[] } }>("/admin/plans?active_only=false");
+  return res.data.items;
+}
+
+export async function updateAdminPlan(id: string, data: Partial<AdminPlan>): Promise<AdminPlan> {
+  return request<AdminPlan>(`/admin/plans/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteAdminPlan(id: string): Promise<void> {
+  await request(`/admin/plans/${id}`, { method: "DELETE" });
+}

@@ -20,18 +20,21 @@ import {
   getAdminAnalytics,
   getGeminiResource, updateGeminiConfig, listGeminiModels, getMongoDBResource,
   getJSearchResource, getJSearchDailyFeed,
+  getDefaultCredits, updateDefaultCredits,
+  listAdminPlans, updateAdminPlan, deleteAdminPlan,
   AdminStats, AdminUser, FeatureCost, AdminCoupon, CreateCouponData, CouponUsageEntry,
   AdminCreditLogEntry, AdminUserBilling,
   AnalyticsData, AnalyticsPeriod,
   GeminiResource, GeminiModel, MongoDBResource, JSearchResource,
-  DailyFeedEntry, DailyFeedData,
+  DailyFeedEntry, DailyFeedData, AdminPlan,
 } from "@/services/adminService";
 
-type Tab = "overview" | "features" | "users" | "coupons" | "resources";
+type Tab = "overview" | "features" | "users" | "coupons" | "resources" | "plans";
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "overview",   label: "Overview",        icon: LayoutDashboard },
   { id: "features",   label: "Feature Credits", icon: Zap },
+  { id: "plans",      label: "Plans & Pricing", icon: CreditCard },
   { id: "users",      label: "Users",           icon: Users },
   { id: "coupons",    label: "Coupons",         icon: Tag },
   { id: "resources",  label: "Resources",       icon: Cpu },
@@ -1628,6 +1631,245 @@ function JSearchResourcePanel() {
   );
 }
 
+// ── Plans & Pricing Tab ───────────────────────────────────────
+
+function PlansTab() {
+  const [plans, setPlans] = useState<AdminPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [defaultCredits, setDefaultCredits] = useState<number>(150);
+  const [creditsInput, setCreditsInput] = useState<string>("150");
+  const [savingCredits, setSavingCredits] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<Partial<AdminPlan>>({});
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [p, c] = await Promise.all([listAdminPlans(), getDefaultCredits()]);
+      setPlans(p);
+      setDefaultCredits(c);
+      setCreditsInput(String(c));
+    } catch { toast.error("Failed to load plans"); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleSaveCredits = async () => {
+    const val = parseFloat(creditsInput);
+    if (isNaN(val) || val < 0) { toast.error("Enter a valid number"); return; }
+    setSavingCredits(true);
+    try {
+      const updated = await updateDefaultCredits(val);
+      setDefaultCredits(updated);
+      toast.success("Default signup credits updated");
+    } catch { toast.error("Failed to update"); }
+    finally { setSavingCredits(false); }
+  };
+
+  const startEdit = (plan: AdminPlan) => {
+    setEditingId(plan._id);
+    setEditDraft({
+      plan_name: plan.plan_name,
+      amount: plan.amount,
+      credits_per_cycle: plan.credits_per_cycle,
+      points: plan.points ?? [],
+      is_active: plan.is_active,
+      description: plan.description ?? "",
+    });
+  };
+
+  const handleSavePlan = async (id: string) => {
+    setSaving(true);
+    try {
+      await updateAdminPlan(id, editDraft);
+      toast.success("Plan updated");
+      setEditingId(null);
+      load();
+    } catch { toast.error("Failed to save plan"); }
+    finally { setSaving(false); }
+  };
+
+  const handleToggleActive = async (plan: AdminPlan) => {
+    try {
+      await updateAdminPlan(plan._id, { is_active: !plan.is_active });
+      toast.success(plan.is_active ? "Plan deactivated" : "Plan activated");
+      load();
+    } catch { toast.error("Failed to toggle plan"); }
+  };
+
+  if (loading) return (
+    <div className="flex justify-center py-12">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* ── Default Signup Credits ── */}
+      <PremiumCard className="p-6" hover={false}>
+        <h2 className="text-base font-semibold mb-1">Default Signup Credits</h2>
+        <p className="text-xs text-muted-foreground mb-4">
+          Credits given to every new user when they register. Currently <strong>{defaultCredits}</strong>.
+        </p>
+        <div className="flex items-center gap-3 max-w-sm">
+          <Input
+            type="number"
+            min="0"
+            value={creditsInput}
+            onChange={(e) => setCreditsInput(e.target.value)}
+            className="w-36"
+          />
+          <Button onClick={handleSaveCredits} disabled={savingCredits}>
+            {savingCredits ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+          </Button>
+        </div>
+      </PremiumCard>
+
+      {/* ── Plan Editor ── */}
+      <PremiumCard className="p-6" hover={false}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-base font-semibold">Plans & Pricing</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Edit price, credits, features, and active status</p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={load}><RefreshCw className="h-4 w-4" /></Button>
+        </div>
+
+        <div className="space-y-3">
+          {plans.map((plan) => (
+            <div
+              key={plan._id}
+              className={cn(
+                "border rounded-xl overflow-hidden",
+                plan.is_active ? "border-border" : "border-border/40 opacity-60",
+              )}
+            >
+              {/* Plan header */}
+              <div className="flex items-center justify-between px-4 py-3 bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <span className={cn(
+                    "text-xs font-medium px-2 py-0.5 rounded-full",
+                    plan.is_active
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      : "bg-muted text-muted-foreground",
+                  )}>
+                    {plan.is_active ? "Active" : "Inactive"}
+                  </span>
+                  <span className="font-semibold text-sm">{plan.plan_name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {plan.currency} {plan.amount} / {plan.billing_cycle}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost" size="sm"
+                    onClick={() => handleToggleActive(plan)}
+                    className="text-xs h-7"
+                  >
+                    {plan.is_active ? "Deactivate" : "Activate"}
+                  </Button>
+                  <Button
+                    variant="outline" size="sm"
+                    onClick={() => editingId === plan._id ? setEditingId(null) : startEdit(plan)}
+                    className="text-xs h-7"
+                  >
+                    {editingId === plan._id ? "Cancel" : "Edit"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Edit form */}
+              {editingId === plan._id && (
+                <div className="px-4 py-4 space-y-4 bg-background">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1">Plan Name</label>
+                      <Input
+                        value={editDraft.plan_name ?? ""}
+                        onChange={(e) => setEditDraft(d => ({ ...d, plan_name: e.target.value }))}
+                        className="text-sm h-8"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1">
+                        Price ({plan.currency})
+                      </label>
+                      <Input
+                        type="number" min="0" step="0.01"
+                        value={editDraft.amount ?? 0}
+                        onChange={(e) => setEditDraft(d => ({ ...d, amount: parseFloat(e.target.value) || 0 }))}
+                        className="text-sm h-8"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1">Credits / Cycle</label>
+                      <Input
+                        type="number" min="0"
+                        value={editDraft.credits_per_cycle ?? 0}
+                        onChange={(e) => setEditDraft(d => ({ ...d, credits_per_cycle: parseFloat(e.target.value) || 0 }))}
+                        className="text-sm h-8"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1">Description</label>
+                      <Input
+                        value={editDraft.description ?? ""}
+                        onChange={(e) => setEditDraft(d => ({ ...d, description: e.target.value }))}
+                        className="text-sm h-8"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Points editor */}
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1">
+                      Feature Points (one per line)
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={(editDraft.points ?? []).join("\n")}
+                      onChange={(e) => setEditDraft(d => ({
+                        ...d,
+                        points: e.target.value.split("\n").map(s => s.trim()).filter(Boolean),
+                      }))}
+                      className="w-full text-sm rounded-md border border-border bg-background px-3 py-2 resize-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      placeholder="100 AI resume tailors per month&#10;Advanced ATS scoring&#10;Priority support"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={() => handleSavePlan(plan._id)}
+                    disabled={saving}
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  >
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    Save Changes
+                  </Button>
+                </div>
+              )}
+
+              {/* Read-only summary */}
+              {editingId !== plan._id && (
+                <div className="px-4 py-2.5 flex items-center gap-6 text-xs text-muted-foreground">
+                  <span><strong className="text-foreground">{plan.credits_per_cycle}</strong> credits/cycle</span>
+                  {plan.points && plan.points.length > 0 && (
+                    <span>{plan.points.length} feature points</span>
+                  )}
+                  {plan.razorpay_plan_id && (
+                    <span className="font-mono">{plan.razorpay_plan_id}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </PremiumCard>
+    </div>
+  );
+}
+
 // ── Resources Tab (outer, with inner sub-tabs) ─────────────
 
 function ResourcesTab() {
@@ -1710,6 +1952,7 @@ export const AdminPage: React.FC = () => {
 
       {activeTab === "overview"   && <OverviewTab />}
       {activeTab === "features"   && <FeaturesTab />}
+      {activeTab === "plans"      && <PlansTab />}
       {activeTab === "users"      && <UsersTab />}
       {activeTab === "coupons"    && <CouponsTab />}
       {activeTab === "resources"  && <ResourcesTab />}
