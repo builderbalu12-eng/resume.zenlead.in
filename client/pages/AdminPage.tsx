@@ -18,11 +18,13 @@ import {
   listAdminCoupons, createAdminCoupon, deleteAdminCoupon, getCouponUsage,
   getUserCreditsLog, getUserBilling,
   getAdminAnalytics,
-  getGeminiResource, updateGeminiConfig, listGeminiModels, getMongoDBResource, getJSearchResource,
+  getGeminiResource, updateGeminiConfig, listGeminiModels, getMongoDBResource,
+  getJSearchResource, getJSearchDailyFeed,
   AdminStats, AdminUser, FeatureCost, AdminCoupon, CreateCouponData, CouponUsageEntry,
   AdminCreditLogEntry, AdminUserBilling,
   AnalyticsData, AnalyticsPeriod,
   GeminiResource, GeminiModel, MongoDBResource, JSearchResource,
+  DailyFeedEntry, DailyFeedData,
 } from "@/services/adminService";
 
 type Tab = "overview" | "features" | "users" | "coupons" | "resources";
@@ -1316,11 +1318,108 @@ function VercelResourcePanel() {
   );
 }
 
+// ── Site badge colour ────────────────────────────────────────
+const SITE_COLORS: Record<string, string> = {
+  jsearch:  "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
+  indeed:   "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  linkedin: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
+  naukri:   "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+  google:   "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+};
+const siteBadge = (site: string) =>
+  SITE_COLORS[site.toLowerCase()] ?? "bg-muted text-muted-foreground";
+
+// ── Collapsible feed entry card ───────────────────────────────
+function FeedEntryCard({ entry }: { entry: DailyFeedEntry }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border border-border rounded-lg overflow-hidden">
+      {/* Header row */}
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+      >
+        <div className="min-w-0">
+          <p className="text-sm font-medium truncate">
+            <span className="text-muted-foreground text-xs mr-2">{entry.user_email}</span>
+            {entry.search_term}
+            <span className="text-muted-foreground font-normal"> · {entry.location}</span>
+          </p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className="text-xs text-muted-foreground">{entry.total_jobs} jobs</span>
+            {Object.entries(entry.site_breakdown).map(([site, cnt]) => (
+              <span key={site} className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${siteBadge(site)}`}>
+                {site} {cnt}
+              </span>
+            ))}
+          </div>
+        </div>
+        <span className="text-xs text-muted-foreground shrink-0 ml-4">
+          {new Date(entry.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          {open ? " ▲" : " ▼"}
+        </span>
+      </button>
+
+      {/* Expanded job list */}
+      {open && (
+        <div className="divide-y divide-border">
+          {entry.jobs.map((job, i) => (
+            <div key={i} className="px-4 py-2.5 flex items-start gap-3 hover:bg-muted/20 transition-colors">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <a
+                    href={job.job_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium hover:underline text-foreground truncate"
+                  >
+                    {job.title}
+                  </a>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium shrink-0 ${siteBadge(job.site)}`}>
+                    {job.site}
+                  </span>
+                  {job.is_remote && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 font-medium shrink-0">
+                      Remote
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {job.company} · {job.location}
+                </p>
+                {job.description_summary && (
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{job.description_summary}</p>
+                )}
+              </div>
+              {job.fit_score > 0 && (
+                <span className={`text-xs font-bold shrink-0 px-2 py-1 rounded-md ${
+                  job.fit_score >= 80 ? "bg-green-100 text-green-700" :
+                  job.fit_score >= 60 ? "bg-yellow-100 text-yellow-700" :
+                  "bg-muted text-muted-foreground"
+                }`}>
+                  {job.fit_score}%
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── JSearch / RapidAPI sub-tab ──────────────────────────────
 
 function JSearchResourcePanel() {
   const [data, setData] = useState<JSearchResource | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Daily feed state
+  const [feedDate, setFeedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [feedData, setFeedData] = useState<DailyFeedData | null>(null);
+  const [feedLoading, setFeedLoading] = useState(false);
+  const [feedPage, setFeedPage] = useState(1);
 
   const load = () => {
     setLoading(true);
@@ -1330,7 +1429,16 @@ function JSearchResourcePanel() {
       .finally(() => setLoading(false));
   };
 
+  const loadFeed = (date: string, page: number) => {
+    setFeedLoading(true);
+    getJSearchDailyFeed(date, page)
+      .then(d => { setFeedData(d); setFeedPage(page); })
+      .catch(() => toast.error("Failed to load daily feed"))
+      .finally(() => setFeedLoading(false));
+  };
+
   useEffect(() => { load(); }, []);
+  useEffect(() => { loadFeed(feedDate, 1); }, [feedDate]);
 
   if (loading) return (
     <div className="flex justify-center py-12">
@@ -1338,97 +1446,185 @@ function JSearchResourcePanel() {
     </div>
   );
 
-  const callsToday   = data?.calls_today ?? 0;
-  const limit        = data?.requests_limit ?? 200;
-  const remaining    = data?.requests_remaining ?? 200;
-  const usagePct     = Math.min(100, Math.round((callsToday / limit) * 100));
-  const usageColor   = usagePct >= 90 ? "#ef4444" : usagePct >= 70 ? "#f97316" : "#10b981";
+  const callsToday = data?.calls_today ?? 0;
+  const limit      = data?.requests_limit ?? 200;
+  const remaining  = data?.requests_remaining ?? 200;
+  const usagePct   = Math.min(100, Math.round((callsToday / limit) * 100));
+  const usageColor = usagePct >= 90 ? "#ef4444" : usagePct >= 70 ? "#f97316" : "#10b981";
+
+  // Quick date buttons
+  const today     = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
 
   return (
-    <PremiumCard className="p-6" hover={false}>
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-lg">
-            🔍
+    <div className="space-y-5">
+      {/* ── Quota card ── */}
+      <PremiumCard className="p-6" hover={false}>
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-lg">🔍</div>
+            <div>
+              <h2 className="text-base font-semibold">JSearch API (RapidAPI)</h2>
+              {data?.last_updated && (
+                <p className="text-xs text-muted-foreground">
+                  Last call: {new Date(data.last_updated).toLocaleString()}
+                </p>
+              )}
+            </div>
           </div>
+          <Button variant="ghost" size="icon" onClick={load} title="Refresh">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="mb-4">
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">API Key</label>
+          <code className="text-sm font-mono bg-muted px-2 py-1 rounded">{data?.api_key_masked || "—"}</code>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 mb-5">
+          <div className="bg-muted/40 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold" style={{ color: usageColor }}>{callsToday}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Calls Today</p>
+          </div>
+          <div className="bg-muted/40 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold text-green-500">{remaining}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Remaining</p>
+          </div>
+          <div className="bg-muted/40 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold">{limit}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Daily Limit</p>
+          </div>
+        </div>
+
+        <div className="mb-5">
+          <div className="flex justify-between text-xs text-muted-foreground mb-1">
+            <span>Usage today</span><span>{usagePct}%</span>
+          </div>
+          <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${usagePct}%`, backgroundColor: usageColor }} />
+          </div>
+          {data?.requests_reset && (
+            <p className="text-xs text-muted-foreground mt-1">Resets: {data.requests_reset}</p>
+          )}
+        </div>
+
+        {data && data.usage_history.length > 0 && (
           <div>
-            <h2 className="text-base font-semibold">JSearch API (RapidAPI)</h2>
-            {data?.last_updated && (
-              <p className="text-xs text-muted-foreground">
-                Last call: {new Date(data.last_updated).toLocaleString()}
-              </p>
+            <p className="text-xs font-medium text-muted-foreground mb-2">30-Day Call History</p>
+            <ResponsiveContainer width="100%" height={120}>
+              <BarChart data={data.usage_history} barSize={8}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(d) => d.slice(5)} />
+                <YAxis tick={{ fontSize: 10 }} width={28} />
+                <Tooltip contentStyle={{ fontSize: 12 }} formatter={(v: number) => [v, "Calls"]} />
+                <Bar dataKey="calls" fill={usageColor} radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        <p className="text-xs text-muted-foreground mt-4">
+          Free tier: 200 requests/day. Upgrade at rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch.
+        </p>
+      </PremiumCard>
+
+      {/* ── Daily Recommended Jobs viewer ── */}
+      <PremiumCard className="p-6" hover={false}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-base font-semibold">Daily Recommended Jobs</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Jobs fetched by the 6 AM cron for each user
+            </p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={() => loadFeed(feedDate, feedPage)} title="Refresh">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Date selector */}
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setFeedDate(today)}
+            className={cn(
+              "px-3 py-1.5 rounded-md text-sm font-medium border transition-colors",
+              feedDate === today
+                ? "bg-primary text-primary-foreground border-primary"
+                : "border-border text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            onClick={() => setFeedDate(yesterday)}
+            className={cn(
+              "px-3 py-1.5 rounded-md text-sm font-medium border transition-colors",
+              feedDate === yesterday
+                ? "bg-primary text-primary-foreground border-primary"
+                : "border-border text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Yesterday
+          </button>
+          <input
+            type="date"
+            value={feedDate}
+            max={today}
+            onChange={(e) => setFeedDate(e.target.value)}
+            className="h-8 px-2 text-sm rounded-md border border-border bg-background text-foreground"
+          />
+          {feedData && (
+            <span className="text-xs text-muted-foreground ml-auto">
+              {feedData.total} feed entries
+            </span>
+          )}
+        </div>
+
+        {feedLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : feedData && feedData.entries.length === 0 ? (
+          <div className="text-center py-10 text-muted-foreground text-sm">
+            No jobs were recommended on {feedDate}.<br />
+            <span className="text-xs">Cron runs at 6 AM IST. If users have no job preferences or past searches, nothing is fetched.</span>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {feedData?.entries.map((entry, i) => (
+              <FeedEntryCard key={i} entry={entry} />
+            ))}
+
+            {/* Pagination */}
+            {feedData && feedData.total_pages > 1 && (
+              <div className="flex justify-center items-center gap-3 pt-2">
+                <Button
+                  variant="outline" size="sm"
+                  disabled={feedPage === 1}
+                  onClick={() => loadFeed(feedDate, feedPage - 1)}
+                >
+                  ← Prev
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  {feedPage} / {feedData.total_pages}
+                </span>
+                <Button
+                  variant="outline" size="sm"
+                  disabled={feedPage === feedData.total_pages}
+                  onClick={() => loadFeed(feedDate, feedPage + 1)}
+                >
+                  Next →
+                </Button>
+              </div>
             )}
           </div>
-        </div>
-        <Button variant="ghost" size="icon" onClick={load} title="Refresh">
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* Key masked */}
-      <div className="mb-4">
-        <label className="text-xs font-medium text-muted-foreground mb-1 block">API Key</label>
-        <code className="text-sm font-mono bg-muted px-2 py-1 rounded">{data?.api_key_masked || "—"}</code>
-      </div>
-
-      {/* Usage stats */}
-      <div className="grid grid-cols-3 gap-4 mb-5">
-        <div className="bg-muted/40 rounded-lg p-3 text-center">
-          <p className="text-2xl font-bold" style={{ color: usageColor }}>{callsToday}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Calls Today</p>
-        </div>
-        <div className="bg-muted/40 rounded-lg p-3 text-center">
-          <p className="text-2xl font-bold text-green-500">{remaining}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Remaining</p>
-        </div>
-        <div className="bg-muted/40 rounded-lg p-3 text-center">
-          <p className="text-2xl font-bold">{limit}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Daily Limit</p>
-        </div>
-      </div>
-
-      {/* Progress bar */}
-      <div className="mb-5">
-        <div className="flex justify-between text-xs text-muted-foreground mb-1">
-          <span>Usage today</span>
-          <span>{usagePct}%</span>
-        </div>
-        <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${usagePct}%`, backgroundColor: usageColor }}
-          />
-        </div>
-        {data?.requests_reset && (
-          <p className="text-xs text-muted-foreground mt-1">
-            Resets: {data.requests_reset}
-          </p>
         )}
-      </div>
-
-      {/* 30-day chart */}
-      {data && data.usage_history.length > 0 && (
-        <div>
-          <p className="text-xs font-medium text-muted-foreground mb-2">30-Day Call History</p>
-          <ResponsiveContainer width="100%" height={120}>
-            <BarChart data={data.usage_history} barSize={8}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(d) => d.slice(5)} />
-              <YAxis tick={{ fontSize: 10 }} width={28} />
-              <Tooltip
-                contentStyle={{ fontSize: 12 }}
-                formatter={(v: number) => [v, "Calls"]}
-              />
-              <Bar dataKey="calls" fill={usageColor} radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      <p className="text-xs text-muted-foreground mt-4">
-        Free tier: 200 requests/day. Upgrade at rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch.
-      </p>
-    </PremiumCard>
+      </PremiumCard>
+    </div>
   );
 }
 

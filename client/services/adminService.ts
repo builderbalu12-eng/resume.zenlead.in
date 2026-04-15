@@ -338,3 +338,39 @@ export async function getJSearchResource(): Promise<JSearchResource> {
   const res = await request<{ data: JSearchResource }>("/admin/resources/jsearch");
   return res.data;
 }
+
+export type DailyFeedJob = {
+  title: string;
+  company: string;
+  location: string;
+  site: string;
+  fit_score: number;
+  job_url: string;
+  is_remote: boolean | null;
+  description_summary: string;
+};
+
+export type DailyFeedEntry = {
+  user_email: string;
+  search_term: string;
+  location: string;
+  total_jobs: number;
+  site_breakdown: Record<string, number>;
+  created_at: string;
+  jobs: DailyFeedJob[];
+};
+
+export type DailyFeedData = {
+  date: string;
+  total: number;
+  page: number;
+  total_pages: number;
+  entries: DailyFeedEntry[];
+};
+
+export async function getJSearchDailyFeed(date?: string, page = 1): Promise<DailyFeedData> {
+  const params = new URLSearchParams({ page: String(page) });
+  if (date) params.set("date", date);
+  const res = await request<{ data: DailyFeedData }>(`/admin/resources/jsearch/daily-feed?${params}`);
+  return res.data;
+}
