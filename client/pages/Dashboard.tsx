@@ -13,6 +13,7 @@ import {
   Instagram,
   Youtube,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { ResumeData } from "@/types";
 import { getMasterResume } from "@/utils/storage";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +22,9 @@ import { AvatarGroup } from "@/components/AvatarGroup";
 import { WhatYouCanObtain } from "@/components/WhatYouCanObtain";
 import Lottie from "lottie-react";
 import { FloatingChatButton } from "@/components/chat/FloatingChatButton";
+import { FloatingBlobs } from "@/components/motion/FloatingBlobs";
+import { BlurFade, FadeIn, MountSlideUp, StaggerParent, FadeInItem } from "@/components/motion";
+import { AnimatedGradientText } from "@/components/motion/AnimatedGradientText";
 
 export const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -352,21 +356,17 @@ export const Dashboard: React.FC = () => {
       {/* Hero Section - Modern Design */}
       <div className="relative overflow-hidden">
         {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-1/2 -right-1/2 w-full h-full rounded-full bg-gradient-to-br from-cyan-400/20 to-blue-600/20 blur-3xl animate-pulse" />
-          <div className="absolute -bottom-1/2 -left-1/2 w-full h-full rounded-full bg-gradient-to-tr from-purple-400/20 to-pink-600/20 blur-3xl animate-pulse" />
-          <div className="absolute top-1/3 left-1/4 w-96 h-96 rounded-full bg-gradient-to-br from-emerald-400/30 to-teal-500/30 blur-3xl" />
-        </div>
+        <FloatingBlobs />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-28">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div className="space-y-8 relative z-10">
-              <div className="space-y-6">
+              <MountSlideUp delay={0} className="space-y-6">
                 <div className="inline-block px-5 py-2.5 rounded-full bg-gradient-to-r from-cyan-100 to-blue-100 dark:from-cyan-900/30 dark:to-blue-900/30 border border-cyan-300/50 dark:border-cyan-700/50 backdrop-blur-sm">
-                  <p className="text-sm font-semibold bg-gradient-to-r from-cyan-600 to-blue-600 dark:from-cyan-400 dark:to-blue-400 bg-clip-text text-transparent">
+                  <AnimatedGradientText className="text-sm font-semibold" from="#0891b2" via="#2563eb" to="#7c3aed">
                     ✨ AI-Powered Resume Optimization
-                  </p>
+                  </AnimatedGradientText>
                 </div>
 
                 <div className="space-y-3">
@@ -385,7 +385,7 @@ export const Dashboard: React.FC = () => {
                     </span>
                   </h1>
                 </div>
-              </div>
+              </MountSlideUp>
 
               <p
                 className={`text-lg sm:text-xl text-slate-700 dark:text-slate-300 leading-relaxed font-medium transition-opacity duration-300 motion-reduce:transition-none ${
@@ -555,18 +555,20 @@ export const Dashboard: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Link
-                  to="/findjob"
-                  className="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 group"
-                >
-                  <Briefcase className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
-                  Get Started — Find Jobs
-                  <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </div>
+              <FadeIn delay={0.18} className="flex flex-col sm:flex-row gap-4 pt-4">
+                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                  <Link
+                    to="/findjob"
+                    className="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold shadow-lg hover:shadow-2xl transition-all duration-300 group"
+                  >
+                    <Briefcase className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
+                    Get Started — Find Jobs
+                    <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </motion.div>
+              </FadeIn>
 
-              <div className="pt-6 border-t-2 border-slate-200 dark:border-slate-800">
+              <FadeIn delay={0.28} className="pt-6 border-t-2 border-slate-200 dark:border-slate-800">
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 font-semibold">
                   Trusted by thousands of job seekers:
                 </p>
@@ -578,14 +580,17 @@ export const Dashboard: React.FC = () => {
                   </div>
                   <span>10,000+ successful applications</span>
                 </div>
-              </div>
+              </FadeIn>
             </div>
 
           {/* Right side: resume preview (state 0) or Lottie (states 1/2) */}
-          <div
+          <motion.div
             className={`hidden md:block relative transition-opacity duration-300 ${
               rightVisible ? "opacity-100" : "opacity-0"
             }`}
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.12 }}
           >
             {heroState === 0 ? (
               <div className="relative group">
@@ -828,7 +833,7 @@ export const Dashboard: React.FC = () => {
                 </button>
               </div>
             )}
-          </div>
+          </motion.div>
           </div>
         </div>
       </div>
@@ -836,7 +841,7 @@ export const Dashboard: React.FC = () => {
       <WhatYouCanObtain />
 
       {/* ── Chrome Extension Showcase ─────────────────────── */}
-      <div className="relative overflow-hidden py-24 sm:py-32 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900">
+      <BlurFade className="relative overflow-hidden py-24 sm:py-32 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900">
         {/* Background glow blobs */}
         <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-violet-600/20 blur-3xl" />
         <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-cyan-500/20 blur-3xl" />
@@ -951,36 +956,37 @@ export const Dashboard: React.FC = () => {
 
           </div>
         </div>
-      </div>
+      </BlurFade>
 
       {/* ── Footer ───────────────────────────────────────────── */}
       <footer className="bg-slate-900 text-slate-400 py-12 px-6">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10">
-            <div>
+          <StaggerParent className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10">
+            <FadeInItem>
               <p className="text-white font-bold mb-3 text-sm">Product</p>
               <ul className="space-y-2 text-sm">
                 <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
                 <li><Link to="/findjob" className="hover:text-white transition-colors">Find Jobs</Link></li>
                 <li><Link to="/find-business" className="hover:text-white transition-colors">Find Clients</Link></li>
               </ul>
-            </div>
-            <div>
+            </FadeInItem>
+            <FadeInItem>
               <p className="text-white font-bold mb-3 text-sm">Account</p>
               <ul className="space-y-2 text-sm">
                 <li><Link to="/register" className="hover:text-white transition-colors">Sign Up</Link></li>
                 <li><Link to="/login" className="hover:text-white transition-colors">Sign In</Link></li>
                 <li><Link to="/billing" className="hover:text-white transition-colors">Billing</Link></li>
               </ul>
-            </div>
-            <div>
+            </FadeInItem>
+            <FadeInItem>
               <p className="text-white font-bold mb-3 text-sm">Legal</p>
               <ul className="space-y-2 text-sm">
                 <li><Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
                 <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
                 <li><Link to="/refund-policy" className="hover:text-white transition-colors">Refund Policy</Link></li>
               </ul>
-            </div>
+            </FadeInItem>
+            <FadeInItem>
             <div>
               <p className="text-white font-bold mb-3 text-sm">Support</p>
               <ul className="space-y-2 text-sm">
@@ -1029,7 +1035,8 @@ export const Dashboard: React.FC = () => {
                 </div>
               )}
             </div>
-          </div>
+            </FadeInItem>
+          </StaggerParent>
           <div className="border-t border-slate-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
             <div className="flex flex-col sm:flex-row items-center gap-3">
               <p>© {new Date().getFullYear()} {appName} · ZenLead. All rights reserved.</p>

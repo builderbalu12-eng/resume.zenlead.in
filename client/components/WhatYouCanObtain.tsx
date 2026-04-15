@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { BlurFade, StaggerParent, SlideUpItem } from "@/components/motion";
 
 type CardConfig = {
   title: string;
@@ -69,22 +70,24 @@ export function WhatYouCanObtain() {
 
       <div className="relative mx-auto max-w-6xl px-6">
 
-        <div className="space-y-3 text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white">
-            <span className="mr-2">What you can</span>
-            <span className="bg-gradient-to-r from-cyan-400 via-sky-400 to-purple-400 bg-clip-text text-transparent">
-              obtain
-            </span>
-          </h2>
-          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
-            Everything you need to land your dream job, automated.
-          </p>
-        </div>
+        <BlurFade>
+          <div className="space-y-3 text-center">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white">
+              <span className="mr-2">What you can</span>
+              <span className="bg-gradient-to-r from-cyan-400 via-sky-400 to-purple-400 bg-clip-text text-transparent">
+                obtain
+              </span>
+            </h2>
+            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
+              Everything you need to land your dream job, automated.
+            </p>
+          </div>
+        </BlurFade>
 
-        <div className="mt-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StaggerParent className="mt-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
           {CARDS.map((card, index) => (
+            <SlideUpItem key={card.title}>
             <div
-              key={card.title}
               className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/80 shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-transform duration-300 hover:scale-105 cursor-pointer"
             >
               <div
@@ -138,8 +141,9 @@ export function WhatYouCanObtain() {
                 </p>
               </div>
             </div>
+            </SlideUpItem>
           ))}
-        </div>
+        </StaggerParent>
       </div>
     </section>
   );

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -86,11 +87,19 @@ export function AppSidebar() {
                 const Icon = item.icon;
                 const active = location.pathname === item.path;
                 return (
-                  <SidebarMenuItem key={item.path}>
+                  <SidebarMenuItem key={item.path} className="relative">
+                    {active && (
+                      <motion.div
+                        layoutId="activeNavIndicator"
+                        className="absolute inset-0 rounded-lg bg-sidebar-accent"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
+                    )}
                     <SidebarMenuButton
                       asChild
                       isActive={active}
                       tooltip={item.label}
+                      className="relative z-10"
                     >
                       <NavLink to={item.path} onClick={guardNav(item)}>
                         <Icon className="size-4" />

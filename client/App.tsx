@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { Dashboard } from "./pages/Dashboard";
 import { History } from "./pages/History";
 import { NotFound } from "./pages/NotFound";
@@ -31,12 +32,27 @@ import AutoApply from "./pages/AutoApply";
 import { Toaster } from "@/components/ui/sonner";
 import { usePageTracking } from "@/hooks/usePageTracking";
 
-function AppContent() {
-  usePageTracking();
+const pageVariants = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+};
+const pageTransition = { duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] as const };
+
+function AnimatedRoutes() {
+  const location = useLocation();
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Toaster position="bottom-right" richColors />
-      <Routes>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        variants={pageVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        transition={pageTransition}
+        className="min-h-screen"
+      >
+        <Routes location={location}>
         {/* Public Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -198,7 +214,18 @@ function AppContent() {
 
         {/* Catch-all */}
         <Route path="*" element={<NotFound />} />
-      </Routes>
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+function AppContent() {
+  usePageTracking();
+  return (
+    <div className="bg-background text-foreground">
+      <Toaster position="bottom-right" richColors />
+      <AnimatedRoutes />
     </div>
   );
 }

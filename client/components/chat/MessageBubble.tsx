@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ChatMessage } from '@/types/chat';
 import ReactMarkdown from 'react-markdown';
@@ -190,7 +191,12 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
   if (isUser) {
     return (
-      <div className="flex justify-end mb-4 animate-in fade-in slide-in-from-bottom-1 duration-200">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="flex justify-end mb-4"
+      >
         <div className="max-w-[72%]">
           <div className="bg-primary text-primary-foreground px-4 py-3 rounded-2xl rounded-tr-sm text-sm leading-relaxed shadow-sm">
             <p className="whitespace-pre-wrap m-0">{message.content}</p>
@@ -202,12 +208,17 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             })}
           </p>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="flex gap-3 mb-6 animate-in fade-in slide-in-from-bottom-1 duration-200">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      className="flex gap-3 mb-6"
+    >
       {/* AI Avatar */}
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 shadow-sm mt-0.5">
         <Sparkles className="h-4 w-4 text-white" />
@@ -257,6 +268,6 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           </span>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

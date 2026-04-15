@@ -1,7 +1,9 @@
 import * as React from "react";
 import { Check, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "./Spinner";
+import { GlowBorder } from "@/components/motion/GlowBorder";
 import type { SubscriptionPlan } from "@/services/paymentService";
 
 function formatINR(amount: number) {
@@ -33,16 +35,19 @@ export function PlanCard({
   const baseAmount = plan.amount;
   const finalAmount = discountedAmount ?? baseAmount;
 
-  return (
-    <div
+  const card = (
+    <motion.div
+      whileHover={{ y: -4, scale: 1.02 }}
+      transition={{ type: "spring", stiffness: 300, damping: 24 }}
       className={[
-        "relative rounded-2xl bg-white shadow-lg transition-transform hover:scale-[1.02] dark:bg-slate-900",
-        "border border-slate-200 dark:border-slate-800",
-        isMostPopular ? "ring-2 ring-indigo-500/50" : "",
+        "relative rounded-2xl bg-white shadow-lg dark:bg-slate-900 h-full",
+        isMostPopular
+          ? "border border-indigo-300/50 dark:border-indigo-700/50"
+          : "border border-slate-200 dark:border-slate-800",
       ].join(" ")}
     >
       {isMostPopular && (
-        <div className="absolute -top-3 left-5">
+        <div className="absolute -top-3 left-5 z-20">
           <div className="rounded-full border border-indigo-300 bg-gradient-to-r from-indigo-500 to-indigo-600 px-3 py-1 text-xs font-bold text-white shadow-sm">
             Most Popular
           </div>
@@ -112,31 +117,37 @@ export function PlanCard({
         </ul>
 
         <div className="mt-6">
-          <Button
-            type="button"
-            onClick={onGetStarted}
-            disabled={isFree || isLoading}
-            className={[
-              "h-11 w-full rounded-xl font-bold",
-              isFree
-                ? "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
-                : "bg-indigo-500 hover:bg-indigo-600 text-white",
-            ].join(" ")}
-          >
-            {isLoading ? (
-              <>
-                <Spinner className="mr-2" />
-                Processing…
-              </>
-            ) : isFree ? (
-              "Current Plan"
-            ) : (
-              "Get Started"
-            )}
-          </Button>
+          <motion.div whileTap={{ scale: 0.97 }}>
+            <Button
+              type="button"
+              onClick={onGetStarted}
+              disabled={isFree || isLoading}
+              className={[
+                "h-11 w-full rounded-xl font-bold",
+                isFree
+                  ? "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                  : "bg-indigo-500 hover:bg-indigo-600 text-white",
+              ].join(" ")}
+            >
+              {isLoading ? (
+                <>
+                  <Spinner className="mr-2" />
+                  Processing…
+                </>
+              ) : isFree ? (
+                "Current Plan"
+              ) : (
+                "Get Started"
+              )}
+            </Button>
+          </motion.div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
-}
 
+  if (isMostPopular) {
+    return <GlowBorder active>{card}</GlowBorder>;
+  }
+  return card;
+}

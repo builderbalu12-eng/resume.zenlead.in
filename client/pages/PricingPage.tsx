@@ -9,6 +9,7 @@ import { paymentService, type BillingCycle, type SubscriptionPlan } from "@/serv
 import { useRazorpay } from "@/hooks/useRazorpay";
 import { useRazorpayCheckout } from "@/hooks/useRazorpayCheckout";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BlurFade, StaggerParent, FadeInItem } from "@/components/motion";
 
 type CouponState =
   | { status: "idle" }
@@ -189,14 +190,14 @@ export function PricingPage() {
 
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="mb-8">
+      <BlurFade className="mb-8">
         <h1 className="text-3xl font-black text-slate-900 dark:text-white">
           Pricing
         </h1>
         <p className="mt-2 text-slate-600 dark:text-slate-400">
           Choose a plan that matches your ResumeMatch workflow.
         </p>
-      </div>
+      </BlurFade>
 
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="inline-flex rounded-2xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -244,24 +245,25 @@ export function PricingPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <StaggerParent className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {visiblePlans.map((plan) => {
               const isMostPopular = plan._id === mostPopularId;
               const { amount, label } = getDiscountedAmountForPlan(plan);
               return (
-                <PlanCard
-                  key={plan._id}
-                  plan={plan}
-                  billingCycle={billingCycle}
-                  isMostPopular={!!isMostPopular}
-                  discountedAmount={amount}
-                  discountLabel={label}
-                  onGetStarted={() => startPayment(plan)}
-                  isLoading={processingPlanId === plan._id}
-                />
+                <FadeInItem key={plan._id}>
+                  <PlanCard
+                    plan={plan}
+                    billingCycle={billingCycle}
+                    isMostPopular={!!isMostPopular}
+                    discountedAmount={amount}
+                    discountLabel={label}
+                    onGetStarted={() => startPayment(plan)}
+                    isLoading={processingPlanId === plan._id}
+                  />
+                </FadeInItem>
               );
             })}
-          </div>
+          </StaggerParent>
 
           <div className="mt-6 max-w-xl">
             <button

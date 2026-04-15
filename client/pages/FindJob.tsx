@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Briefcase, Loader2, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { JobCard } from '@/components/job/JobCard';
+import { StaggerParent, FadeInItem } from '@/components/motion';
 import { SearchForm } from '@/components/job/SearchForm';
 import { MySearchesSidebar } from '@/components/job/MySearchesSidebar';
 import { Page } from '@/components/layout/Page';
@@ -315,11 +316,11 @@ export const FindJob: React.FC = () => {
               <p className="text-sm text-muted-foreground">Run a search above — results will appear here.</p>
             </PremiumCard>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <StaggerParent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {defaultJobs.map(job => (
-                <JobCard key={job.job_url} job={job} />
+                <FadeInItem key={job.job_url}><JobCard job={job} /></FadeInItem>
               ))}
-            </div>
+            </StaggerParent>
           )}
         </div>
 
@@ -389,11 +390,11 @@ export const FindJob: React.FC = () => {
                 <p className="text-slate-600 dark:text-slate-400">No jobs in this search</p>
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 gap-6">
+              <StaggerParent className="grid md:grid-cols-2 gap-6">
                 {getSortedJobs(selectedListJobs).map(job => (
-                  <JobCard key={job.job_url} job={job} />
+                  <FadeInItem key={job.job_url}><JobCard job={job} /></FadeInItem>
                 ))}
-              </div>
+              </StaggerParent>
             )}
           </div>
         </div>
@@ -524,11 +525,11 @@ export const FindJob: React.FC = () => {
               <p className="text-slate-600 dark:text-slate-400">Try adjusting your filters</p>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 gap-6">
+            <StaggerParent className="grid md:grid-cols-2 gap-6">
               {allJobs.map(job => (
-                <JobCard key={job.id || job.job_url} job={job} />
+                <FadeInItem key={job.id || job.job_url}><JobCard job={job} /></FadeInItem>
               ))}
-            </div>
+            </StaggerParent>
           )}
         </div>
 

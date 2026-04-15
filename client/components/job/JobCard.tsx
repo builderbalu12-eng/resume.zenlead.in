@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, ExternalLink, AlertCircle, Calendar, DollarSign, User } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 
 interface JobCardProps {
@@ -39,7 +40,11 @@ export const JobCard: React.FC<JobCardProps> = ({ job }) => {
   const { bar, num } = scoreStyle(score);
 
   return (
-    <div className="rounded-xl border bg-card overflow-hidden transition-shadow hover:shadow-md">
+    <motion.div
+      whileHover={{ y: -2, boxShadow: "0 8px 30px rgba(0,0,0,0.10)" }}
+      transition={{ type: "spring", stiffness: 320, damping: 24 }}
+      className="rounded-xl border bg-card overflow-hidden"
+    >
 
       {/* ── Header ──────────────────────────────── */}
       <div className="p-4 space-y-3">
@@ -213,6 +218,6 @@ export const JobCard: React.FC<JobCardProps> = ({ job }) => {
           )}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };

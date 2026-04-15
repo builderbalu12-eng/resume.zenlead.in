@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Loader } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppConfig } from '@/contexts/AppConfigContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MountSlideUp, MountScaleIn } from '@/components/motion';
 
 const GoogleIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -16,16 +18,18 @@ const GoogleIcon = () => (
 );
 
 export const GoogleSignUpButton = ({ onClick, isLoading }: { onClick: () => void; isLoading: boolean }) => (
-  <button
+  <motion.button
     onClick={onClick}
     disabled={isLoading}
+    whileHover={{ scale: 1.02 }}
+    whileTap={{ scale: 0.98 }}
     className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
   >
     <GoogleIcon />
     <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
       {isLoading ? 'Redirecting...' : 'Sign up with Google'}
     </span>
-  </button>
+  </motion.button>
 );
 
 export const Register: React.FC = () => {
@@ -62,7 +66,6 @@ export const Register: React.FC = () => {
     e.preventDefault();
     setLocalError(null);
 
-    // Validation
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
       setLocalError('Please fill in all fields');
       return;
@@ -108,10 +111,12 @@ export const Register: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Card */}
-        <div className="bg-card border border-border rounded-lg shadow-lg p-8">
+        <MountSlideUp className="bg-card border border-border rounded-lg shadow-lg p-8">
           {/* Header */}
           <div className="mb-8">
-            <img src={logoUrl} alt="Logo" className="h-12 w-12 rounded-xl object-contain mb-4" />
+            <MountScaleIn delay={0.08}>
+              <img src={logoUrl} alt="Logo" className="h-12 w-12 rounded-xl object-contain mb-4" />
+            </MountScaleIn>
             <h1 className="text-3xl font-bold text-foreground mb-2">
               Create Account
             </h1>
@@ -121,18 +126,27 @@ export const Register: React.FC = () => {
           </div>
 
           {/* Error Message */}
+          <AnimatePresence>
           {displayError && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-lg">
+            <motion.div
+              key="error"
+              initial={{ opacity: 0, x: 0 }}
+              animate={{ opacity: 1, x: [0, -8, 8, -6, 6, 0] }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-lg"
+            >
               <p className="text-red-700 dark:text-red-400 text-sm font-medium">{displayError}</p>
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
           {!displayError && searchParams.get("redirect") && (
             <div className="mb-6 p-4 bg-primary/5 border border-primary/15 rounded-lg">
               <p className="text-foreground text-sm font-medium">
                 Please create an account to continue.
               </p>
               <p className="text-muted-foreground text-xs mt-1">
-                You’ll be redirected after signing up.
+                You'll be redirected after signing up.
               </p>
             </div>
           )}
@@ -234,20 +248,22 @@ export const Register: React.FC = () => {
               />
             </div>
 
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full"
-            >
-              {isLoading ? (
-                <>
-                  <Loader className="h-4 w-4 mr-2 animate-spin" />
-                  Creating account...
-                </>
-              ) : (
-                'Sign Up'
-              )}
-            </Button>
+            <motion.div whileTap={{ scale: 0.98 }}>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader className="h-4 w-4 mr-2 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  'Sign Up'
+                )}
+              </Button>
+            </motion.div>
           </form>
 
           {/* Sign In Link */}
@@ -262,7 +278,7 @@ export const Register: React.FC = () => {
               </Link>
             </p>
           </div>
-        </div>
+        </MountSlideUp>
 
         {/* Footer */}
         <p className="text-center text-sm text-muted-foreground mt-6">
