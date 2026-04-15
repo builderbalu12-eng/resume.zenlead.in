@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Loader2, PencilLine } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { apiClient, User, CreditLogEntry } from '@/services/api';
+import { apiClient, User } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -38,9 +38,6 @@ export const Profile: React.FC = () => {
   const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
-  // Credits history
-  const [creditsHistory, setCreditsHistory] = useState<CreditLogEntry[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // Telegram
   const [telegramLinked, setTelegramLinked] = useState(false);
@@ -82,14 +79,6 @@ export const Profile: React.FC = () => {
     }
   }, [isAuthenticated]);
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    setLoadingHistory(true);
-    apiClient.getCreditsHistory(0, 30)
-      .then((res) => setCreditsHistory(res.items))
-      .catch(() => {})
-      .finally(() => setLoadingHistory(false));
-  }, [isAuthenticated]);
 
   // Load telegram status when account tab is active
   useEffect(() => {
@@ -300,340 +289,178 @@ export const Profile: React.FC = () => {
           </div>
         ) : (
           user && (
-            <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {/* Card 1 — Workspace Settings */}
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-cyan-600 dark:text-cyan-300">
-                  🏢 Workspace Settings
-                </p>
-                <div className="mt-2 flex items-center gap-4">
-                  <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-xl font-bold text-white">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-stretch">
+
+              {/* LEFT — Profile + Change Password in one card */}
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+
+                {/* Avatar strip */}
+                <div className="flex items-center gap-4 px-6 py-5 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-600 text-base font-bold text-white">
                     {getInitials(authUser.firstName, authUser.lastName) || "?"}
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                      {authUser.firstName} {authUser.lastName}
-                    </h2>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{authUser.email}</p>
-                    <p className="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      Credits available: {authUser.credits}
-                    </p>
+                    <p className="font-semibold text-slate-900 dark:text-white">{authUser.firstName} {authUser.lastName}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{authUser.email}</p>
                   </div>
                 </div>
-              </div>
 
-              {/* Card 2 — Personal Information */}
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  👤 Personal Information
-                </p>
-                <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
-                  Update your basic details
-                </h2>
-                <div className="mb-4 grid gap-4 md:grid-cols-2">
-                  <div>
-                    <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">First name</p>
-                    <Input
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full rounded-[8px] px-[14px] py-[10px]"
-                    />
+                {/* Personal info form */}
+                <div className="px-6 py-5 space-y-4 border-b border-slate-100 dark:border-slate-800">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Personal Information</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">First name</p>
+                      <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                    </div>
+                    <div>
+                      <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">Last name</p>
+                      <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                    </div>
                   </div>
                   <div>
-                    <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Last name</p>
-                    <Input
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className="w-full rounded-[8px] px-[14px] py-[10px]"
-                    />
+                    <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">Email</p>
+                    <Input value={user.email} disabled className="cursor-not-allowed bg-slate-100 text-slate-500 opacity-70 dark:bg-slate-800 dark:text-slate-400" />
                   </div>
-                </div>
-                <div className="mb-4">
-                  <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Email</p>
-                  <Input
-                    value={user.email}
-                    disabled
-                    className="w-full cursor-not-allowed rounded-[8px] px-[14px] py-[10px] bg-slate-100 text-slate-600 opacity-60 dark:bg-slate-800 dark:text-slate-400"
-                  />
-                </div>
-
-                {personalMessage && (
-                  <div
-                    className={cn(
-                      "mb-4 rounded-[8px] border p-[10px] text-sm font-medium",
-                      personalMessage.type === "success"
-                        ? "bg-[#f0fdf4] text-[#16a34a] border-[#bbf7d0]"
-                        : "bg-[#fef2f2] text-[#dc2626] border-[#fecaca]",
-                    )}
-                  >
-                    {personalMessage.text}
-                  </div>
-                )}
-
-                <Button
-                  onClick={handleSaveProfile}
-                  disabled={isSaving}
-                  className="rounded-[8px] bg-[#7c3aed] px-[20px] py-[10px] text-white hover:bg-[#6d28d9]"
-                >
-                  {isSaving ? "Saving..." : "Save profile"}
-                </Button>
-              </div>
-
-              {/* Card 3 — Change Password (hidden for Google auth) */}
-              {user.auth_provider !== "google" && (
-                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    🔒 Change Password
-                  </p>
-                  <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
-                    Keep your account secure
-                  </h2>
-
-                  <div className="mb-4 space-y-4">
-                    {/* Current Password */}
-                    <div>
-                      <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Current Password</p>
-                      <div className="relative">
-                        <Input
-                          type={showCurrentPassword ? "text" : "password"}
-                          value={currentPassword}
-                          onChange={(e) => setCurrentPassword(e.target.value)}
-                          className="w-full rounded-[8px] px-[14px] py-[10px]"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                          className="absolute right-3 top-2.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-                        >
-                          {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* New Password */}
-                    <div>
-                      <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">New Password</p>
-                      <div className="relative">
-                        <Input
-                          type={showNewPassword ? "text" : "password"}
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-full rounded-[8px] px-[14px] py-[10px]"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-3 top-2.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-                        >
-                          {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Confirm Password */}
-                    <div>
-                      <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Confirm Password</p>
-                      <div className="relative">
-                        <Input
-                          type={showConfirmPassword ? "text" : "password"}
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full rounded-[8px] px-[14px] py-[10px]"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-2.5 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-                        >
-                          {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {passwordMessage && (
-                    <div
-                      className={cn(
-                        "mb-4 rounded-[8px] border p-[10px] text-sm font-medium",
-                        passwordMessage.type === "success"
-                          ? "bg-[#f0fdf4] text-[#16a34a] border-[#bbf7d0]"
-                          : "bg-[#fef2f2] text-[#dc2626] border-[#fecaca]",
-                      )}
-                    >
-                      {passwordMessage.text}
+                  {personalMessage && (
+                    <div className={cn("rounded-lg border px-4 py-2.5 text-sm font-medium",
+                      personalMessage.type === "success" ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"
+                    )}>
+                      {personalMessage.text}
                     </div>
                   )}
-
-                  <Button
-                    onClick={handleChangePassword}
-                    disabled={isUpdatingPassword}
-                    variant="outline"
-                    className="rounded-[8px] border-[1.5px] border-current bg-transparent px-[20px] py-[10px] text-[#7c3aed]"
-                  >
-                    {isUpdatingPassword ? "Updating..." : "Update Password"}
+                  <Button onClick={handleSaveProfile} disabled={isSaving} className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white">
+                    {isSaving ? "Saving..." : "Save profile"}
                   </Button>
                 </div>
-              )}
 
-              {/* Card 4 — Telegram Connection */}
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  📱 Telegram Connection
-                </p>
-                <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
-                  Get job and resume alerts on Telegram
-                </h2>
-
-                {telegramLinked ? (
-                  <>
-                    <div className="mb-4 rounded-[8px] border border-[#bbf7d0] bg-[#f0fdf4] p-4">
-                      <p className="font-medium text-[#16a34a]">✅ Telegram Connected</p>
-                      <p className="mt-1 text-sm text-[#16a34a] opacity-80">
-                        You will receive job alerts and resume files here.
-                      </p>
-                    </div>
-                    <Button
-                      onClick={handleDisconnectTelegram}
-                      disabled={telegramLoading}
-                      variant="outline"
-                      className="rounded-[8px] border-[1.5px] border-red-600 bg-transparent px-[20px] py-[10px] text-red-600 hover:bg-red-50"
-                      size="sm"
-                    >
-                      {telegramLoading ? "Disconnecting..." : "Disconnect"}
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <div className="mb-4 rounded-[8px] bg-slate-100 p-4 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                      <p className="mb-2 font-medium">Connect Telegram to receive:</p>
-                      <p>🎯 Job match alerts instantly</p>
-                      <p>📄 Tailored resume PDF files</p>
-                      <p>🔔 Application update notifications</p>
-                    </div>
-
-                    {!telegramExpanded ? (
-                      <Button
-                        onClick={handleConnectTelegram}
-                        disabled={telegramLoading}
-                        className="rounded-[8px] bg-blue-600 px-[20px] py-[10px] text-white hover:bg-blue-700"
-                      >
-                        {telegramLoading ? "Loading..." : "Connect Telegram"}
-                      </Button>
-                    ) : (
-                      <div className="rounded-[8px] border border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-800">
-                        <h4 className="mb-4 text-center font-semibold text-slate-900 dark:text-white">
-                          Scan QR or click the link
-                        </h4>
-
-                        {qrImageUrl && (
-                          <div className="mb-6 flex flex-col items-center">
-                            <img
-                              src={qrImageUrl}
-                              alt="Telegram QR Code"
-                              width="180"
-                              height="180"
-                              className="rounded-[12px] border-2 border-slate-300 dark:border-slate-600"
-                            />
-                          </div>
-                        )}
-
-                        <div className="my-4 flex items-center gap-3">
-                          <div className="flex-1 border-t border-slate-300 dark:border-slate-600" />
-                          <span className="text-sm text-slate-500 dark:text-slate-400">OR</span>
-                          <div className="flex-1 border-t border-slate-300 dark:border-slate-600" />
-                        </div>
-
-                        {telegramLink && (
-                          <div className="mb-4 flex justify-center">
-                            <Button
-                              onClick={() => window.open(telegramLink, "_blank")}
-                              variant="outline"
-                              className="rounded-[8px] border-[1.5px] border-blue-600 bg-transparent px-[20px] py-[10px] text-blue-600"
-                            >
-                              Open Telegram →
-                            </Button>
-                          </div>
-                        )}
-
-                        <div className="mx-auto max-w-[250px] text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">
-                          <p>1. Scan QR or tap Open Telegram</p>
-                          <p>2. Press START in the Telegram bot</p>
-                          <p>3. This page will update automatically</p>
+                {/* Change password — only for non-Google users */}
+                {user.auth_provider !== "google" && (
+                  <div className="px-6 py-5 space-y-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Change Password</p>
+                    {[
+                      { label: "Current Password", value: currentPassword, setter: setCurrentPassword, show: showCurrentPassword, toggle: () => setShowCurrentPassword(!showCurrentPassword) },
+                      { label: "New Password", value: newPassword, setter: setNewPassword, show: showNewPassword, toggle: () => setShowNewPassword(!showNewPassword) },
+                      { label: "Confirm Password", value: confirmPassword, setter: setConfirmPassword, show: showConfirmPassword, toggle: () => setShowConfirmPassword(!showConfirmPassword) },
+                    ].map(({ label, value, setter, show, toggle }) => (
+                      <div key={label}>
+                        <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">{label}</p>
+                        <div className="relative">
+                          <Input type={show ? "text" : "password"} value={value} onChange={(e) => setter(e.target.value)} />
+                          <button type="button" onClick={toggle} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
                         </div>
                       </div>
+                    ))}
+                    {passwordMessage && (
+                      <div className={cn("rounded-lg border px-4 py-2.5 text-sm font-medium",
+                        passwordMessage.type === "success" ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"
+                      )}>
+                        {passwordMessage.text}
+                      </div>
                     )}
-                  </>
-                )}
-
-                {telegramMessage && (
-                  <div
-                    className={cn(
-                      "mt-4 rounded-[8px] border p-[10px] text-sm font-medium",
-                      telegramMessage.type === "success"
-                        ? "bg-[#f0fdf4] text-[#16a34a] border-[#bbf7d0]"
-                        : "bg-[#fef2f2] text-[#dc2626] border-[#fecaca]",
-                    )}
-                  >
-                    {telegramMessage.text}
+                    <Button onClick={handleChangePassword} disabled={isUpdatingPassword} variant="outline" className="border-[#7c3aed] text-[#7c3aed] hover:bg-purple-50">
+                      {isUpdatingPassword ? "Updating..." : "Update Password"}
+                    </Button>
                   </div>
                 )}
               </div>
-            </div>
-            {/* Credits History — full width below the grid */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                💳 Credits History
-              </p>
-              <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
-                Your credit activity
-              </h2>
-              {loadingHistory ? (
-                <div className="flex justify-center py-6">
-                  <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+
+              {/* RIGHT — Telegram + Account Overview */}
+              <div className="flex flex-col gap-6">
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="border-b border-slate-100 dark:border-slate-800 px-6 py-5">
+                  <p className="font-semibold text-slate-900 dark:text-white">Telegram Notifications</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Receive job and resume alerts on Telegram</p>
                 </div>
-              ) : creditsHistory.length === 0 ? (
-                <p className="text-sm text-slate-500 dark:text-slate-400">No credit activity yet.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-700">
-                        <th className="text-left py-2 pr-4 font-semibold text-slate-600 dark:text-slate-300">Feature</th>
-                        <th className="text-center py-2 pr-4 font-semibold text-slate-600 dark:text-slate-300">Credits</th>
-                        <th className="text-center py-2 pr-4 font-semibold text-slate-600 dark:text-slate-300">Balance After</th>
-                        <th className="text-right py-2 font-semibold text-slate-600 dark:text-slate-300">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {creditsHistory.map((entry, i) => {
-                        const isDeduction = entry.type === "deduction";
-                        const sign = isDeduction ? "−" : "+";
-                        const color = isDeduction
-                          ? "text-red-600 dark:text-red-400"
-                          : "text-green-600 dark:text-green-400";
-                        return (
-                          <tr key={i} className="border-b border-slate-100 dark:border-slate-800 last:border-0">
-                            <td className="py-2.5 pr-4">
-                              <span className="font-medium text-slate-800 dark:text-slate-200">{entry.display_name || entry.feature}</span>
-                            </td>
-                            <td className={cn("py-2.5 pr-4 text-center font-semibold tabular-nums", color)}>
-                              {sign}{entry.amount} cr
-                            </td>
-                            <td className="py-2.5 pr-4 text-center text-slate-500 dark:text-slate-400 tabular-nums">
-                              {entry.balance_after} cr
-                            </td>
-                            <td className="py-2.5 text-right text-xs text-slate-400 dark:text-slate-500">
-                              {new Date(entry.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div className="px-6 py-5">
+                  {telegramLinked ? (
+                    <>
+                      <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950/30">
+                        <p className="font-medium text-green-700 dark:text-green-400">✅ Telegram Connected</p>
+                        <p className="mt-1 text-sm text-green-600 dark:text-green-500">You will receive job alerts and resume files here.</p>
+                      </div>
+                      <Button onClick={handleDisconnectTelegram} disabled={telegramLoading} variant="outline" size="sm" className="border-red-500 text-red-600 hover:bg-red-50">
+                        {telegramLoading ? "Disconnecting..." : "Disconnect"}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="mb-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300 space-y-1">
+                        <p className="font-medium text-slate-700 dark:text-slate-200 mb-1">Connect to receive:</p>
+                        <p>🎯 Job match alerts instantly</p>
+                        <p>📄 Tailored resume PDF files</p>
+                        <p>🔔 Application update notifications</p>
+                      </div>
+                      {!telegramExpanded ? (
+                        <Button onClick={handleConnectTelegram} disabled={telegramLoading} className="bg-blue-600 hover:bg-blue-700 text-white">
+                          {telegramLoading ? "Loading..." : "Connect Telegram"}
+                        </Button>
+                      ) : (
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-800">
+                          <h4 className="mb-4 text-center font-semibold text-slate-900 dark:text-white">Scan QR or click the link</h4>
+                          {qrImageUrl && (
+                            <div className="mb-4 flex justify-center">
+                              <img src={qrImageUrl} alt="Telegram QR Code" width="160" height="160" className="rounded-xl border-2 border-slate-300 dark:border-slate-600" />
+                            </div>
+                          )}
+                          <div className="my-3 flex items-center gap-3">
+                            <div className="flex-1 border-t border-slate-300 dark:border-slate-600" />
+                            <span className="text-xs text-slate-500">OR</span>
+                            <div className="flex-1 border-t border-slate-300 dark:border-slate-600" />
+                          </div>
+                          {telegramLink && (
+                            <div className="mb-3 flex justify-center">
+                              <Button onClick={() => window.open(telegramLink, "_blank")} variant="outline" className="border-blue-600 text-blue-600">Open Telegram →</Button>
+                            </div>
+                          )}
+                          <div className="text-center text-xs text-slate-500 dark:text-slate-400 space-y-0.5">
+                            <p>1. Scan QR or tap Open Telegram</p>
+                            <p>2. Press START in the bot</p>
+                            <p>3. Page updates automatically</p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {telegramMessage && (
+                    <div className={cn("mt-4 rounded-lg border px-4 py-2.5 text-sm font-medium",
+                      telegramMessage.type === "success" ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"
+                    )}>
+                      {telegramMessage.text}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+
+              {/* Account Overview card */}
+              <div className="flex-1 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="border-b border-slate-100 dark:border-slate-800 px-6 py-5">
+                  <p className="font-semibold text-slate-900 dark:text-white">Account Overview</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Your credits and plan at a glance</p>
+                </div>
+                <div className="px-6 py-5 space-y-4">
+                  <div className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-800 px-4 py-3">
+                    <span className="text-sm text-slate-600 dark:text-slate-300">Available Credits</span>
+                    <span className="text-lg font-bold text-violet-600 dark:text-violet-400">{authUser.credits ?? 0}</span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = '/billing'}>
+                      💳 View Billing &amp; Payments
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = '/billing#credits'}>
+                      📊 Credit Activity
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = '/pricing'}>
+                      🚀 Upgrade Plan
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              </div>
+
             </div>
           )
         )}

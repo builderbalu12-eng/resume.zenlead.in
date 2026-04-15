@@ -3,9 +3,12 @@ import { apiClient } from "@/services/api";
 import { downloadResume } from "@/services/resumeGenerator";
 import { ResumeData, JobDescription, ATSScore } from "@/types";
 
+const WEBSITE_URL = "https://landyourjob.zenlead.in";
+
 interface PopupState {
   masterResume: ResumeData | null;
   pageHTML: string | null;
+  pageURL: string | null;
   jobData: JobDescription | null;
   tailoredResume: ResumeData | null;
   atsScore: ATSScore | null;
@@ -16,6 +19,7 @@ interface PopupState {
 let state: PopupState = {
   masterResume: null,
   pageHTML: null,
+  pageURL: null,
   jobData: null,
   tailoredResume: null,
   atsScore: null,
@@ -25,169 +29,111 @@ let state: PopupState = {
 
 console.log("[Popup] Script loaded at", new Date().toISOString());
 
-const statusEl = document.getElementById("status");
-const jobInfoEl = document.getElementById("job-info");
-const loadingEl = document.getElementById("loading");
-const errorEl = document.getElementById("error");
-const successEl = document.getElementById("success");
-const buttonsEl = document.getElementById("buttons");
-const mainContentEl = document.getElementById("main-content");
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const resumeChipEl       = document.getElementById("resume-chip");
+const statusEl           = document.getElementById("status");
+const onboardingEl       = document.getElementById("onboarding");
+const jobInfoEl          = document.getElementById("job-info");
+const statsCardEl        = document.getElementById("stats-card");
+const sourceCardEl       = document.getElementById("source-card");
+const keywordsCardEl     = document.getElementById("keywords-card");
+const improvementsCardEl = document.getElementById("improvements-card");
+const loadingEl          = document.getElementById("loading");
+const errorEl            = document.getElementById("error");
+const successEl          = document.getElementById("success");
+const buttonsEl          = document.getElementById("buttons");
 
-const tailorBtn = document.getElementById(
-  "tailor-btn",
-) as HTMLButtonElement | null;
-const downloadBtn = document.getElementById(
-  "download-btn",
-) as HTMLButtonElement | null;
-const dashboardLink = document.getElementById(
-  "dashboard-link",
-) as HTMLAnchorElement | null;
-const customAnalyseBtn = document.getElementById(
-  "custom-analyse-btn",
-) as HTMLButtonElement | null;
+const tailorBtn        = document.getElementById("tailor-btn")        as HTMLButtonElement | null;
+const downloadBtn      = document.getElementById("download-btn")      as HTMLButtonElement | null;
+const dashboardLink    = document.getElementById("dashboard-link")    as HTMLAnchorElement | null;
+const customAnalyseBtn = document.getElementById("custom-analyse-btn") as HTMLButtonElement | null;
+const openWebsiteBtn   = document.getElementById("open-website-btn") as HTMLButtonElement | null;
 
-console.log("[Popup] DOM elements found:", {
-  statusEl: !!statusEl,
-  jobInfoEl: !!jobInfoEl,
-  loadingEl: !!loadingEl,
-  errorEl: !!errorEl,
-  successEl: !!successEl,
-  buttonsEl: !!buttonsEl,
-  tailorBtn: !!tailorBtn,
-  downloadBtn: !!downloadBtn,
-});
+// ── Website link (footer + onboarding button) ────────────────────────────────
+function openWebsite() {
+  chrome.tabs.create({ url: WEBSITE_URL });
+}
 
-// Helper to get resume from localhost tabs
+if (dashboardLink) {
+  dashboardLink.onclick = (e) => { e.preventDefault(); openWebsite(); };
+}
+if (openWebsiteBtn) {
+  openWebsiteBtn.addEventListener("click", openWebsite);
+}
+
+// ── Resume chip helper ────────────────────────────────────────────────────────
+function updateResumeChip() {
+  if (!resumeChipEl) return;
+  if (state.masterResume) {
+    const firstName = state.masterResume.contact?.name?.split(" ")[0] || "Loaded";
+    resumeChipEl.textContent = `✓ ${firstName}`;
+    resumeChipEl.className = "loaded";
+  } else {
+    resumeChipEl.textContent = "⚠ No resume";
+    resumeChipEl.className = "missing";
+  }
+}
+
+// ── Keyword chips helpers ─────────────────────────────────────────────────────
+function renderChips(containerId: string, keywords: string[], cssClass: string) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = keywords
+    .map((k) => `<span class="chip ${cssClass}">${k}</span>`)
+    .join("");
+}
+
+// ── Helper to get resume from localhost tabs ──────────────────────────────────
 async function getResumeFromLocalhost(): Promise<ResumeData | null> {
   return new Promise((resolve) => {
     try {
-      console.log("[Popup] Searching for localhost tabs...");
       chrome.tabs.query({ url: "http://localhost:*/*" }, (tabs) => {
-        if (!tabs.length) {
-          console.log("[Popup] No localhost tabs found");
-          resolve(null);
-          return;
-        }
-
-        console.log("[Popup] Found", tabs.length, "localhost tab(s)");
-        const tab = tabs[0];
-
-        console.log(
-          "[Popup] Sending getResume message to localhost tab:",
-          tab.url,
-        );
-
-        chrome.tabs.sendMessage(
-          tab.id!,
-          { action: "getResume" },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              console.warn(
-                "[Popup] Could not reach localhost tab:",
-                chrome.runtime.lastError?.message,
-              );
-              resolve(null);
-            } else if (response?.resume) {
-              console.log(
-                "[Popup] ✓ Got resume from localhost:",
-                response.resume.contact?.name,
-              );
-              resolve(response.resume);
-            } else {
-              console.warn(
-                "[Popup] No resume in localhost response:",
-                response,
-              );
-              resolve(null);
-            }
-          },
-        );
+        if (!tabs.length) { resolve(null); return; }
+        chrome.tabs.sendMessage(tabs[0].id!, { action: "getResume" }, (response) => {
+          if (chrome.runtime.lastError) { resolve(null); return; }
+          resolve(response?.resume || null);
+        });
       });
     } catch (e) {
-      console.warn("[Popup] Error querying localhost tabs:", e);
       resolve(null);
     }
   });
 }
 
-// Load master resume on popup open - always fetch fresh data
+// ── Load master resume ────────────────────────────────────────────────────────
 async function loadMasterResume(): Promise<ResumeData | null> {
   try {
-    console.log("[Popup] Loading master resume...");
-
-    // Always try to get fresh data from chrome.storage.sync first
-    // This ensures we get the latest resume after re-uploads
     let resume = await getMasterResume();
-    if (resume) {
-      console.log(
-        "[Popup] ✓ Resume found in chrome.storage.sync:",
-        resume.contact?.name,
-      );
-      state.masterResume = resume;
-      return resume;
-    }
+    if (resume) { state.masterResume = resume; return resume; }
 
-    console.log(
-      "[Popup] Resume not in chrome.storage.sync, trying backend...",
-    );
-
-    // Try 2: Get from backend if user is logged in
+    // Try backend (if logged in)
     try {
       const token = await new Promise<string | null>((resolve) => {
-        if (typeof chrome !== 'undefined' && chrome.storage) {
-          chrome.storage.sync.get(['resumematch_auth_token'], (result) => {
-            resolve(result['resumematch_auth_token'] || null);
-          });
-        } else {
-          resolve(null);
-        }
+        if (typeof chrome !== "undefined" && chrome.storage) {
+          chrome.storage.sync.get(["resumematch_auth_token"], (r) =>
+            resolve((r["resumematch_auth_token"] as string) || null)
+          );
+        } else { resolve(null); }
       });
-
       if (token) {
-        console.log("[Popup] Auth token found, attempting to fetch incoming resume from backend...");
         const response = await apiClient.getIncomingResume();
-        if (response && response.extracted_data) {
+        if (response?.extracted_data) {
           resume = response.extracted_data;
-          console.log("[Popup] ✓ Resume fetched from backend:", resume.contact?.name);
           state.masterResume = resume;
-
-          // Cache to chrome.storage
-          try {
-            await setMasterResume(resume);
-            console.log("[Popup] ✓ Resume cached to chrome.storage.sync");
-          } catch (e) {
-            console.warn("[Popup] Could not cache resume:", e);
-          }
-
+          try { await setMasterResume(resume!); } catch (_) {}
           return resume;
         }
       }
-    } catch (e) {
-      console.warn("[Popup] Could not fetch from backend:", e);
-    }
+    } catch (_) {}
 
-    console.log(
-      "[Popup] Resume not in backend, trying localhost...",
-    );
-
-    // Try 3: Get from localhost tab if available
+    // Try localhost tab
     resume = await getResumeFromLocalhost();
     if (resume) {
-      console.log("[Popup] ✓ Resume found on localhost:", resume.contact?.name);
       state.masterResume = resume;
-
-      // Save to chrome.storage for future use
-      try {
-        await setMasterResume(resume);
-        console.log("[Popup] ✓ Resume cached to chrome.storage.sync");
-      } catch (e) {
-        console.warn("[Popup] Could not cache resume:", e);
-      }
-
+      try { await setMasterResume(resume); } catch (_) {}
       return resume;
     }
 
-    console.warn("[Popup] Resume not found in any storage");
     return null;
   } catch (error) {
     console.error("[Popup] Error loading resume:", error);
@@ -195,89 +141,48 @@ async function loadMasterResume(): Promise<ResumeData | null> {
   }
 }
 
-// Listen for resume updates from the web app (content script broadcasts)
+// ── Listen for resume updates ─────────────────────────────────────────────────
 function listenForResumeUpdates() {
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener((request) => {
     if (request.action === "resumeUpdated") {
-      console.log("[Popup] Resume update notification received");
-      // Clear cached resume and reload
       state.masterResume = null;
-      loadMasterResume().then(() => {
-        console.log("[Popup] Resume reloaded after update");
-        updateUI();
-      });
+      loadMasterResume().then(() => updateUI());
     }
     return true;
   });
 }
 
-// Request page data from background service worker
+// ── Get page data from background ─────────────────────────────────────────────
 async function getPageDataFromBackground(): Promise<void> {
   return new Promise((resolve) => {
     let attempts = 0;
-    const maxAttempts = 8; // Increased attempts for reliability
-
+    const maxAttempts = 8;
     const tryGetData = () => {
       attempts++;
-      console.log(
-        `[Popup] Requesting page data from background (attempt ${attempts}/${maxAttempts})`,
-      );
-
       chrome.runtime.sendMessage({ action: "getPageData" }, (response) => {
         if (chrome.runtime.lastError) {
-          console.warn(
-            "[Popup] Message error:",
-            chrome.runtime.lastError.message,
-          );
-          if (attempts < maxAttempts) {
-            setTimeout(tryGetData, 150);
-          } else {
-            console.warn(
-              "[Popup] Failed to get page data after",
-              maxAttempts,
-              "attempts",
-            );
-            resolve();
-          }
+          if (attempts < maxAttempts) setTimeout(tryGetData, 150);
+          else resolve();
         } else if (response?.pageData?.pageHTML) {
-          console.log(
-            "[Popup] ✓ Received page data from background:",
-            response.pageData.pageHTML.length,
-            "chars",
-          );
           state.pageHTML = response.pageData.pageHTML;
+          state.pageURL  = response.pageData.pageURL || null;
           resolve();
         } else {
-          console.log("[Popup] No page data in response yet");
-          if (attempts < maxAttempts) {
-            setTimeout(tryGetData, 150);
-          } else {
-            console.warn("[Popup] Page data not available");
-            resolve();
-          }
+          if (attempts < maxAttempts) setTimeout(tryGetData, 150);
+          else resolve();
         }
       });
     };
-
     tryGetData();
   });
 }
 
-// Initialize on popup open
+// ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
   try {
-    console.log("[Popup] Initializing extension popup...");
-
-    // Set up listeners for updates
     listenForResumeUpdates();
-
-    // Load master resume (this is important)
-    const resume = await loadMasterResume();
-
-    // Get page data from background service worker
+    await loadMasterResume();
     await getPageDataFromBackground();
-
-    // Update UI with current state
     updateUI();
   } catch (error) {
     console.error("[Popup] Initialization error:", error);
@@ -285,350 +190,270 @@ async function init() {
   }
 }
 
+// ── Main UI renderer ──────────────────────────────────────────────────────────
 function updateUI() {
-  // Hide everything first
+  // Always update resume chip
+  updateResumeChip();
+
+  // Hide everything variable
   statusEl?.classList.add("hidden");
+  onboardingEl?.classList.add("hidden");
   jobInfoEl?.classList.add("hidden");
+  statsCardEl?.classList.add("hidden");
+  sourceCardEl?.classList.add("hidden");
+  keywordsCardEl?.classList.add("hidden");
+  improvementsCardEl?.classList.add("hidden");
   loadingEl?.classList.add("hidden");
   errorEl?.classList.add("hidden");
   successEl?.classList.add("hidden");
   buttonsEl?.classList.add("hidden");
 
+  // ── State: No master resume ──
   if (!state.masterResume) {
-    // Show error if no master resume
     if (statusEl) {
       statusEl.classList.remove("hidden");
-      const statusIcon = statusEl.querySelector(".status-icon");
-      const statusText = statusEl.querySelector(".status-text");
-      if (statusIcon) statusIcon.textContent = "⚠️";
-      if (statusText) {
-        statusText.innerHTML =
-          "<strong>No Master Resume</strong><span>Upload your resume on the dashboard first</span>";
-      }
+      const icon = statusEl.querySelector(".status-icon");
+      const text = statusEl.querySelector(".status-text");
+      if (icon) icon.textContent = "⚠️";
+      if (text) text.innerHTML = "<strong>No Master Resume</strong><span>Follow the steps below to get started</span>";
     }
-
-    if (dashboardLink) {
-      dashboardLink.onclick = (e) => {
-        e.preventDefault();
-        chrome.tabs.create({
-          url: chrome.runtime.getURL("../index.html"),
-        });
-      };
-    }
+    onboardingEl?.classList.remove("hidden");
     return;
   }
 
-  // If page HTML was received but not analyzed yet
+  // ── State: Page captured, not yet analyzed ──
   if (state.pageHTML && !state.jobData) {
     if (statusEl) {
       statusEl.classList.remove("hidden");
-      const statusIcon = statusEl.querySelector(".status-icon");
-      const statusText = statusEl.querySelector(".status-text");
-
+      const icon = statusEl.querySelector(".status-icon");
+      const text = statusEl.querySelector(".status-text");
       if (state.isJobPosting === false) {
-        if (statusIcon) statusIcon.textContent = "ℹ️";
-        if (statusText) {
-          statusText.innerHTML =
-            "<strong>No Job Posting Found</strong><span>Use CustomAnalyse on a job page or open a specific job</span>";
-        }
-        if (buttonsEl) buttonsEl.classList.add("hidden");
+        if (icon) icon.textContent = "ℹ️";
+        if (text) text.innerHTML = "<strong>No Job Posting Found</strong><span>Use Custom Analyse on a job page or open a specific job listing</span>";
       } else {
-        if (statusIcon) statusIcon.textContent = "📄";
-        if (statusText) {
-          statusText.innerHTML =
-            "<strong>Job Posting Detected</strong><span>Click below to analyze and tailor your resume</span>";
+        if (icon) icon.textContent = "📄";
+        if (text) text.innerHTML = "<strong>Job Posting Detected</strong><span>Click below to analyse and tailor your resume</span>";
+        if (buttonsEl) {
+          buttonsEl.classList.remove("hidden");
+          buttonsEl.style.display = "flex";
         }
-        if (buttonsEl) buttonsEl.classList.remove("hidden");
-
-        // Show tailor button
-        if (tailorBtn) {
-          tailorBtn.textContent = "⚡ Analyze & Tailor Resume";
-          tailorBtn.disabled = false;
-          tailorBtn.style.opacity = "1";
-        }
+        if (tailorBtn) { tailorBtn.textContent = "⚡ Analyze & Tailor Resume"; tailorBtn.disabled = false; }
       }
     }
     return;
   }
 
-  // Show results if job has been analyzed
+  // ── State: Results available ──
   if (state.jobData && state.tailoredResume && state.atsScore) {
+    // Status bar
     if (statusEl) {
       statusEl.classList.remove("hidden");
-      const statusIcon = statusEl.querySelector(".status-icon");
-      const statusText = statusEl.querySelector(".status-text");
-      if (statusIcon) statusIcon.textContent = "✅";
-      if (statusText) {
-        statusText.innerHTML = `<strong>Resume Tailored</strong><span>${state.jobData.title} at ${state.jobData.company}</span>`;
-      }
+      const icon = statusEl.querySelector(".status-icon");
+      const text = statusEl.querySelector(".status-text");
+      if (icon) icon.textContent = "✅";
+      if (text) text.innerHTML = `<strong>Resume Tailored!</strong><span>${state.jobData.title} at ${state.jobData.company}</span>`;
     }
 
+    // Job info card
     if (jobInfoEl) {
       jobInfoEl.classList.remove("hidden");
-      const jobTitleEl = document.getElementById("job-title");
-      const jobCompanyEl = document.getElementById("job-company");
-      const atsScoreEl = document.getElementById("ats-score");
-      const summaryEl = document.getElementById("summary");
+      const titleEl   = document.getElementById("job-title");
+      const companyEl = document.getElementById("job-company");
+      const atsEl     = document.getElementById("ats-score");
 
-      if (jobTitleEl) jobTitleEl.textContent = state.jobData.title || "Unknown";
-      if (jobCompanyEl)
-        jobCompanyEl.textContent = state.jobData.company || "Unknown";
+      if (titleEl)   titleEl.textContent   = state.jobData.title   || "Unknown";
+      if (companyEl) companyEl.textContent = state.jobData.company || "Unknown";
 
-      // Calculate improvement
-      const masterScore = state.masterAtsScore?.score || 0;
-      const tailoredScore = state.atsScore?.score || 0;
-      const improvement = tailoredScore - masterScore;
-      const improvementColor = improvement >= 0 ? "#10b981" : "#ef4444";
+      const masterScore   = state.masterAtsScore?.score || 0;
+      const tailoredScore = state.atsScore.score || 0;
+      const improvement   = tailoredScore - masterScore;
+      const impColor      = improvement >= 0 ? "#10b981" : "#ef4444";
 
-      // Display both scores with improvement
-      if (atsScoreEl) {
-        atsScoreEl.innerHTML = `
-          <div style="display: flex; gap: 12px; align-items: center;">
-            <div style="flex: 1;">
-              <div style="font-size: 11px; color: #999; margin-bottom: 2px;">Master</div>
-              <div style="font-size: 20px; font-weight: 700; color: #666;">${masterScore}%</div>
+      if (atsEl) {
+        atsEl.innerHTML = `
+          <div style="display:flex; gap:10px; align-items:center;">
+            <div style="flex:1; text-align:center; padding:8px; background:#f8fafc; border-radius:6px;">
+              <div style="font-size:10px; color:#94a3b8; font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-bottom:2px;">Before</div>
+              <div style="font-size:22px; font-weight:800; color:#64748b;">${masterScore}%</div>
             </div>
-            <div style="font-size: 18px; color: #ccc;">→</div>
-            <div style="flex: 1;">
-              <div style="font-size: 11px; color: #999; margin-bottom: 2px;">Tailored</div>
-              <div style="font-size: 20px; font-weight: 700; color: #667eea;">${tailoredScore}%</div>
+            <div style="font-size:20px; color:#cbd5e1;">→</div>
+            <div style="flex:1; text-align:center; padding:8px; background:#f0fdf4; border-radius:6px; border:1px solid #bbf7d0;">
+              <div style="font-size:10px; color:#16a34a; font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-bottom:2px;">After</div>
+              <div style="font-size:22px; font-weight:800; color:#16a34a;">${tailoredScore}%</div>
             </div>
-            <div style="padding: 4px 8px; background: ${improvementColor}20; border-radius: 4px; text-align: center; min-width: 50px;">
-              <div style="font-size: 10px; color: ${improvementColor}; font-weight: 600;">${improvement >= 0 ? "+" : ""}${improvement}%</div>
+            <div style="padding:6px 10px; background:${impColor}15; border-radius:6px; text-align:center; border:1px solid ${impColor}40;">
+              <div style="font-size:13px; color:${impColor}; font-weight:700;">${improvement >= 0 ? "+" : ""}${improvement}%</div>
             </div>
-          </div>
-        `;
-      }
-
-      if (summaryEl) {
-        summaryEl.innerHTML = `<div style="font-size: 12px; line-height: 1.4; color: #666;">Key Skills Matched: ${state.atsScore.keywordMatches.slice(0, 3).join(", ") || "—"}</div>`;
+          </div>`;
       }
     }
 
-    if (buttonsEl) buttonsEl.classList.remove("hidden");
+    // ── Stats card ──
+    if (statsCardEl) {
+      statsCardEl.classList.remove("hidden");
 
-    // Show download button
-    if (downloadBtn) {
-      downloadBtn.disabled = false;
-      downloadBtn.style.opacity = "1";
+      const masterMatched  = state.masterAtsScore?.keywordMatches  || [];
+      const tailoredMatched = state.atsScore.keywordMatches || [];
+      const matchedCount   = tailoredMatched.length;
+      // keywords that appear in tailored but not in master = newly added
+      const addedCount     = tailoredMatched.filter(
+        (k) => !masterMatched.some((mk) => mk.toLowerCase() === k.toLowerCase())
+      ).length;
+
+      // count changed sections: summary + experience bullets + projects
+      let changesCount = 0;
+      if (state.masterResume && state.tailoredResume) {
+        if (state.tailoredResume.summary !== state.masterResume.summary) changesCount++;
+        (state.tailoredResume.experience || []).forEach((exp, i) => {
+          const orig = state.masterResume!.experience[i];
+          if (orig && JSON.stringify(exp.description) !== JSON.stringify(orig.description)) changesCount++;
+        });
+        (state.tailoredResume.projects || []).forEach((proj, i) => {
+          const orig = state.masterResume!.projects?.[i];
+          if (orig && proj.description !== orig.description) changesCount++;
+        });
+      }
+
+      const matchPct = Math.min(100, state.atsScore.matchPercentage || 0);
+
+      const statMatchedEl = document.getElementById("stat-matched");
+      const statAddedEl   = document.getElementById("stat-added");
+      const statChangesEl = document.getElementById("stat-changes");
+      const barFillEl     = document.getElementById("keyword-bar");
+      const barPctEl      = document.getElementById("bar-pct");
+
+      if (statMatchedEl)  statMatchedEl.textContent  = String(matchedCount);
+      if (statAddedEl)    statAddedEl.textContent    = String(addedCount);
+      if (statChangesEl)  statChangesEl.textContent  = String(changesCount);
+      if (barFillEl)      barFillEl.style.width      = `${matchPct}%`;
+      if (barPctEl)       barPctEl.textContent       = `${matchPct}%`;
     }
+
+    // ── Source card ──
+    if (sourceCardEl && state.pageURL) {
+      sourceCardEl.classList.remove("hidden");
+      try {
+        const url    = new URL(state.pageURL);
+        const domain = url.hostname.replace(/^www\./, "");
+        const domainEl  = document.getElementById("source-domain-text");
+        const linkEl    = document.getElementById("job-post-link") as HTMLAnchorElement | null;
+        if (domainEl) domainEl.textContent = domain;
+        if (linkEl)   linkEl.href          = state.pageURL;
+      } catch (_) { /* invalid URL — keep card hidden */ sourceCardEl.classList.add("hidden"); }
+    }
+
+    // Keywords card
+    const matched  = (state.atsScore.keywordMatches  || []).slice(0, 8);
+    const missing  = (state.atsScore.missingKeywords || []).slice(0, 8);
+    const improvements = (state.atsScore.improvements || []).slice(0, 4);
+
+    if ((matched.length > 0 || missing.length > 0) && keywordsCardEl) {
+      keywordsCardEl.classList.remove("hidden");
+
+      const matchedSection  = document.getElementById("matched-section");
+      const missingSection  = document.getElementById("missing-section");
+      const missingDivider  = document.getElementById("missing-divider");
+
+      if (matched.length > 0 && matchedSection) {
+        matchedSection.classList.remove("hidden");
+        renderChips("matched-chips", matched, "chip-green");
+      }
+      if (missing.length > 0 && missingSection) {
+        missingSection.classList.remove("hidden");
+        if (matched.length > 0 && missingDivider) missingDivider.classList.remove("hidden");
+        renderChips("missing-chips", missing, "chip-red");
+      }
+    }
+
+    // Improvements card
+    if (improvements.length > 0 && improvementsCardEl) {
+      improvementsCardEl.classList.remove("hidden");
+      const listEl = document.getElementById("improvements-list");
+      if (listEl) {
+        listEl.innerHTML = improvements
+          .map((tip: string) => `<li>${tip}</li>`)
+          .join("");
+      }
+    }
+
+    // Buttons
+    if (buttonsEl) {
+      buttonsEl.classList.remove("hidden");
+      buttonsEl.style.display = "flex";
+    }
+    if (downloadBtn) downloadBtn.disabled = false;
     return;
   }
 
-  // Default: no job posting
+  // ── Default: no page captured yet ──
   if (statusEl) {
     statusEl.classList.remove("hidden");
-    const statusIcon = statusEl.querySelector(".status-icon");
-    const statusText = statusEl.querySelector(".status-text");
-    if (statusIcon) statusIcon.textContent = "ℹ️";
-    if (statusText) {
-      statusText.innerHTML =
-        "<strong>No Job Posting Found</strong><span>Click the 'Analyse' button on a job posting page</span>";
-    }
+    const icon = statusEl.querySelector(".status-icon");
+    const text = statusEl.querySelector(".status-text");
+    if (icon) icon.textContent = "ℹ️";
+    if (text) text.innerHTML = "<strong>No Job Posting Found</strong><span>Click the 'Analyse' button on a job posting page</span>";
   }
 }
 
+// ── Tailor button ─────────────────────────────────────────────────────────────
 if (tailorBtn) {
   tailorBtn.addEventListener("click", async () => {
-    if (!state.masterResume || !state.pageHTML) {
-      console.error("[Popup] Missing data for tailoring:", {
-        hasResume: !!state.masterResume,
-        hasPageHTML: !!state.pageHTML,
-      });
-      return;
-    }
+    if (!state.masterResume || !state.pageHTML) return;
 
-    if (loadingEl) loadingEl.classList.remove("hidden");
-    if (errorEl) errorEl.classList.add("hidden");
-    if (successEl) successEl.classList.add("hidden");
+    loadingEl?.classList.remove("hidden");
+    errorEl?.classList.add("hidden");
+    successEl?.classList.add("hidden");
     if (tailorBtn) tailorBtn.disabled = true;
 
     try {
-      console.log("[Popup] Starting job analysis and resume tailoring...");
-      console.log(
-        "[Popup] Master resume has",
-        state.masterResume.contact?.name,
-      );
-
-      // Load configured custom sections from settings
+      // Load configured custom sections
       let configuredSections: string[] = [];
       try {
-        console.log(
-          "[Popup] Attempting to load settings from chrome.storage.sync...",
-        );
         const settings = await getSettings();
-        console.log("[Popup] Full settings loaded:", JSON.stringify(settings));
-
         configuredSections = settings?.resumeContentSections || [];
-        console.log(
-          "[Popup] Configured sections count:",
-          configuredSections.length,
-        );
-        console.log(
-          "[Popup] Configured sections:",
-          JSON.stringify(configuredSections),
-        );
+      } catch (_) {}
 
-        if (configuredSections.length === 0) {
-          console.warn("[Popup] No configured sections found in settings");
-        }
-      } catch (e) {
-        console.error(
-          "[Popup] Error loading settings:",
-          e instanceof Error ? e.message : String(e),
-        );
-        configuredSections = [];
-      }
-
-      console.log(
-        "[Popup] Calling analyzeJobAndTailorResume with",
-        configuredSections.length,
-        "sections",
-      );
-
-      // Call backend API to analyze job and tailor resume
       const result = await apiClient.analyzeJobAndTailorResume(
         state.pageHTML,
         state.masterResume,
         configuredSections,
       );
 
-      console.log("[Popup] ✓ Job analysis complete:", result.jobData.title);
+      console.log("[Popup] ✓ Tailoring complete:", result.jobData.title, "at", result.jobData.company);
 
-      // Update state with results
-      state.jobData = result.jobData;
+      state.jobData        = result.jobData;
       state.tailoredResume = result.tailoredResume;
-      state.atsScore = result.atsScore;
+      state.atsScore       = result.atsScore;
       state.masterAtsScore = result.masterAtsScore || null;
 
-      // Log custom sections for debugging
-      console.log(
-        "[Popup] Tailored resume customSections:",
-        JSON.stringify(state.tailoredResume.customSections),
-      );
-
-      if (
-        state.tailoredResume.customSections &&
-        Object.keys(state.tailoredResume.customSections).length > 0
-      ) {
-        console.log(
-          "[Popup] ✓ Custom sections generated:",
-          Object.keys(state.tailoredResume.customSections),
-        );
-        console.log(
-          "[Popup] Custom sections content:",
-          JSON.stringify(state.tailoredResume.customSections),
-        );
-      } else {
-        console.warn(
-          "[Popup] WARNING: No custom sections in tailored resume despite",
-          configuredSections.length,
-          "configured sections",
-        );
-      }
-
-      if (loadingEl) loadingEl.classList.add("hidden");
+      loadingEl?.classList.add("hidden");
       if (successEl) {
         successEl.classList.remove("hidden");
         successEl.textContent = `✓ Resume tailored! ATS Score: ${state.atsScore.score}%`;
       }
 
-      // Persist application to extension storage so web app history reflects it
+      // Persist lightweight record to backend (non-blocking)
       try {
-        const appRecord = {
-          userId: "current-user",
-          jobTitle: state.jobData.title || "Unknown",
-          company: state.jobData.company || "Unknown",
-          jobUrl: undefined,
-          jobDescription: state.jobData,
-          originalResume: state.masterResume,
-          tailoredResume: state.tailoredResume,
-          atsScore: state.atsScore.score || 0,
-          matchPercentage:
-            state.atsScore.matchPercentage || state.atsScore.score || 0,
-          appliedDate: new Date().toISOString(),
+        await apiClient.saveApplication({
+          jobTitle: state.jobData.title || "",
+          company: state.jobData.company || "",
+          location: (state.jobData as any).location || "",
+          jobUrl: state.pageURL || "",
+          atsScoreBefore: state.masterAtsScore?.score || 0,
+          atsScoreAfter: state.atsScore.score || 0,
+          matchPercentage: state.atsScore.matchPercentage || 0,
+          matchedKeywords: state.atsScore.keywordMatches || [],
+          missingKeywords: state.atsScore.missingKeywords || [],
           status: "applied",
-          createdAt: new Date().toISOString(),
-        };
-
-        // Read existing applications
-        chrome.storage.sync.get(["resumematch_applications"], (res) => {
-          try {
-            const existing = res["resumematch_applications"];
-            let apps = [];
-            if (existing) {
-              apps =
-                typeof existing === "string" ? JSON.parse(existing) : existing;
-            }
-            apps.push(appRecord);
-            // Save back as stringified JSON for compatibility with web app
-            chrome.storage.sync.set(
-              { resumematch_applications: JSON.stringify(apps) },
-              () => {
-                if (chrome.runtime.lastError) {
-                  console.warn(
-                    "[Popup] Failed to save application to chrome.storage.sync:",
-                    chrome.runtime.lastError,
-                  );
-                } else {
-                  console.log(
-                    "[Popup] Application saved to chrome.storage.sync",
-                  );
-                }
-              },
-            );
-
-            // Also mirror to localStorage so the web app preview reads it without extension context
-            try {
-              localStorage.setItem(
-                "resumematch_applications",
-                JSON.stringify(apps),
-              );
-              console.log("[Popup] Application mirrored to localStorage");
-            } catch (e) {
-              console.warn("[Popup] Could not write to localStorage:", e);
-            }
-
-            // Try to sync applications to any open tabs (including the web app) via content scripts
-            try {
-              chrome.tabs.query({}, (tabs) => {
-                tabs.forEach((tab) => {
-                  if (!tab.id) return;
-                  chrome.tabs.sendMessage(
-                    tab.id,
-                    { action: "syncApplications", apps },
-                    () => {
-                      if (chrome.runtime.lastError) {
-                        // Silently ignore if no content script is injected on a tab
-                        return;
-                      }
-                    },
-                  );
-                });
-              });
-            } catch (e) {
-              console.warn(
-                "[Popup] Could not broadcast applications to tabs:",
-                e,
-              );
-            }
-          } catch (e) {
-            console.error("[Popup] Error persisting application:", e);
-          }
         });
-      } catch (e) {
-        console.warn("[Popup] Could not persist application:", e);
-      }
+      } catch (_) { /* non-blocking */ }
 
-      // Update UI to show results
       updateUI();
     } catch (error) {
-      if (loadingEl) loadingEl.classList.add("hidden");
+      loadingEl?.classList.add("hidden");
       if (errorEl) {
         errorEl.classList.remove("hidden");
-        const errorMsg =
-          error instanceof Error ? error.message : "Unknown error";
-        errorEl.textContent = `✗ Error: ${errorMsg}`;
+        errorEl.textContent = `✗ Error: ${error instanceof Error ? error.message : "Unknown error"}`;
       }
       console.error("[Popup] Tailoring error:", error);
       if (tailorBtn) tailorBtn.disabled = false;
@@ -636,134 +461,63 @@ if (tailorBtn) {
   });
 }
 
+// ── Download button ───────────────────────────────────────────────────────────
 if (downloadBtn) {
   downloadBtn.addEventListener("click", async () => {
     if (!state.tailoredResume || !state.jobData) return;
-
-    if (downloadBtn) downloadBtn.disabled = true;
-    if (errorEl) errorEl.classList.add("hidden");
-    if (successEl) successEl.classList.add("hidden");
-
+    downloadBtn.disabled = true;
+    errorEl?.classList.add("hidden");
+    successEl?.classList.add("hidden");
     try {
-      console.log("[Popup] Downloading tailored resume as DOCX...");
-      console.log(
-        "[Popup] Resume before download - customSections:",
-        JSON.stringify(state.tailoredResume.customSections),
-      );
-      console.log(
-        "[Popup] Custom sections count before download:",
-        state.tailoredResume.customSections
-          ? Object.keys(state.tailoredResume.customSections).length
-          : 0,
-      );
-
-      // Download as DOCX
-      await downloadResume(
-        state.tailoredResume,
-        state.jobData.company,
-        state.jobData.title,
-      );
-
-      if (successEl) {
-        successEl.classList.remove("hidden");
-        successEl.textContent = "✓ Resume downloaded as DOCX!";
-      }
-      if (downloadBtn) downloadBtn.disabled = false;
+      await downloadResume(state.tailoredResume, state.jobData.company, state.jobData.title);
+      if (successEl) { successEl.classList.remove("hidden"); successEl.textContent = "✓ Resume downloaded as DOCX!"; }
+      downloadBtn.disabled = false;
     } catch (error) {
-      if (errorEl) {
-        errorEl.classList.remove("hidden");
-        errorEl.textContent = `✗ Download failed: ${error instanceof Error ? error.message : "Unknown error"}`;
-      }
+      if (errorEl) { errorEl.classList.remove("hidden"); errorEl.textContent = `✗ Download failed: ${error instanceof Error ? error.message : "Unknown error"}`; }
       console.error("[Popup] Download error:", error);
-      if (downloadBtn) downloadBtn.disabled = false;
+      downloadBtn.disabled = false;
     }
   });
 }
 
+// ── Custom Analyse button ─────────────────────────────────────────────────────
 if (customAnalyseBtn) {
   customAnalyseBtn.addEventListener("click", async () => {
+    customAnalyseBtn.disabled = true;
+    customAnalyseBtn.textContent = "⏳ Analyzing current page...";
     try {
-      if (customAnalyseBtn) {
-        customAnalyseBtn.disabled = true;
-        customAnalyseBtn.textContent = "⏳ Analyzing current page...";
-      }
-
-      const getActiveTab = (): Promise<chrome.tabs.Tab | null> =>
-        new Promise((resolve) => {
-          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            resolve(tabs && tabs.length ? tabs[0] : null);
-          });
-        });
-
-      const execCapture = (
-        tabId: number,
-      ): Promise<{ html: string; url: string } | null> =>
-        new Promise((resolve) => {
-          try {
-            chrome.scripting.executeScript(
-              {
-                target: { tabId },
-                func: () => ({
-                  html: document.documentElement.outerHTML,
-                  url: location.href,
-                }),
-              },
-              (results: any) => {
-                if (chrome.runtime.lastError) {
-                  console.warn(
-                    "[Popup] executeScript error:",
-                    chrome.runtime.lastError.message,
-                  );
-                  resolve(null);
-                } else {
-                  resolve(
-                    results && results[0] && results[0].result
-                      ? results[0].result
-                      : null,
-                  );
-                }
-              },
-            );
-          } catch (e) {
-            console.warn("[Popup] executeScript threw:", e);
-            resolve(null);
-          }
-        });
-
-      const tab = await getActiveTab();
+      const tab = await new Promise<chrome.tabs.Tab | null>((resolve) =>
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => resolve(tabs?.[0] || null))
+      );
       if (!tab?.id) throw new Error("No active tab found");
 
-      const payload = await execCapture(tab.id);
+      const payload = await new Promise<{ html: string; url: string } | null>((resolve) => {
+        chrome.scripting.executeScript(
+          { target: { tabId: tab.id! }, func: () => ({ html: document.documentElement.outerHTML, url: location.href }) },
+          (results: any) => {
+            if (chrome.runtime.lastError) { resolve(null); return; }
+            resolve(results?.[0]?.result || null);
+          }
+        );
+      });
+
       if (!payload?.html) throw new Error("Could not capture page content");
 
       state.pageHTML = payload.html;
+      state.pageURL  = payload.url || null;
       state.isJobPosting = null;
-
-      // Store in background (optional) so re-opened popup can fetch
-      chrome.runtime.sendMessage(
-        { action: "analyzeJob", pageHTML: payload.html, pageURL: payload.url },
-        () => {},
-      );
-
-      // Job detection is now handled by backend API
-      state.isJobPosting = null; // will be determined when tailoring
-
+      chrome.runtime.sendMessage({ action: "analyzeJob", pageHTML: payload.html, pageURL: payload.url }, () => {});
       updateUI();
     } catch (error) {
       console.error("[Popup] CustomAnalyse error:", error);
-      if (errorEl) {
-        errorEl.classList.remove("hidden");
-        errorEl.textContent = `✗ Error: ${error instanceof Error ? error.message : "Unknown error"}`;
-      }
+      if (errorEl) { errorEl.classList.remove("hidden"); errorEl.textContent = `✗ Error: ${error instanceof Error ? error.message : "Unknown error"}`; }
     } finally {
-      if (customAnalyseBtn) {
-        customAnalyseBtn.disabled = false;
-        customAnalyseBtn.textContent = "CustomAnaylse for current page";
-      }
+      customAnalyseBtn.disabled = false;
+      customAnalyseBtn.textContent = "Custom Analyse for current page";
     }
   });
 }
 
-// Start initialization when popup opens
+// ── Start ─────────────────────────────────────────────────────────────────────
 console.log("[Popup] Starting initialization...");
 init();

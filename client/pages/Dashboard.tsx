@@ -1,18 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  FileUp,
   Zap,
-  BarChart3,
   ArrowRight,
   Briefcase,
   MapPin,
   MessageSquare,
-  TrendingUp,
-  Clock,
 } from "lucide-react";
-import { ResumeData, ApplicationRecord } from "@/types";
-import { getApplicationHistory } from "@/services/mongodb";
+import { ResumeData } from "@/types";
 import { getMasterResume } from "@/utils/storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { WhatYouCanObtain } from "@/components/WhatYouCanObtain";
@@ -22,19 +17,11 @@ import { FloatingChatButton } from "@/components/chat/FloatingChatButton";
 export const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const [masterResume, setMasterResume] = useState<ResumeData | null>(null);
-  const [recentApplications, setRecentApplications] = useState<
-    ApplicationRecord[]
-  >([]);
-  const [stats, setStats] = useState({
-    totalApps: 0,
-    avgScore: 0,
-    successRate: 0,
-  });
   const [isLoading, setIsLoading] = useState(true);
   const [expandedSummary, setExpandedSummary] = useState(false);
 
   // Hero cycling state
-  const [heroState, setHeroState] = useState<0 | 1 | 2>(0);
+  const [heroState, setHeroState] = useState<0 | 1 | 2 | 3>(0);
   const [typedText, setTypedText] = useState("");
   const [showDesc, setShowDesc] = useState(false);
   const [rightVisible, setRightVisible] = useState(true);
@@ -50,32 +37,8 @@ export const Dashboard: React.FC = () => {
   // Load dashboard data when user logs in or page loads
   const loadDashboardData = async () => {
     try {
-      console.log('[Dashboard] Loading resume and application history...');
       const resume = await getMasterResume();
-      console.log('[Dashboard] Master resume loaded:', resume?.contact?.name ?? 'No resume');
       setMasterResume(resume);
-
-      const apps = await getApplicationHistory();
-      setRecentApplications(apps.slice(0, 5));
-
-      if (apps.length > 0) {
-        const avgScore = Math.round(
-          apps.reduce(
-            (sum, a) => sum + (a.atsScore || a.matchPercentage || 0),
-            0,
-          ) / apps.length,
-        );
-        const successCount = apps.filter(
-          (a) => a.status === "offer" || a.status === "interview",
-        ).length;
-        const successRate = Math.round((successCount / apps.length) * 100);
-
-        setStats({
-          totalApps: apps.length,
-          avgScore,
-          successRate,
-        });
-      }
     } catch (error) {
       console.error("Error loading dashboard data:", error);
     } finally {
@@ -127,6 +90,11 @@ export const Dashboard: React.FC = () => {
         description:
           "Discover local businesses that need your skills on a live map. Turn nearby opportunities into real paying clients effortlessly.",
       },
+      {
+        heading: "Tailor On Any Job Site",
+        description:
+          "Install the Chrome extension and tailor your resume directly on LinkedIn, Naukri, Indeed and more — without ever leaving the page.",
+      },
     ] as const;
 
     // Clear timers FIRST
@@ -173,7 +141,7 @@ export const Dashboard: React.FC = () => {
             timeoutsRef.current.push(
               window.setTimeout(() => {
                 if (isPausedRef.current) return;
-                setHeroState(((heroState + 1) % states.length) as 0 | 1 | 2);
+                setHeroState(((heroState + 1) % states.length) as 0 | 1 | 2 | 3);
               }, 300),
             );
           }, 3000),
@@ -197,14 +165,18 @@ export const Dashboard: React.FC = () => {
       ? "Automatically tailor your resume for every job application. Get instant ATS scores and land interviews 3x faster with AI-powered optimization."
       : heroState === 1
         ? "Automatically searches LinkedIn, Naukri, Indeed, Unstop and more. Get daily AI-curated job matches sent straight to you — zero manual searching."
-        : "Discover local businesses that need your skills on a live map. Turn nearby opportunities into real paying clients effortlessly.";
+        : heroState === 2
+          ? "Discover local businesses that need your skills on a live map. Turn nearby opportunities into real paying clients effortlessly."
+          : "Install the Chrome extension and tailor your resume directly on LinkedIn, Naukri, Indeed and more — without ever leaving the page.";
 
   const heroGradient =
     heroState === 0
       ? "bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 dark:from-cyan-400 dark:via-blue-400 dark:to-purple-400"
       : heroState === 1
         ? "bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 dark:from-purple-400 dark:via-pink-400 dark:to-rose-400"
-        : "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-400 dark:via-teal-400 dark:to-cyan-400";
+        : heroState === 2
+          ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-400 dark:via-teal-400 dark:to-cyan-400"
+          : "bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 dark:from-violet-400 dark:via-purple-400 dark:to-indigo-400";
 
   // Reload resume when user logs in or authentication state changes
   useEffect(() => {
@@ -213,11 +185,7 @@ export const Dashboard: React.FC = () => {
       // Refresh resume data when user logs in
       loadDashboardData();
     } else {
-      console.log('[Dashboard] User logged out - clearing resume');
-      // Clear resume when user logs out
       setMasterResume(null);
-      setRecentApplications([]);
-      setStats({ totalApps: 0, avgScore: 0, successRate: 0 });
     }
   }, [isAuthenticated, user]);
 
@@ -256,7 +224,7 @@ export const Dashboard: React.FC = () => {
   }, []);
 
   return (
-    <div className="-mx-4 -my-6 md:-mx-6 md:-my-8 bg-gradient-to-b from-background via-background to-background">
+    <div className="-mx-4 -my-6 md:-mx-6 md:-my-8 bg-gradient-to-b from-background via-background to-background overflow-x-hidden">
 
       {/* ── Authenticated Workspace Strip ─────────────────── */}
       {isAuthenticated && user && (
@@ -288,38 +256,6 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Stats row — only when there's data */}
-            {stats.totalApps > 0 && (
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-xl border bg-background px-4 py-3 flex items-center gap-3">
-                  <div className="rounded-lg bg-blue-100 dark:bg-blue-900/30 p-2">
-                    <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-black text-slate-900 dark:text-slate-100 leading-none">{stats.totalApps}</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Applications</p>
-                  </div>
-                </div>
-                <div className="rounded-xl border bg-background px-4 py-3 flex items-center gap-3">
-                  <div className="rounded-lg bg-purple-100 dark:bg-purple-900/30 p-2">
-                    <BarChart3 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-black text-slate-900 dark:text-slate-100 leading-none">{stats.avgScore}%</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Avg ATS Score</p>
-                  </div>
-                </div>
-                <div className="rounded-xl border bg-background px-4 py-3 flex items-center gap-3">
-                  <div className="rounded-lg bg-green-100 dark:bg-green-900/30 p-2">
-                    <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-black text-slate-900 dark:text-slate-100 leading-none">{stats.successRate}%</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Success Rate</p>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Quick actions */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -502,14 +438,73 @@ export const Dashboard: React.FC = () => {
                       ) : (
                         <div className="h-72 w-full max-w-xs sm:max-w-md mx-auto rounded-2xl bg-slate-200/40 dark:bg-slate-800/40" />
                       )
-                    ) : findClientsAnim ? (
-                      <Lottie
-                        animationData={findClientsAnim}
-                        loop={true}
-                        className="w-full max-w-xs sm:max-w-md mx-auto scale-110 sm:scale-125"
-                      />
+                    ) : heroState === 2 ? (
+                      findClientsAnim ? (
+                        <Lottie
+                          animationData={findClientsAnim}
+                          loop={true}
+                          className="w-full max-w-xs sm:max-w-md mx-auto scale-110 sm:scale-125"
+                        />
+                      ) : (
+                        <div className="h-72 w-full max-w-xs sm:max-w-md mx-auto rounded-2xl bg-slate-200/40 dark:bg-slate-800/40" />
+                      )
                     ) : (
-                      <div className="h-72 w-full max-w-xs sm:max-w-md mx-auto rounded-2xl bg-slate-200/40 dark:bg-slate-800/40" />
+                      /* State 3 — Chrome Extension 3D card */
+                      <div style={{ perspective: "1000px" }} className="relative w-full max-w-sm mx-auto">
+                        <div
+                          className="float-card relative rounded-2xl overflow-hidden border border-white/10 shadow-[0_32px_80px_rgba(0,0,0,0.5)] bg-slate-800"
+                        >
+                          {/* Extension header */}
+                          <div className="bg-gradient-to-r from-violet-600 to-purple-700 px-4 py-3 flex items-center gap-3">
+                            <div className="h-7 w-7 rounded-lg bg-white/20 flex items-center justify-center">
+                              <Zap className="h-4 w-4 text-white" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-white">ResumeMatch Pro</p>
+                              <p className="text-[10px] text-violet-200">Chrome Extension</p>
+                            </div>
+                            <div className="ml-auto flex gap-1">
+                              <div className="h-2.5 w-2.5 rounded-full bg-red-400" />
+                              <div className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
+                              <div className="h-2.5 w-2.5 rounded-full bg-green-400" />
+                            </div>
+                          </div>
+                          {/* Job info */}
+                          <div className="p-4 space-y-3 bg-slate-800">
+                            <div className="rounded-xl bg-slate-700/60 p-3 space-y-1">
+                              <p className="text-[11px] font-semibold text-slate-300">Detected Job Posting</p>
+                              <p className="text-sm font-bold text-white">Software Development Lead</p>
+                              <p className="text-[11px] text-slate-400">Accenture · Remote · Full-time</p>
+                            </div>
+                            {/* ATS score bar */}
+                            <div className="rounded-xl bg-slate-700/60 p-3 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <p className="text-[11px] font-semibold text-slate-300">ATS Match Score</p>
+                                <span className="text-sm font-black text-emerald-400">88%</span>
+                              </div>
+                              <div className="h-1.5 w-full rounded-full bg-slate-600">
+                                <div className="h-1.5 w-[88%] rounded-full bg-gradient-to-r from-emerald-400 to-teal-400" />
+                              </div>
+                            </div>
+                            {/* Tips */}
+                            <div className="space-y-1.5">
+                              {["Add 'Agile' to skills section", "Highlight leadership metrics", "Include cloud tech stack"].map((tip) => (
+                                <div key={tip} className="flex items-center gap-2 rounded-lg bg-slate-700/40 px-3 py-2">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shrink-0" />
+                                  <p className="text-[11px] text-slate-300">{tip}</p>
+                                </div>
+                              ))}
+                            </div>
+                            <button className="w-full rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 py-2.5 text-xs font-bold text-white shadow-lg">
+                              ⚡ Analyze &amp; Tailor Resume
+                            </button>
+                          </div>
+                        </div>
+                        {/* FREE badge */}
+                        <div className="absolute -top-4 -right-4 rounded-xl bg-emerald-400 px-3 py-1.5 text-xs font-black text-emerald-950 shadow-lg shadow-emerald-500/30 rotate-3">
+                          FREE
+                        </div>
+                      </div>
                     )}
 
                     {/* Pause / resume icon button in bottom-right of Lottie area */}
@@ -552,33 +547,14 @@ export const Dashboard: React.FC = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                {!masterResume ? (
-                  <Link
-                    to="/upload"
-                    className="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 group"
-                  >
-                    <FileUp className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
-                    Upload Your Resume
-                    <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                ) : (
-                  <>
-                    <Link
-                      to="/tailor"
-                      className="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 group"
-                    >
-                      <Zap className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
-                      Tailor Your Resume
-                      <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                    </Link>
-                    <Link
-                      to="/history"
-                      className="inline-flex items-center justify-center px-8 py-4 rounded-xl border-2 border-slate-300 dark:border-slate-700 hover:border-purple-500 dark:hover:border-purple-400 text-slate-700 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400 font-bold hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-all duration-300"
-                    >
-                      View History
-                    </Link>
-                  </>
-                )}
+                <Link
+                  to="/findjob"
+                  className="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 group"
+                >
+                  <Briefcase className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
+                  Get Started — Find Jobs
+                  <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </div>
 
               <div className="pt-6 border-t-2 border-slate-200 dark:border-slate-800">
@@ -742,14 +718,68 @@ export const Dashboard: React.FC = () => {
                   ) : (
                     <div className="h-72 w-full max-w-md mx-auto rounded-2xl bg-slate-200/40 dark:bg-slate-800/40" />
                   )
-                ) : findClientsAnim ? (
-                  <Lottie
-                    animationData={findClientsAnim}
-                    loop={true}
-                    className="w-full max-w-md mx-auto scale-110 sm:scale-125 md:scale-150"
-                  />
+                ) : heroState === 2 ? (
+                  findClientsAnim ? (
+                    <Lottie
+                      animationData={findClientsAnim}
+                      loop={true}
+                      className="w-full max-w-md mx-auto scale-110 sm:scale-125 md:scale-150"
+                    />
+                  ) : (
+                    <div className="h-72 w-full max-w-md mx-auto rounded-2xl bg-slate-200/40 dark:bg-slate-800/40" />
+                  )
                 ) : (
-                  <div className="h-72 w-full max-w-md mx-auto rounded-2xl bg-slate-200/40 dark:bg-slate-800/40" />
+                  /* State 3 — Chrome Extension 3D card */
+                  <div style={{ perspective: "1000px" }} className="relative w-full max-w-sm mx-auto">
+                    <div
+                      className="float-card relative rounded-2xl overflow-hidden border border-white/10 shadow-[0_32px_80px_rgba(0,0,0,0.5)] bg-slate-800"
+                    >
+                      <div className="bg-gradient-to-r from-violet-600 to-purple-700 px-4 py-3 flex items-center gap-3">
+                        <div className="h-7 w-7 rounded-lg bg-white/20 flex items-center justify-center">
+                          <Zap className="h-4 w-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-white">ResumeMatch Pro</p>
+                          <p className="text-[10px] text-violet-200">Chrome Extension</p>
+                        </div>
+                        <div className="ml-auto flex gap-1">
+                          <div className="h-2.5 w-2.5 rounded-full bg-red-400" />
+                          <div className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
+                          <div className="h-2.5 w-2.5 rounded-full bg-green-400" />
+                        </div>
+                      </div>
+                      <div className="p-4 space-y-3 bg-slate-800">
+                        <div className="rounded-xl bg-slate-700/60 p-3 space-y-1">
+                          <p className="text-[11px] font-semibold text-slate-300">Detected Job Posting</p>
+                          <p className="text-sm font-bold text-white">Software Development Lead</p>
+                          <p className="text-[11px] text-slate-400">Accenture · Remote · Full-time</p>
+                        </div>
+                        <div className="rounded-xl bg-slate-700/60 p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[11px] font-semibold text-slate-300">ATS Match Score</p>
+                            <span className="text-sm font-black text-emerald-400">88%</span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-slate-600">
+                            <div className="h-1.5 w-[88%] rounded-full bg-gradient-to-r from-emerald-400 to-teal-400" />
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          {["Add 'Agile' to skills section", "Highlight leadership metrics", "Include cloud tech stack"].map((tip) => (
+                            <div key={tip} className="flex items-center gap-2 rounded-lg bg-slate-700/40 px-3 py-2">
+                              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shrink-0" />
+                              <p className="text-[11px] text-slate-300">{tip}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <button className="w-full rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 py-2.5 text-xs font-bold text-white shadow-lg">
+                          ⚡ Analyze &amp; Tailor Resume
+                        </button>
+                      </div>
+                    </div>
+                    <div className="absolute -top-4 -right-4 rounded-xl bg-emerald-400 px-3 py-1.5 text-xs font-black text-emerald-950 shadow-lg shadow-emerald-500/30 rotate-3">
+                      FREE
+                    </div>
+                  </div>
                 )}
 
                 {/* Pause / resume icon button in bottom-right of Lottie area */}
@@ -796,235 +826,170 @@ export const Dashboard: React.FC = () => {
 
       <WhatYouCanObtain />
 
-      {/* Features Section - Modern Cards */}
-      <div className="relative py-24 sm:py-32">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16 space-y-4">
-            <h2 className="text-4xl sm:text-5xl font-black font-heading">
-              <span className="text-slate-900 dark:text-slate-100">How </span>
-              <span className="bg-gradient-to-r from-cyan-600 to-blue-600 dark:from-cyan-400 dark:to-blue-400 bg-clip-text text-transparent">
-                ResumeMatch Pro
-              </span>
-              <span className="text-slate-900 dark:text-slate-100"> Works</span>
-            </h2>
-            <p className="text-center text-slate-600 dark:text-slate-400 text-lg max-w-2xl mx-auto font-medium">
-              Our intelligent AI system analyzes job requirements and optimizes
-              your resume for maximum impact in seconds
-            </p>
-          </div>
+      {/* ── Chrome Extension Showcase ─────────────────────── */}
+      <div className="relative overflow-hidden py-24 sm:py-32 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900">
+        {/* Background glow blobs */}
+        <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-violet-600/20 blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-cyan-500/20 blur-3xl" />
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: FileUp,
-                title: "Upload Your Master Resume",
-                description:
-                  "Upload your professional resume once. We parse and store all your experience, skills, and education.",
-                number: "01",
-                gradient: "from-cyan-500 to-blue-600",
-                lightGradient: "from-cyan-100 to-blue-100",
-                darkGradient: "from-cyan-900/30 to-blue-900/30",
-              },
-              {
-                icon: Zap,
-                title: "AI-Powered Tailoring",
-                description:
-                  "Our AI analyzes job postings and rewrites your resume to highlight the most relevant skills and experience.",
-                number: "02",
-                gradient: "from-purple-500 to-pink-600",
-                lightGradient: "from-purple-100 to-pink-100",
-                darkGradient: "from-purple-900/30 to-pink-900/30",
-              },
-              {
-                icon: BarChart3,
-                title: "ATS Score Optimization",
-                description:
-                  "Get real-time ATS compatibility scores and specific suggestions to improve your resume visibility.",
-                number: "03",
-                gradient: "from-emerald-500 to-teal-600",
-                lightGradient: "from-emerald-100 to-teal-100",
-                darkGradient: "from-emerald-900/30 to-teal-900/30",
-              },
-            ].map((feature, idx) => (
-              <div
-                key={idx}
-                className="group relative rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 hover:border-opacity-50 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 overflow-hidden"
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+
+            {/* Left — text */}
+            <div className="space-y-6 text-white">
+              <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/40 bg-violet-500/10 px-4 py-2">
+                <span className="h-2 w-2 rounded-full bg-violet-400 animate-pulse" />
+                <span className="text-sm font-semibold text-violet-300">Chrome Extension</span>
+              </div>
+              <h2 className="text-4xl sm:text-5xl font-black leading-tight">
+                Tailor your resume{" "}
+                <span className="bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
+                  on any job site
+                </span>
+              </h2>
+              <p className="text-lg text-slate-400 leading-relaxed">
+                Install our Chrome extension and tailor your resume directly from LinkedIn, Indeed, Naukri, Glassdoor — without ever leaving the page.
+              </p>
+              <ul className="space-y-3 text-slate-300">
+                {[
+                  "⚡ One-click resume tailoring on any job posting",
+                  "📊 Instant ATS score with improvement tips",
+                  "📄 Download tailored DOCX in seconds",
+                  "🔔 Works on LinkedIn, Indeed, Naukri & more",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm font-medium">
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/resume"
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 hover:from-violet-600 hover:to-cyan-600 px-7 py-3.5 font-bold text-white shadow-lg hover:shadow-violet-500/25 hover:-translate-y-0.5 transition-all duration-300"
               >
-                <div
-                  className={`absolute -top-12 -right-12 w-32 h-32 rounded-full bg-gradient-to-br ${feature.gradient} opacity-10 group-hover:opacity-20 transition-opacity duration-300 blur-2xl`}
-                />
+                Install Extension
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
 
-                <div className="relative z-10 space-y-6">
-                  <div className="flex items-start justify-between">
-                    <div
-                      className={`rounded-xl bg-gradient-to-br ${feature.lightGradient} dark:${feature.darkGradient} p-4 group-hover:scale-110 transition-transform duration-300`}
-                    >
-                      <feature.icon
-                        className={`h-7 w-7 bg-gradient-to-r ${feature.gradient} bg-clip-text text-transparent`}
-                      />
+            {/* Right — 3D extension UI mockup */}
+            <div className="relative flex items-center justify-center">
+              {/* Glow behind card */}
+              <div className="absolute inset-0 bg-gradient-to-br from-violet-500/30 to-cyan-500/30 blur-3xl rounded-3xl" />
+
+              {/* 3D perspective wrapper */}
+              <div style={{ perspective: "1000px" }} className="relative w-full max-w-sm mx-auto">
+                <div
+                  className="float-card relative rounded-2xl overflow-hidden border border-white/10 shadow-[0_32px_80px_rgba(0,0,0,0.6)] bg-slate-800"
+                >
+                  {/* Extension header */}
+                  <div className="bg-gradient-to-r from-violet-600 to-purple-700 px-4 py-3 flex items-center gap-3">
+                    <div className="h-7 w-7 rounded-lg bg-white/20 flex items-center justify-center">
+                      <Zap className="h-4 w-4 text-white" />
                     </div>
-                    <span
-                      className={`text-5xl font-black opacity-5 group-hover:opacity-10 transition-opacity bg-gradient-to-r ${feature.gradient} bg-clip-text text-transparent`}
-                    >
-                      {feature.number}
-                    </span>
+                    <div>
+                      <p className="text-xs font-bold text-white">ResumeMatch Pro</p>
+                      <p className="text-[10px] text-violet-200">Chrome Extension</p>
+                    </div>
+                    <div className="ml-auto flex gap-1">
+                      <div className="h-2.5 w-2.5 rounded-full bg-red-400" />
+                      <div className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
+                      <div className="h-2.5 w-2.5 rounded-full bg-green-400" />
+                    </div>
                   </div>
 
-                  <div>
-                    <h3 className="font-bold text-xl text-slate-900 dark:text-slate-100 mb-3">
-                      {feature.title}
-                    </h3>
-                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                      {feature.description}
-                    </p>
+                  {/* Job info card */}
+                  <div className="p-4 space-y-3 bg-slate-800">
+                    <div className="rounded-xl bg-slate-700/60 p-3 space-y-1">
+                      <p className="text-[11px] font-semibold text-slate-300">Detected Job Posting</p>
+                      <p className="text-sm font-bold text-white">Software Development Lead</p>
+                      <p className="text-[11px] text-slate-400">Accenture · Remote · Full-time</p>
+                    </div>
+
+                    {/* ATS score bar */}
+                    <div className="rounded-xl bg-slate-700/60 p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[11px] font-semibold text-slate-300">ATS Match Score</p>
+                        <span className="text-sm font-black text-emerald-400">88%</span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-slate-600">
+                        <div className="h-1.5 w-[88%] rounded-full bg-gradient-to-r from-emerald-400 to-teal-400" />
+                      </div>
+                    </div>
+
+                    {/* Suggestions */}
+                    <div className="space-y-1.5">
+                      {["Add 'Agile' to skills section", "Highlight leadership metrics", "Include cloud tech stack"].map((tip) => (
+                        <div key={tip} className="flex items-center gap-2 rounded-lg bg-slate-700/40 px-3 py-2">
+                          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shrink-0" />
+                          <p className="text-[11px] text-slate-300">{tip}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* CTA button */}
+                    <button className="w-full rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 py-2.5 text-xs font-bold text-white shadow-lg">
+                      ⚡ Analyze &amp; Tailor Resume
+                    </button>
                   </div>
                 </div>
+
+                {/* Floating badge */}
+                <div className="absolute -top-4 -right-4 rounded-xl bg-emerald-400 px-3 py-1.5 text-xs font-black text-emerald-950 shadow-lg shadow-emerald-500/30 rotate-3">
+                  FREE
+                </div>
               </div>
-            ))}
+            </div>
+
           </div>
         </div>
       </div>
 
-      {masterResume && recentApplications.length > 0 && (
-        <div className="relative py-24 sm:py-32 bg-gradient-to-r from-slate-100 via-blue-50 to-purple-100 dark:from-slate-900 dark:via-blue-900/30 dark:to-purple-900/30">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ── Footer ───────────────────────────────────────────── */}
+      <footer className="bg-slate-900 text-slate-400 py-12 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10">
             <div>
-              <h3 className="text-3xl sm:text-4xl font-black font-heading mb-10 text-slate-900 dark:text-slate-100">
-                Recent Applications
-              </h3>
-              <div className="grid gap-5">
-                {recentApplications.map((app, idx) => (
-                  <div
-                    key={app._id || app.id || `app-${idx}`}
-                    className="group flex items-center justify-between p-6 rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/50 hover:border-purple-500 dark:hover:border-purple-400 hover:shadow-lg transition-all duration-300 hover:translate-x-1"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold text-lg text-slate-900 dark:text-slate-100 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-purple-600 group-hover:to-pink-600 group-hover:bg-clip-text transition-all">
-                        {app.jobTitle}
-                      </p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-                        {app.company}
-                      </p>
-                    </div>
-                    <div className="text-right ml-6 flex-shrink-0">
-                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-black text-lg">
-                        {app.atsScore || app.matchPercentage}%
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-500 capitalize font-bold mt-2">
-                        {app.status}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Link
-                to="/history"
-                className="inline-flex items-center gap-2 text-purple-600 dark:text-purple-400 font-bold mt-10 hover:text-purple-700 dark:hover:text-purple-300 transition-all group text-lg"
-              >
-                View all applications
-                <ArrowRight className="h-5 w-5 group-hover:translate-x-2 transition-transform" />
-              </Link>
+              <p className="text-white font-bold mb-3 text-sm">Product</p>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
+                <li><Link to="/findjob" className="hover:text-white transition-colors">Find Jobs</Link></li>
+                <li><Link to="/find-business" className="hover:text-white transition-colors">Find Clients</Link></li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-white font-bold mb-3 text-sm">Account</p>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/register" className="hover:text-white transition-colors">Sign Up</Link></li>
+                <li><Link to="/login" className="hover:text-white transition-colors">Sign In</Link></li>
+                <li><Link to="/billing" className="hover:text-white transition-colors">Billing</Link></li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-white font-bold mb-3 text-sm">Legal</p>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
+                <li><Link to="/refund-policy" className="hover:text-white transition-colors">Refund Policy</Link></li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-white font-bold mb-3 text-sm">Support</p>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/contact" className="hover:text-white transition-colors">Contact Us</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-slate-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+            <p>© {new Date().getFullYear()} ResumeMatch Pro · ZenLead. All rights reserved.</p>
+            <div className="flex gap-4">
+              <Link to="/privacy-policy" className="hover:text-slate-300 transition-colors">Privacy</Link>
+              <Link to="/terms" className="hover:text-slate-300 transition-colors">Terms</Link>
+              <Link to="/refund-policy" className="hover:text-slate-300 transition-colors">Refunds</Link>
+              <Link to="/contact" className="hover:text-slate-300 transition-colors">Contact</Link>
             </div>
           </div>
         </div>
-      )}
-
-      {/* Testimonials / Social proof placeholder (edit content later if needed) */}
-      <div className="py-20 sm:py-24">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-10 space-y-3 text-center">
-            <h3 className="text-3xl sm:text-4xl font-black font-heading text-slate-900 dark:text-slate-100">
-              People using ResumeMatch
-            </h3>
-            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
-              A few snapshots of how job seekers and freelancers use the product every day.
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-3">
-            {[
-              {
-                name: "Sana · Data Analyst",
-                quote:
-                  "I stopped manually editing my resume. Now I just paste a job description and ResumeMatch does the rest.",
-              },
-              {
-                name: "Arjun · Frontend Engineer",
-                quote:
-                  "The Chrome extension + AI job search feed means I can apply to 10 targeted roles in the time it used to take for 1.",
-              },
-              {
-                name: "Meera · Freelance Developer",
-                quote:
-                  "The Find Clients map showed me local businesses without websites. It literally became my outbound client list.",
-              },
-            ].map((t) => (
-              <div
-                key={t.name}
-                className="flex flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 p-5 shadow-sm"
-              >
-                <p className="mb-4 text-sm text-slate-700 dark:text-slate-300">
-                  “{t.quote}”
-                </p>
-                <p className="mt-auto text-xs font-semibold text-slate-900 dark:text-slate-100">
-                  {t.name}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* CTA Section - Bold & Vibrant */}
-      <div className="relative py-24 sm:py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950" />
-
-        {/* Animated gradient blobs */}
-        <div className="absolute -top-40 -left-40 w-80 h-80 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 opacity-20 blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 -right-40 w-80 h-80 rounded-full bg-gradient-to-tl from-purple-500 to-pink-600 opacity-20 blur-3xl animate-pulse" />
-
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-8">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black font-heading leading-tight">
-            <span className="text-white">Ready to</span>
-            <br />
-            <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Land Your Dream Job?
-            </span>
-          </h2>
-
-          <p className="text-xl sm:text-2xl text-slate-300 max-w-2xl mx-auto leading-relaxed font-medium">
-            Start tailoring your resume for every application and increase your
-            chances of getting noticed by hiring managers. Join thousands of
-            successful job seekers.
-          </p>
-
-          <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-center">
-            {!masterResume ? (
-              <Link
-                to="/upload"
-                className="inline-flex items-center justify-center px-10 py-5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-black text-lg shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 group"
-              >
-                Get Started Now
-                <ArrowRight className="h-6 w-6 ml-3 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            ) : (
-              <Link
-                to="/tailor"
-                className="inline-flex items-center justify-center px-10 py-5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-black text-lg shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 group"
-              >
-                Tailor Your Resume
-                <Zap className="h-6 w-6 ml-3 group-hover:scale-110 transition-transform" />
-              </Link>
-            )}
-            <Link
-              to="/pricing"
-              className="inline-flex items-center justify-center px-10 py-5 rounded-xl border-2 border-white hover:bg-white hover:text-slate-900 text-white font-black text-lg shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300"
-            >
-              View Pricing Plans
-            </Link>
-          </div>
-        </div>
-      </div>
+      </footer>
 
       {/* Floating AI Chat Button - only for authenticated users */}
       {isAuthenticated && <FloatingChatButton />}

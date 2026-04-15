@@ -3,10 +3,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 import {
   ChevronRight,
+  CreditCard,
   LogOut,
   Moon,
-  Search,
-  Settings as SettingsIcon,
+  Receipt,
   Sun,
   User as UserIcon,
 } from "lucide-react";
@@ -17,7 +17,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { getRouteTitle } from "./nav";
 
@@ -28,10 +27,8 @@ function getInitials(first?: string, last?: string) {
 }
 
 export function AppHeader({
-  onOpenSettings,
   primaryAction,
 }: {
-  onOpenSettings: () => void;
   primaryAction?: React.ReactNode;
 }) {
   const navigate = useNavigate();
@@ -51,6 +48,12 @@ export function AppHeader({
     <div className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl">
       <div className="flex h-16 items-center gap-3 px-4 md:px-6">
         <SidebarTrigger className="md:mr-1" />
+
+        <img
+          src="/logo/lo9o.png"
+          alt="Logo"
+          className="h-7 w-7 rounded-lg object-contain bg-white shrink-0"
+        />
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">
@@ -84,19 +87,6 @@ export function AppHeader({
               </div>
             </div>
 
-            <div className="hidden lg:flex flex-1 items-center justify-center px-4">
-              <div className="relative w-full max-w-xl">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search (coming soon)…"
-                  className={cn(
-                    "h-10 rounded-xl pl-9",
-                    "bg-card/60 backdrop-blur border-border/60",
-                  )}
-                  disabled
-                />
-              </div>
-            </div>
           </div>
         </div>
 
@@ -149,9 +139,15 @@ export function AppHeader({
                 <UserIcon className="mr-2 h-4 w-4" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={onOpenSettings} disabled={!isAuthenticated}>
-                <SettingsIcon className="mr-2 h-4 w-4" />
-                Settings
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal py-1">Usage</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => navigate("/billing")} disabled={!isAuthenticated}>
+                <CreditCard className="mr-2 h-4 w-4" />
+                Billing
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/billing#credits")} disabled={!isAuthenticated}>
+                <Receipt className="mr-2 h-4 w-4" />
+                Credit Activity
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {isAuthenticated ? (

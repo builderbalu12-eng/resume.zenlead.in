@@ -11,9 +11,10 @@ import {
 interface SettingsProps {
   isOpen: boolean;
   onClose: () => void;
+  inline?: boolean;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
+export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, inline = false }) => {
   const [settings, setSettingsState] = useState<AppSettings>({
     customInstructions: "",
     resumeContentSections: [],
@@ -145,21 +146,9 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
       !DEFAULT_IMMUTABLE_SECTIONS.includes(section),
   );
 
-  if (!isOpen) return null;
+  if (!isOpen && !inline) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-      <div className="bg-background rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-border">
-        <div className="flex items-center justify-between p-6 border-b border-border sticky top-0 bg-background">
-          <h2 className="text-2xl font-bold">Settings</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-muted rounded-lg transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
+  const formContent = (
         <div className="p-6 space-y-6">
           {/* Custom Instructions */}
           <div>
@@ -336,6 +325,25 @@ export const Settings: React.FC<SettingsProps> = ({ isOpen, onClose }) => {
             </button>
           </div>
         </div>
+  );
+
+  if (inline) {
+    return <div className="max-w-2xl">{formContent}</div>;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+      <div className="bg-background rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-border">
+        <div className="flex items-center justify-between p-6 border-b border-border sticky top-0 bg-background">
+          <h2 className="text-2xl font-bold">Settings</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-muted rounded-lg transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        {formContent}
       </div>
     </div>
   );

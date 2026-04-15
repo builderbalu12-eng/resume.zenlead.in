@@ -109,6 +109,7 @@ export const Register: React.FC = () => {
         <div className="bg-card border border-border rounded-lg shadow-lg p-8">
           {/* Header */}
           <div className="mb-8">
+            <img src="/logo/lo9o.png" alt="Logo" className="h-12 w-12 rounded-xl object-contain mb-4" />
             <h1 className="text-3xl font-bold text-foreground mb-2">
               Create Account
             </h1>

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Dashboard } from "./pages/Dashboard";
 import { History } from "./pages/History";
 import { NotFound } from "./pages/NotFound";
@@ -8,6 +8,10 @@ import { AuthCallback } from "./pages/AuthCallback";
 import { ForgotPassword } from "./pages/ForgotPassword";
 import { ResetPassword } from "./pages/ResetPassword";
 import { Profile } from "./pages/Profile";
+import { PrivacyPolicy } from "./pages/PrivacyPolicy";
+import { TermsOfService } from "./pages/TermsOfService";
+import { RefundPolicy } from "./pages/RefundPolicy";
+import { Contact } from "./pages/Contact";
 import { FindJob } from "./pages/FindJob";
 import { FindBusinessPage } from "./pages/FindBusinessPage";
 import ChatPage from "./pages/Chat";
@@ -20,6 +24,9 @@ import { PaymentSuccessPage } from "./pages/PaymentSuccessPage";
 import { ResumeWorkspace } from "./pages/ResumeWorkspace";
 import { AdminPage } from "./pages/AdminPage";
 import { AdminRoute } from "./components/AdminRoute";
+import InterviewPrep from "./pages/InterviewPrep";
+import GitHubSync from "./pages/GitHubSync";
+import AutoApply from "./pages/AutoApply";
 import { Toaster } from "@/components/ui/sonner";
 import { usePageTracking } from "@/hooks/usePageTracking";
 
@@ -85,26 +92,8 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/upload"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <ResumeWorkspace initialView="upload" />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/tailor"
-          element={
-            <ProtectedRoute>
-              <AppShell>
-                <ResumeWorkspace initialView="tailor" />
-              </AppShell>
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/upload" element={<Navigate to="/resume?tab=upload" replace />} />
+        <Route path="/tailor" element={<Navigate to="/resume?tab=tailor" replace />} />
         <Route
           path="/history"
           element={
@@ -156,6 +145,38 @@ function AppContent() {
           }
         />
 
+        {/* SimhaCLI-powered features */}
+        <Route
+          path="/interview-prep"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <InterviewPrep />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/github-sync"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <GitHubSync />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/auto-apply"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <AutoApply />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+
         {/* Admin */}
         <Route
           path="/admin"
@@ -167,6 +188,12 @@ function AppContent() {
             </AdminRoute>
           }
         />
+
+        {/* Legal & Info Pages */}
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/refund-policy" element={<RefundPolicy />} />
+        <Route path="/contact" element={<Contact />} />
 
         {/* Catch-all */}
         <Route path="*" element={<NotFound />} />

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { LayoutDashboard, Users, Zap, Tag, Trash2, Plus, Save, Loader2, Eye, CreditCard, Cpu, RefreshCw, EyeOff, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -71,9 +72,12 @@ const tooltipStyle = {
 // ── Overview ──────────────────────────────────────────────
 
 function OverviewTab() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const period = (searchParams.get("period") as AnalyticsPeriod) || "today";
+  const setPeriod = (p: AnalyticsPeriod) =>
+    setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("period", p); return next; });
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [period, setPeriod] = useState<AnalyticsPeriod>("today");
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
 
@@ -1355,7 +1359,10 @@ function ResourcesTab() {
 // ── Main Page ─────────────────────────────────────────────
 
 export const AdminPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get("tab") as Tab) || "overview";
+  const setActiveTab = (tab: Tab) =>
+    setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", tab); return next; });
 
   return (
     <Page size="xl">

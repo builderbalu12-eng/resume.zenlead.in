@@ -61,7 +61,7 @@ export function WhatYouCanObtain() {
   };
 
   return (
-    <section className="relative bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 py-20">
+    <section className="relative overflow-hidden bg-gradient-to-b from-slate-100 via-slate-100 to-slate-200 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 py-20">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-cyan-500/10 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-purple-500/10 blur-3xl" />
@@ -70,13 +70,13 @@ export function WhatYouCanObtain() {
       <div className="relative mx-auto max-w-6xl px-6">
 
         <div className="space-y-3 text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white">
             <span className="mr-2">What you can</span>
             <span className="bg-gradient-to-r from-cyan-400 via-sky-400 to-purple-400 bg-clip-text text-transparent">
               obtain
             </span>
           </h2>
-          <p className="text-sm sm:text-base text-slate-400">
+          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
             Everything you need to land your dream job, automated.
           </p>
         </div>
@@ -85,7 +85,7 @@ export function WhatYouCanObtain() {
           {CARDS.map((card, index) => (
             <div
               key={card.title}
-              className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-transform duration-300 hover:scale-105 cursor-pointer"
+              className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/80 shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-transform duration-300 hover:scale-105 cursor-pointer"
             >
               <div
                 className="relative w-full overflow-hidden rounded-t-2xl"

@@ -176,6 +176,31 @@
   .animate-in-soft {
     animation: fade-in 220ms ease-out, slide-up 260ms ease-out;
   }
+
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 25%,
+      hsl(var(--muted-foreground) / 0.08) 50%,
+      hsl(var(--muted)) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes float-card {
+  0%, 100% { transform: rotateY(-14deg) rotateX(5deg) translateY(0px); }
+  50%       { transform: rotateY(-6deg)  rotateX(2deg) translateY(-14px); }
+}
+.float-card {
+  animation: float-card 4s ease-in-out infinite;
+  transform-style: preserve-3d;
 }
 
 iframe[src*="razorpay"] {

@@ -8,6 +8,7 @@ import { PlanCard } from "@/components/payment/PlanCard";
 import { paymentService, type BillingCycle, type SubscriptionPlan } from "@/services/paymentService";
 import { useRazorpay } from "@/hooks/useRazorpay";
 import { useRazorpayCheckout } from "@/hooks/useRazorpayCheckout";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type CouponState =
   | { status: "idle" }
@@ -228,8 +229,18 @@ export function PricingPage() {
       </div>
 
       {loadingPlans ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-sm text-slate-600 dark:text-slate-400">Loading plans…</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {Array(3).fill(0).map((_, i) => (
+            <div key={i} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4">
+              <Skeleton className="h-5 w-1/3" />
+              <Skeleton className="h-10 w-1/2" />
+              <Skeleton className="h-3 w-full" />
+              <div className="space-y-2 pt-2">
+                {Array(5).fill(0).map((_, j) => <Skeleton key={j} className="h-3 w-full" />)}
+              </div>
+              <Skeleton className="h-10 w-full rounded-lg" />
+            </div>
+          ))}
         </div>
       ) : (
         <>

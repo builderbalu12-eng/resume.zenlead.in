@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Briefcase, Loader2, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,8 @@ import { SearchForm } from '@/components/job/SearchForm';
 import { MySearchesSidebar } from '@/components/job/MySearchesSidebar';
 import { Page } from '@/components/layout/Page';
 import { PremiumCard } from '@/components/premium/PremiumCard';
-import { EmptyState, LoadingState } from '@/components/premium/States';
+import { EmptyState } from '@/components/premium/States';
+import { Skeleton } from '@/components/ui/skeleton';
 import { SectionHeader } from '@/components/premium/SectionHeader';
 
 type View = 'default' | 'recommendations' | 'browse';
@@ -26,26 +28,48 @@ export const FindJob: React.FC = () => {
   const token = localStorage.getItem('auth_token');
   const headers = { 'Authorization': `Bearer ${token}` };
 
-  // State
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // view and selectedListId stay in React state — view is determined by API response, not user choice
   const [view, setView] = useState<View>('default');
+  const [selectedListId, setSelectedListId] = useState<string | null>(searchParams.get('list'));
+
+  // URL-persisted: sort, page, filters (useful to bookmark/share)
+  const sortBy = (searchParams.get('sort') as 'fit_score' | 'date_posted' | 'best_match') || 'best_match';
+  const allJobsPage = Number(searchParams.get('page') || '1');
+  const allJobsFilters = {
+    search: searchParams.get('search') || '',
+    site: searchParams.get('site') || '',
+    is_remote: searchParams.get('remote') === 'true' ? true : searchParams.get('remote') === 'false' ? false : null,
+    min_score: Number(searchParams.get('minScore') || '0'),
+    sort_by: 'fit_score',
+    sort_order: 'desc',
+  };
+
+  // URL helpers — only for sort/page/filters
+  const setSortBy = (s: string) =>
+    setSearchParams((prev) => { const n = new URLSearchParams(prev); n.set('sort', s); return n; });
+  const setAllJobsPage = (p: number) =>
+    setSearchParams((prev) => { const n = new URLSearchParams(prev); n.set('page', String(p)); return n; });
+  const setAllJobsFilters = (patch: (prev: typeof allJobsFilters) => typeof allJobsFilters) => {
+    const next = patch(allJobsFilters);
+    setSearchParams((prev) => {
+      const n = new URLSearchParams(prev);
+      if (next.search) n.set('search', next.search); else n.delete('search');
+      if (next.site) n.set('site', next.site); else n.delete('site');
+      if (next.is_remote !== null) n.set('remote', String(next.is_remote)); else n.delete('remote');
+      if (next.min_score) n.set('minScore', String(next.min_score)); else n.delete('minScore');
+      return n;
+    });
+  };
+
   const [isLoading, setIsLoading] = useState(true);
   const [defaultJobs, setDefaultJobs] = useState<any[]>([]);
   const [searches, setSearches] = useState<any[]>([]);
-  const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [selectedListJobs, setSelectedListJobs] = useState<any[]>([]);
   const [selectedListMeta, setSelectedListMeta] = useState<any>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchForm, setShowSearchForm] = useState(false);
-  const [sortBy, setSortBy] = useState<'fit_score' | 'date_posted' | 'best_match'>('best_match');
-  const [allJobsPage, setAllJobsPage] = useState(1);
-  const [allJobsFilters, setAllJobsFilters] = useState({
-    search: '',
-    site: '',
-    is_remote: null as boolean | null,
-    min_score: 0,
-    sort_by: 'fit_score',
-    sort_order: 'desc',
-  });
   const [allJobs, setAllJobs] = useState<any[]>([]);
   const [allJobsTotal, setAllJobsTotal] = useState(0);
   const [allJobsTotalPages, setAllJobsTotalPages] = useState(0);
@@ -59,21 +83,16 @@ export const FindJob: React.FC = () => {
   const loadInitialData = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(apiUrl('/api/jobs/default'), {
-        headers,
-      });
+      const response = await fetch(apiUrl('/api/jobs/default'), { headers });
       const data = await response.json();
 
       if (data.has_recommendations) {
-        // User has recommendations - show VIEW 2
         setView('recommendations');
         loadSearches();
       } else if (data.jobs && data.jobs.length > 0) {
-        // No recommendations - show VIEW 1 with default jobs
         setView('default');
         setDefaultJobs(data.jobs);
       } else {
-        // No jobs at all - show VIEW 1 empty state
         setView('default');
         setDefaultJobs([]);
       }
@@ -93,9 +112,9 @@ export const FindJob: React.FC = () => {
       const data = await response.json();
       if (data.success && data.lists) {
         setSearches(data.lists);
-        if (data.lists.length > 0 && !selectedListId) {
-          loadListJobs(data.lists[0].list_id);
-        }
+        // Load URL-specified list, or auto-select first
+        const targetId = selectedListId || (data.lists.length > 0 ? data.lists[0].list_id : null);
+        if (targetId) loadListJobs(targetId);
       }
     } catch (error) {
       console.error('Failed to load searches:', error);
@@ -198,7 +217,7 @@ export const FindJob: React.FC = () => {
         setAllJobs(data.jobs || []);
         setAllJobsTotal(data.total_records || 0);
         setAllJobsTotalPages(data.total_pages || 1);
-        setAllJobsPage(page);
+        setAllJobsPage(page);   // syncs ?page= to URL
       }
     } catch (error) {
       console.error('Failed to load all jobs:', error);
@@ -234,7 +253,26 @@ export const FindJob: React.FC = () => {
   if (isLoading) {
     return (
       <Page size="md">
-        <LoadingState title="Loading jobs" description="Fetching your job feed…" />
+        <div className="space-y-4">
+          {Array(5).fill(0).map((_, i) => (
+            <div key={i} className="rounded-xl border border-border p-4 space-y-3 bg-card">
+              <div className="flex items-start gap-3">
+                <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              </div>
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-4/5" />
+              <div className="flex gap-2">
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+                <Skeleton className="h-5 w-14 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
       </Page>
     );
   }
@@ -445,14 +483,14 @@ export const FindJob: React.FC = () => {
             <Button
               variant="outline"
               onClick={() => {
-                setAllJobsFilters({
+                setAllJobsFilters(() => ({
                   search: '',
                   site: '',
                   is_remote: null,
                   min_score: 0,
                   sort_by: 'fit_score',
                   sort_order: 'desc',
-                });
+                }));
                 loadAllJobs(1);
               }}
             >

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader, Check, Zap, Gift } from 'lucide-react';
+import { Check, Zap, Gift } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient, SubscriptionPlan } from '@/services/api';
 import { Button } from '@/components/ui/button';
@@ -64,10 +65,27 @@ export const Pricing: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-blue-950 dark:to-purple-950 flex items-center justify-center">
-        <div className="text-center">
-          <Loader className="h-12 w-12 animate-spin text-cyan-600 dark:text-cyan-400 mx-auto mb-4" />
-          <p className="text-slate-600 dark:text-slate-400 font-medium">Loading pricing plans...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-blue-950 dark:to-purple-950 py-16 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10 space-y-3">
+            <Skeleton className="h-8 w-48 mx-auto" />
+            <Skeleton className="h-4 w-64 mx-auto" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {Array(3).fill(0).map((_, i) => (
+              <div key={i} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-4">
+                <Skeleton className="h-5 w-1/3" />
+                <Skeleton className="h-10 w-1/2" />
+                <Skeleton className="h-3 w-full" />
+                <div className="space-y-2 pt-2">
+                  {Array(5).fill(0).map((_, j) => (
+                    <Skeleton key={j} className="h-3 w-full" />
+                  ))}
+                </div>
+                <Skeleton className="h-10 w-full rounded-lg" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

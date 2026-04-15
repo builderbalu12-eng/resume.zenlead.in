@@ -1,12 +1,13 @@
 import React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { Upload, Wand2, Clock } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { Upload, Wand2, Clock, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UploadResume } from "./UploadResume";
 import { TailorResume } from "./TailorResume";
 import { History } from "./History";
+import { Settings } from "@/components/Settings";
 
-type ResumeWorkspaceView = "upload" | "tailor" | "history";
+type ResumeWorkspaceView = "upload" | "tailor" | "history" | "settings";
 
 type ResumeWorkspaceProps = {
   initialView?: ResumeWorkspaceView;
@@ -16,32 +17,17 @@ const TABS: { id: ResumeWorkspaceView; label: string; icon: React.ComponentType<
   { id: "upload", label: "Upload Resume", icon: Upload },
   { id: "tailor", label: "Tailor Resume", icon: Wand2 },
   { id: "history", label: "History", icon: Clock },
+  { id: "settings", label: "Settings", icon: Settings2 },
 ];
 
 export const ResumeWorkspace: React.FC<ResumeWorkspaceProps> = ({
   initialView = "upload",
 }) => {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const getViewFromPath = React.useCallback((): ResumeWorkspaceView => {
-    if (location.pathname === "/tailor") return "tailor";
-    if (location.pathname === "/upload") return "upload";
-    if (location.pathname === "/history") return "history";
-    return initialView;
-  }, [initialView, location.pathname]);
-
-  const [activeView, setActiveView] = React.useState<ResumeWorkspaceView>(
-    getViewFromPath(),
-  );
-
-  React.useEffect(() => {
-    setActiveView(getViewFromPath());
-  }, [getViewFromPath]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeView = (searchParams.get("tab") as ResumeWorkspaceView) || initialView;
 
   const handleSwitch = (view: ResumeWorkspaceView) => {
-    setActiveView(view);
-    navigate("/resume", { replace: location.pathname !== "/resume" });
+    setSearchParams({ tab: view });
   };
 
   return (
@@ -76,6 +62,9 @@ export const ResumeWorkspace: React.FC<ResumeWorkspaceProps> = ({
         {activeView === "upload" && <UploadResume />}
         {activeView === "tailor" && <TailorResume />}
         {activeView === "history" && <History embedded />}
+        {activeView === "settings" && (
+          <Settings inline isOpen onClose={() => handleSwitch("upload")} />
+        )}
       </div>
     </div>
   );

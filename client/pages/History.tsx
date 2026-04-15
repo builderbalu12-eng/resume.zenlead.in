@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Download } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ApplicationList } from "@/components/ApplicationList";
 import { ApplicationRecord } from "@/types";
 import { Page } from "@/components/layout/Page";
@@ -12,24 +12,29 @@ import {
   getApplicationHistory,
   updateApplicationStatus,
 } from "@/services/mongodb";
+import { APIClient } from "@/services/api";
+
+const API_BASE_URL = (
+  (import.meta as any).env?.VITE_API_URL ||
+  ((import.meta as any).env?.DEV ? "http://localhost:8000" : "")
+).replace(/\/$/, "");
 
 export const History: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusFilter = (searchParams.get("status") || "all") as "all" | ApplicationRecord["status"];
   const [applications, setApplications] = useState<ApplicationRecord[]>([]);
   const [filteredApplications, setFilteredApplications] = useState<
     ApplicationRecord[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | ApplicationRecord["status"]
-  >("all");
 
   useEffect(() => {
     const loadApplications = async () => {
       try {
         const apps = await getApplicationHistory();
         setApplications(apps);
-        filterApplications(apps, "all");
+        filterApplications(apps, statusFilter);
       } finally {
         setIsLoading(false);
       }
@@ -67,8 +72,20 @@ export const History: React.FC<{ embedded?: boolean }> = ({ embedded = false }) 
     }
   };
 
-  const handleFilterChange = (status: typeof statusFilter) => {
-    setStatusFilter(status);
+  const handleDelete = async (appId: string) => {
+    try {
+      const client = new APIClient(API_BASE_URL);
+      await client.deleteApplication(appId);
+      const updated = applications.filter((app) => app.id !== appId && app._id !== appId);
+      setApplications(updated);
+      filterApplications(updated, statusFilter);
+    } catch (error) {
+      console.error("Failed to delete application:", error);
+    }
+  };
+
+  const handleFilterChange = (status: "all" | ApplicationRecord["status"]) => {
+    setSearchParams(status === "all" ? {} : { status });
     filterApplications(applications, status);
   };
 
@@ -167,6 +184,7 @@ export const History: React.FC<{ embedded?: boolean }> = ({ embedded = false }) 
           <ApplicationList
             applications={filteredApplications}
             onStatusChange={handleStatusChange}
+            onDelete={handleDelete}
             isLoading={isLoading}
           />
       </PremiumCard>

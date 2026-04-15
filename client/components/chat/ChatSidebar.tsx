@@ -11,7 +11,6 @@ import {
   Briefcase,
   Building2,
   FileText,
-  Sparkles,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -70,9 +69,7 @@ export function ChatSidebar({
     <div className="flex h-full w-64 flex-col border-r bg-background">
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-4 py-4 border-b">
-        <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-sm">
-          <Sparkles className="h-3.5 w-3.5 text-white" />
-        </div>
+        <img src="/logo/lo9o.png" alt="Logo" className="h-7 w-7 rounded-lg object-contain" />
         <span className="text-sm font-semibold text-foreground">Maya</span>
       </div>
 
@@ -121,7 +118,7 @@ export function ChatSidebar({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 rounded-md"
+                          className="h-5 w-5 opacity-30 group-hover:opacity-100 transition-opacity shrink-0 rounded-md"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <MoreVertical className="h-3 w-3" />

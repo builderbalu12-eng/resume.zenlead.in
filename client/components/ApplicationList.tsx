@@ -13,12 +13,14 @@ import { format } from "date-fns";
 interface ApplicationListProps {
   applications: ApplicationRecord[];
   onStatusChange?: (appId: string, status: ApplicationRecord["status"]) => void;
+  onDelete?: (appId: string) => void;
   isLoading?: boolean;
 }
 
 export const ApplicationList: React.FC<ApplicationListProps> = ({
   applications,
   onStatusChange,
+  onDelete,
   isLoading = false,
 }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -103,7 +105,9 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
                   </div>
 
                   <div className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                    {app.atsScore || app.matchPercentage}% Match
+                    {(app as any).atsScoreBefore > 0
+                      ? `${(app as any).atsScoreBefore}% → ${app.atsScore || app.matchPercentage}%`
+                      : `${app.atsScore || app.matchPercentage}%`} Match
                   </div>
 
                   <span className="text-xs text-muted-foreground">
@@ -111,9 +115,9 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
                   </span>
                 </div>
 
-                {app.jobUrl && (
+                {(app.jobUrl || (app as any).jobUrl) && (
                   <a
-                    href={app.jobUrl}
+                    href={app.jobUrl || (app as any).jobUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs text-primary hover:underline flex items-center gap-1 w-fit"
@@ -167,15 +171,20 @@ export const ApplicationList: React.FC<ApplicationListProps> = ({
                   </div>
                 )}
 
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">
-                    Description
-                  </p>
-                  <p className="text-sm text-foreground line-clamp-3">
-                    {app.jobDescription?.description ||
-                      "No description available"}
-                  </p>
-                </div>
+                {(app as any).matchedKeywords?.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Matched Keywords</p>
+                    <p className="text-xs text-foreground">{(app as any).matchedKeywords.slice(0, 8).join(", ")}</p>
+                  </div>
+                )}
+                {onDelete && (
+                  <button
+                    onClick={() => onDelete(app.id || app._id || "")}
+                    className="text-xs text-destructive hover:underline mt-1"
+                  >
+                    Delete record
+                  </button>
+                )}
               </div>
             )}
           </div>

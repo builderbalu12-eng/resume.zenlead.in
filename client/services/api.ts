@@ -490,7 +490,7 @@ export class APIClient {
     });
   }
 
-  // Helper: Analyze job from HTML and tailor resume (composite operation for extension)
+  // Helper: Analyze job from HTML and tailor resume (combined single-call approach)
   async analyzeJobAndTailorResume(
     jobHtml: string,
     masterResume: any,
@@ -500,87 +500,192 @@ export class APIClient {
     tailoredResume: any;
     atsScore: any;
     masterAtsScore: any;
+    summary: string;
   }> {
-    const resumeText = JSON.stringify(masterResume);
-    const jobDescription = this.extractJobFromHtml(jobHtml);
+    // Clean HTML in browser before sending — strip scripts/styles/tags, limit to 24k chars
+    const cleanText = (jobHtml || '')
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .substring(0, 24000);
 
-    // Sequential to avoid free-tier rate limits
-    const tailorResult = await this.tailorResume(resumeText, jobDescription);
-    const masterAtsResult = await this.getATSScore(resumeText, jobDescription);
+    // Single combined backend call — job extract + tailor + ATS score in one Gemini request
+    const result = await this.request('/api/analyze-and-tailor', {
+      method: 'POST',
+      body: JSON.stringify({
+        userCredits: 0,
+        pageText: cleanText,
+        resume: masterResume,
+        configuredSections: configuredSections || [],
+      }),
+    });
 
-    const afterScore = tailorResult.estimatedATSScore ?? masterAtsResult.atsScore ?? 0;
+    // Build JobDescription object from backend response
+    const jobData = {
+      title: result.jobTitle || 'Unknown Position',
+      company: result.company || 'Unknown Company',
+      location: result.location || '',
+      description: result.jobDescription || '',
+      requirements: result.requirements || [],
+      skills: result.skills || [],
+      extractedAt: new Date(),
+    };
 
-    // Apply tailored sections from backend onto the master resume structure
+    // Apply tailored content — flexible experience matching (exact OR includes fallback)
     const tailoredResume = {
       ...masterResume,
-      ...(tailorResult.summary ? { summary: tailorResult.summary } : {}),
-      ...(Array.isArray(tailorResult.skills) && tailorResult.skills.length > 0
-        ? {
-            skills: tailorResult.skills.filter((s: string) =>
-              masterResume.skills?.some(
-                (ms: string) => ms.toLowerCase() === s.toLowerCase(),
-              ),
-            ),
-          }
-        : {}),
+      summary: result.tailoredSummary || masterResume.summary,
       experience: (masterResume.experience || []).map((exp: any) => {
-        const t = tailorResult.experience?.find(
+        const t = (result.tailoredExperience || []).find(
           (te: any) =>
-            te.title?.toLowerCase() === exp.title?.toLowerCase() &&
-            te.company?.toLowerCase() === exp.company?.toLowerCase(),
+            te.position?.toLowerCase() === exp.title?.toLowerCase() ||
+            te.position?.toLowerCase().includes(exp.title?.toLowerCase()),
         );
-        return t?.description?.length > 0
-          ? { ...exp, description: t.description }
+        return t?.newBullets?.length > 0
+          ? { ...exp, description: t.newBullets }
           : exp;
       }),
       projects: (masterResume.projects || []).map((proj: any) => {
-        const t = tailorResult.projects?.find(
+        const t = (result.tailoredProjects || []).find(
           (tp: any) => tp.title?.toLowerCase() === proj.title?.toLowerCase(),
         );
-        return t?.description?.trim()
-          ? { ...proj, description: t.description }
+        return t?.newDescription?.trim()
+          ? { ...proj, description: t.newDescription }
           : proj;
       }),
+      skills: result.tailoredSkillsOrder?.filter((s: string) =>
+        (masterResume.skills || []).some(
+          (ms: string) => ms.toLowerCase() === s.toLowerCase(),
+        ),
+      ) || masterResume.skills,
+      ...(result.customSections && Object.keys(result.customSections).length > 0
+        ? { customSections: result.customSections }
+        : {}),
     };
+
+    // Tailored ATS score from backend (Gemini-calculated against actual tailored content)
+    const atsScore = {
+      score: Math.min(100, Math.max(0, result.atsScore || 0)),
+      matchPercentage: Math.min(100, Math.max(0, result.matchPercentage || 0)),
+      keywordMatches: (result.matchedKeywords || []).filter(Boolean),
+      missingKeywords: (result.missingKeywords || []).filter(Boolean),
+      improvements: (result.improvements || []).filter(Boolean),
+    };
+
+    // Master ATS calculated LOCALLY — no extra API call (mirrors main branch approach)
+    const masterAtsScore = calculateATSScoreLocal(masterResume, jobData);
 
     return {
-      jobData: {
-        title: tailorResult.jobTitle || '',
-        company: tailorResult.company || '',
-        description: jobDescription,
-      },
+      jobData,
       tailoredResume,
-      atsScore: {
-        score: afterScore,
-        matchPercentage: afterScore,
-        keywordMatches: tailorResult.optimizationNotes || [],
-        missingKeywords: masterAtsResult.topMissingKeywords || [],
-        improvements: [],
-        scoreBreakdown: masterAtsResult.scoreBreakdown || {},
-        improvementsList: masterAtsResult.improvements || [],
-        issueCount: (masterAtsResult.improvements || []).length,
-      },
-      masterAtsScore: {
-        score: masterAtsResult.atsScore || 0,
-        matchPercentage: masterAtsResult.atsScore || 0,
-        keywordMatches: [],
-        missingKeywords: [],
-        improvements: [],
-      },
+      atsScore,
+      masterAtsScore,
+      summary: result.jobSummary || `Match: ${result.atsScore}% for ${result.jobTitle}`,
     };
   }
 
-  private extractJobFromHtml(html: string): string {
-    // Strip scripts, styles, and HTML tags — send clean plain text to backend
-    return (html || "")
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
-      .replace(/<!--[\s\S]*?-->/g, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .substring(0, 16000);
+  // ── Application History ──
+
+  async saveApplication(record: {
+    jobTitle: string;
+    company: string;
+    location: string;
+    jobUrl: string;
+    atsScoreBefore: number;
+    atsScoreAfter: number;
+    matchPercentage: number;
+    matchedKeywords: string[];
+    missingKeywords: string[];
+    status: string;
+  }): Promise<any> {
+    return this.request('/api/applications', {
+      method: 'POST',
+      body: JSON.stringify(record),
+    });
   }
+
+  async getApplicationHistory(): Promise<any[]> {
+    const res = await this.request('/api/applications', { method: 'GET' });
+    return res.applications || [];
+  }
+
+  async deleteApplication(appId: string): Promise<any> {
+    return this.request(`/api/applications/${appId}`, { method: 'DELETE' });
+  }
+}
+
+// ── Local ATS calculator (no API call — mirrors main branch calculateATSScore) ──
+
+function expandKeywordVariations(keyword: string): string[] {
+  const lower = keyword.toLowerCase().trim();
+  const variations = new Set<string>([lower]);
+  variations.add(lower.replace(/[#+.\-]/g, ''));
+  variations.add(lower.replace(/[.\-]/g, ' '));
+  const abbrevMap: Record<string, string[]> = {
+    'c++': ['cpp', 'c plus plus'],
+    'c#': ['csharp', 'c sharp'],
+    'node.js': ['nodejs', 'node'],
+    'react.js': ['reactjs', 'react'],
+    '.net': ['dot net', 'dotnet'],
+  };
+  for (const [abbrev, expansions] of Object.entries(abbrevMap)) {
+    if (lower.includes(abbrev)) expansions.forEach((e) => variations.add(e));
+  }
+  if (lower.includes('javascript')) variations.add('js');
+  if (lower.includes('typescript')) variations.add('ts');
+  return Array.from(variations);
+}
+
+function calculateATSScoreLocal(resume: any, jobDescription: any): { score: number; matchPercentage: number; keywordMatches: string[]; missingKeywords: string[]; improvements: string[] } {
+  const resumeText = [
+    resume.summary || '',
+    (resume.skills || []).join(' '),
+    ...(resume.experience || []).map((e: any) => `${e.title} ${e.company} ${(e.description || []).join(' ')}`),
+    ...(resume.education || []).map((e: any) => `${e.degree} ${e.field}`),
+    ...(resume.projects || []).map((p: any) => `${p.title} ${p.description} ${(p.technologies || []).join(' ')}`),
+    ...Object.values(resume.customSections || {}),
+  ].join(' ').toLowerCase();
+
+  const jobKeywords = [...(jobDescription.skills || []), ...(jobDescription.requirements || [])];
+  const matched: string[] = [];
+  const missing: string[] = [];
+
+  for (const kw of jobKeywords) {
+    const found = expandKeywordVariations(kw).some((v) => resumeText.includes(v));
+    (found ? matched : missing).push(kw);
+  }
+
+  const kwPct = jobKeywords.length > 0 ? (matched.length / jobKeywords.length) * 100 : 50;
+  const kwScore = Math.min(40, (kwPct / 100) * 40);
+
+  const skills = resume.skills || [];
+  const skillsScore = skills.length >= 8 ? 10 : skills.length >= 5 ? 7 : skills.length > 0 ? 4 : 0;
+
+  let expScore = 0;
+  const experience = resume.experience || [];
+  if (experience.length > 0) {
+    expScore += experience.length >= 3 ? 10 : 5;
+    const totalBullets = experience.reduce((n: number, e: any) => n + (e.description?.length || 0), 0);
+    expScore += totalBullets >= 12 ? 15 : totalBullets >= 8 ? 12 : totalBullets >= 3 ? 8 : 0;
+    expScore = Math.min(25, expScore);
+  }
+
+  const eduScore = (resume.education || []).length > 0 ? 10 : 0;
+  const summaryLen = (resume.summary || '').trim().length;
+  const summaryScore = summaryLen >= 100 ? 10 : summaryLen >= 50 ? 5 : 0;
+  const projectsScore = Math.min(5, (resume.projects?.length || 0) * 2);
+
+  const total = Math.min(100, Math.round(kwScore + skillsScore + expScore + eduScore + summaryScore + projectsScore));
+  return {
+    score: Math.max(20, total),
+    matchPercentage: Math.round(kwPct),
+    keywordMatches: matched,
+    missingKeywords: missing,
+    improvements: missing.length > 0 ? [`Add missing skills: ${missing.slice(0, 3).join(', ')}`] : [],
+  };
 }
 
 export const apiClient = new APIClient(API_BASE_URL);

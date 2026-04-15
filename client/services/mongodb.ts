@@ -5,6 +5,16 @@ import {
   setMasterResume,
   getMasterResume,
 } from "@/utils/storage";
+import { APIClient } from "@/services/api";
+
+const API_BASE_URL = (
+  (import.meta as any).env?.VITE_API_URL ||
+  ((import.meta as any).env?.DEV ? "http://localhost:8000" : "")
+).replace(/\/$/, "");
+
+function getApiClient(): APIClient {
+  return new APIClient(API_BASE_URL);
+}
 
 const STORAGE_KEYS = {
   USER_DATA: "resumematch_user_data",
@@ -53,14 +63,20 @@ export async function saveApplication(
   application: ApplicationRecord,
 ): Promise<ApplicationRecord> {
   try {
-    const applications = await getApplicationHistory();
-    const newApplication: ApplicationRecord = {
-      ...application,
-      id: `app_${Date.now()}`,
-    };
-    applications.push(newApplication);
-    await saveToStorage(STORAGE_KEYS.APPLICATIONS, applications);
-    return newApplication;
+    const client = getApiClient();
+    const res = await client.saveApplication({
+      jobTitle: application.jobTitle || "",
+      company: application.company || "",
+      location: (application as any).location || "",
+      jobUrl: (application as any).jobUrl || "",
+      atsScoreBefore: (application as any).atsScoreBefore || 0,
+      atsScoreAfter: application.atsScore || (application as any).atsScoreAfter || 0,
+      matchPercentage: application.matchPercentage || 0,
+      matchedKeywords: (application as any).matchedKeywords || [],
+      missingKeywords: (application as any).missingKeywords || [],
+      status: application.status || "applied",
+    });
+    return { ...application, id: res.id };
   } catch (error) {
     console.error("Error saving application:", error);
     throw error;
@@ -69,73 +85,29 @@ export async function saveApplication(
 
 export async function getApplicationHistory(): Promise<ApplicationRecord[]> {
   try {
-    // Read from our storage helper first (localStorage or chrome.storage.sync)
-    let localHistory: any = await getFromStorage(STORAGE_KEYS.APPLICATIONS);
-
-    // Parse if stringified once or twice
-    for (let i = 0; i < 2 && typeof localHistory === "string"; i++) {
-      try {
-        localHistory = JSON.parse(localHistory);
-      } catch {
-        break;
-      }
-    }
-
-    let localArray: ApplicationRecord[] = [];
-    if (Array.isArray(localHistory))
-      localArray = localHistory as ApplicationRecord[];
-    else if (localHistory && typeof localHistory === "object")
-      localArray = [localHistory as ApplicationRecord];
-
-    // Also try to read directly from chrome.storage.sync if available (extension context)
-    let extArray: ApplicationRecord[] = [];
-    if (
-      typeof chrome !== "undefined" &&
-      chrome.storage &&
-      chrome.storage.sync
-    ) {
-      try {
-        const extRaw: any = await new Promise((resolve) => {
-          chrome.storage.sync.get([STORAGE_KEYS.APPLICATIONS], (res) => {
-            resolve(res[STORAGE_KEYS.APPLICATIONS] ?? null);
-          });
-        });
-        let extHistory = extRaw;
-        for (let i = 0; i < 2 && typeof extHistory === "string"; i++) {
-          try {
-            extHistory = JSON.parse(extHistory);
-          } catch {
-            break;
-          }
-        }
-        if (Array.isArray(extHistory))
-          extArray = extHistory as ApplicationRecord[];
-        else if (extHistory && typeof extHistory === "object")
-          extArray = [extHistory as ApplicationRecord];
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    // Merge and dedupe by a stable key
-    const byKey = new Map<string, ApplicationRecord>();
-    const makeKey = (a: any) =>
-      `${a.id || a._id || ""}|${a.jobTitle || ""}|${a.company || ""}|${a.appliedDate || ""}`;
-
-    [...localArray, ...extArray].forEach((a) => {
-      if (!a) return;
-      const k = makeKey(a);
-      byKey.set(k, a);
-    });
-
-    const combined = Array.from(byKey.values());
-
-    // Persist back to unify format so future reads are stable
-    try {
-      await saveToStorage(STORAGE_KEYS.APPLICATIONS, combined);
-    } catch {}
-
-    return combined;
+    const client = getApiClient();
+    const docs = await client.getApplicationHistory();
+    return docs.map((d: any) => ({
+      id: d._id || d.id,
+      _id: d._id || d.id,
+      userId: d.userId || "",
+      jobTitle: d.jobTitle || "",
+      company: d.company || "",
+      location: d.location || "",
+      jobUrl: d.jobUrl || "",
+      jobDescription: { description: "" } as any,
+      originalResume: {} as any,
+      tailoredResume: {} as any,
+      atsScore: d.atsScoreAfter || 0,
+      atsScoreBefore: d.atsScoreBefore || 0,
+      atsScoreAfter: d.atsScoreAfter || 0,
+      matchPercentage: d.matchPercentage || 0,
+      matchedKeywords: d.matchedKeywords || [],
+      missingKeywords: d.missingKeywords || [],
+      appliedDate: d.createdAt || new Date().toISOString(),
+      status: d.status || "applied",
+      createdAt: d.createdAt ? new Date(d.createdAt) : new Date(),
+    }));
   } catch (error) {
     console.error("Error fetching application history:", error);
     return [];

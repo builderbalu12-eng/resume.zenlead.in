@@ -32,7 +32,6 @@ export const PRIMARY_NAV: NavItem[] = [
 export const ACCOUNT_NAV: NavItem[] = [
   { label: "Profile", path: "/profile", icon: User, requiresAuth: true },
   { label: "Pricing", path: "/pricing", icon: CreditCard },
-  { label: "Billing", path: "/billing", icon: CreditCard, requiresAuth: true },
 ];
 
 export const ADMIN_NAV: NavItem[] = [
@@ -54,6 +53,9 @@ export function getRouteTitle(pathname: string): string {
   if (pathname.startsWith("/payment")) return "Payment";
   if (pathname.startsWith("/auth")) return "Authentication";
   if (pathname.startsWith("/admin")) return "Admin";
+  if (pathname.startsWith("/interview-prep")) return "Interview Prep";
+  if (pathname.startsWith("/github-sync")) return "GitHub Sync";
+  if (pathname.startsWith("/auto-apply")) return "Auto Apply";
   return "ResumeMatch";
 }
 

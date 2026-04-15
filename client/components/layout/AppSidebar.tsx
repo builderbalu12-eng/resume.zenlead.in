@@ -1,6 +1,5 @@
 import * as React from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Sparkles } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -60,9 +59,11 @@ export function AppSidebar() {
             )
           }
         >
-          <span className="grid size-9 place-items-center rounded-xl bg-gradient-primary text-white shadow-sm">
-            <Sparkles className="size-4" />
-          </span>
+          <img
+            src="/logo/lo9o.png"
+            alt="Logo"
+            className="size-10 rounded-xl object-contain shrink-0 bg-white shadow-sm group-data-[collapsible=icon]:hidden"
+          />
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-semibold">ResumeMatch</span>
             <span className="text-xs text-sidebar-foreground/70">
@@ -166,6 +167,12 @@ export function AppSidebar() {
             </Button>
           </div>
         )}
+        <div className="flex flex-wrap gap-x-3 gap-y-1 pt-2 group-data-[collapsible=icon]:hidden">
+          <NavLink to="/privacy-policy" className="text-[11px] text-sidebar-foreground/50 hover:text-sidebar-foreground/80 transition-colors">Privacy</NavLink>
+          <NavLink to="/terms" className="text-[11px] text-sidebar-foreground/50 hover:text-sidebar-foreground/80 transition-colors">Terms</NavLink>
+          <NavLink to="/refund-policy" className="text-[11px] text-sidebar-foreground/50 hover:text-sidebar-foreground/80 transition-colors">Refunds</NavLink>
+          <NavLink to="/contact" className="text-[11px] text-sidebar-foreground/50 hover:text-sidebar-foreground/80 transition-colors">Contact</NavLink>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Building2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Page } from "@/components/layout/Page";
@@ -25,9 +26,14 @@ export function FindBusinessPage() {
     stats,
     showingHistory,
   } = useBusinessSearch();
-  const [activeTab, setActiveTab] = useState<"map" | "list">("map");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get("tab") as "map" | "list") || "map";
+  const searchLimit = Number(searchParams.get("limit") || "10");
+  const setActiveTab = (tab: "map" | "list") =>
+    setSearchParams({ tab, limit: String(searchLimit) });
+  const setSearchLimit = (limit: number) =>
+    setSearchParams({ tab: activeTab, limit: String(limit) });
   const [mapCollapsed, setMapCollapsed] = useState(false);
-  const [searchLimit, setSearchLimit] = useState(10);
   const [costPerLead, setCostPerLead] = useState<number | null>(null);
   const [isCostLoading, setIsCostLoading] = useState(true);
 

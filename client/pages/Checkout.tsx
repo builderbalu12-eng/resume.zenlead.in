@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { Loader, ArrowLeft, Check, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient, SubscriptionPlan } from '@/services/api';
@@ -247,7 +247,14 @@ export const Checkout: React.FC = () => {
 
               {/* Terms */}
               <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
-                By subscribing, you agree to our Terms of Service
+                By subscribing, you agree to our{" "}
+                <Link to="/terms" className="underline hover:text-slate-700 dark:hover:text-slate-300">
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link to="/refund-policy" className="underline hover:text-slate-700 dark:hover:text-slate-300">
+                  Refund Policy
+                </Link>
               </p>
             </div>
           </div>
