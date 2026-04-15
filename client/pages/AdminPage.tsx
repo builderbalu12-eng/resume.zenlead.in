@@ -1920,13 +1920,23 @@ function ResourcesTab() {
 
 const DEFAULT_SOCIAL: AppConfig["social_links"] = { twitter: "", linkedin: "", github: "", facebook: "", instagram: "", youtube: "" };
 const DEFAULT_CONFIG: AppConfig = { app_name: "LandYourJob", support_email: "zenlead.info@gmail.com", logo_url: "/logo/lo9o.png", social_links: DEFAULT_SOCIAL, collaborators: [] };
+const FALLBACK_LOGO = "/logo/lo9o.png";
+
+function readFileAsDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 function SupportTab() {
-  const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(true);
   // identity form
   const [identity, setIdentity] = useState({ app_name: "", support_email: "", logo_url: "" });
   const [savingIdentity, setSavingIdentity] = useState(false);
+  const logoInputRef = React.useRef<HTMLInputElement>(null);
   // social form
   const [social, setSocial] = useState<AppConfig["social_links"]>(DEFAULT_SOCIAL);
   const [savingSocial, setSavingSocial] = useState(false);
@@ -1934,11 +1944,11 @@ function SupportTab() {
   const [collabs, setCollabs] = useState<Collaborator[]>([]);
   const [savingCollabs, setSavingCollabs] = useState(false);
   const [newCollab, setNewCollab] = useState<Collaborator>({ name: "", role: "", image_url: "" });
+  const collabImageInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     getAppConfig()
       .then((cfg) => {
-        setConfig(cfg);
         setIdentity({ app_name: cfg.app_name, support_email: cfg.support_email, logo_url: cfg.logo_url });
         setSocial({ ...DEFAULT_SOCIAL, ...cfg.social_links });
         setCollabs(cfg.collaborators ?? []);
@@ -1947,11 +1957,28 @@ function SupportTab() {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { toast.error("Logo must be under 2 MB"); return; }
+    const dataUrl = await readFileAsDataURL(file);
+    setIdentity((p) => ({ ...p, logo_url: dataUrl }));
+  };
+
+  const handleCollabImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1 * 1024 * 1024) { toast.error("Photo must be under 1 MB"); return; }
+    const dataUrl = await readFileAsDataURL(file);
+    setNewCollab((p) => ({ ...p, image_url: dataUrl }));
+    // reset so re-selecting same file triggers onChange
+    e.target.value = "";
+  };
+
   const saveIdentity = async () => {
     setSavingIdentity(true);
     try {
-      const updated = await updateAppConfig(identity);
-      setConfig((c) => ({ ...c, ...updated }));
+      await updateAppConfig(identity);
       toast.success("App identity saved");
     } catch (e: any) {
       toast.error(e.message);
@@ -1963,8 +1990,7 @@ function SupportTab() {
   const saveSocial = async () => {
     setSavingSocial(true);
     try {
-      const updated = await updateAppConfig({ social_links: social });
-      setConfig((c) => ({ ...c, ...updated }));
+      await updateAppConfig({ social_links: social });
       toast.success("Social links saved");
     } catch (e: any) {
       toast.error(e.message);
@@ -1976,8 +2002,7 @@ function SupportTab() {
   const saveCollabs = async (list: Collaborator[]) => {
     setSavingCollabs(true);
     try {
-      const updated = await updateAppConfig({ collaborators: list });
-      setConfig((c) => ({ ...c, ...updated }));
+      await updateAppConfig({ collaborators: list });
       setCollabs(list);
       toast.success("Collaborators saved");
     } catch (e: any) {
@@ -1994,10 +2019,7 @@ function SupportTab() {
     saveCollabs(next);
   };
 
-  const removeCollab = (i: number) => {
-    const next = collabs.filter((_, idx) => idx !== i);
-    saveCollabs(next);
-  };
+  const removeCollab = (i: number) => saveCollabs(collabs.filter((_, idx) => idx !== i));
 
   const SOCIAL_FIELDS: { key: keyof AppConfig["social_links"]; label: string; icon: React.ReactNode; placeholder: string }[] = [
     { key: "twitter",   label: "Twitter / X", icon: <Twitter className="h-4 w-4" />,   placeholder: "https://twitter.com/yourhandle" },
@@ -2010,12 +2032,53 @@ function SupportTab() {
 
   if (loading) return <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading config…</div>;
 
+  const logoPreview = identity.logo_url || FALLBACK_LOGO;
+
   return (
     <div className="space-y-6">
       {/* Card 1 — App Identity */}
       <PremiumCard className="p-6">
         <h2 className="text-base font-semibold text-foreground mb-4">App Identity</h2>
-        <div className="space-y-4 max-w-lg">
+        <div className="space-y-5 max-w-lg">
+          {/* Logo upload */}
+          <div>
+            <label className="text-sm font-medium text-muted-foreground block mb-2">App Logo</label>
+            <div className="flex items-center gap-4">
+              <img
+                src={logoPreview}
+                alt="App logo"
+                className="h-16 w-16 rounded-xl object-contain bg-white border border-border shadow-sm"
+              />
+              <div className="flex flex-col gap-2">
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleLogoUpload}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => logoInputRef.current?.click()}
+                >
+                  Upload Logo
+                </Button>
+                {identity.logo_url && identity.logo_url !== FALLBACK_LOGO && (
+                  <button
+                    type="button"
+                    onClick={() => setIdentity((p) => ({ ...p, logo_url: "" }))}
+                    className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    Remove (use default)
+                  </button>
+                )}
+                <p className="text-xs text-muted-foreground">PNG, JPG, SVG · max 2 MB</p>
+              </div>
+            </div>
+          </div>
+
           <div>
             <label className="text-sm font-medium text-muted-foreground block mb-1">App Name</label>
             <Input value={identity.app_name} onChange={(e) => setIdentity((p) => ({ ...p, app_name: e.target.value }))} placeholder="LandYourJob" />
@@ -2024,16 +2087,8 @@ function SupportTab() {
             <label className="text-sm font-medium text-muted-foreground block mb-1">Support Email</label>
             <Input value={identity.support_email} onChange={(e) => setIdentity((p) => ({ ...p, support_email: e.target.value }))} placeholder="support@example.com" type="email" />
           </div>
-          <div>
-            <label className="text-sm font-medium text-muted-foreground block mb-1">Logo URL</label>
-            <Input value={identity.logo_url} onChange={(e) => setIdentity((p) => ({ ...p, logo_url: e.target.value }))} placeholder="/logo/lo9o.png" />
-            {identity.logo_url && (
-              <div className="mt-2">
-                <img src={identity.logo_url} alt="Logo preview" className="h-12 w-12 rounded-xl object-contain bg-white border border-border shadow-sm" />
-              </div>
-            )}
-          </div>
-          <Button onClick={saveIdentity} disabled={savingIdentity} className="mt-2">
+
+          <Button onClick={saveIdentity} disabled={savingIdentity}>
             {savingIdentity ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</> : <><Save className="h-4 w-4 mr-2" />Save Identity</>}
           </Button>
         </div>
@@ -2080,7 +2135,7 @@ function SupportTab() {
           <div className="space-y-2 mb-4">
             {collabs.map((c, i) => (
               <div key={i} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-muted/30">
-                <div className="h-8 w-8 rounded-full overflow-hidden border border-border bg-muted shrink-0">
+                <div className="h-9 w-9 rounded-full overflow-hidden border border-border bg-muted shrink-0">
                   {c.image_url
                     ? <img src={c.image_url} alt={c.name} className="w-full h-full object-cover" />
                     : <div className="w-full h-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold">{c.name.charAt(0)}</div>
@@ -2107,14 +2162,51 @@ function SupportTab() {
         {/* Add new collaborator */}
         <div className="border border-dashed border-border rounded-xl p-4 space-y-3">
           <p className="text-sm font-medium text-foreground">Add Collaborator</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+
+          {/* Photo upload */}
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-full overflow-hidden border border-border bg-muted shrink-0 flex items-center justify-center">
+              {newCollab.image_url
+                ? <img src={newCollab.image_url} alt="preview" className="w-full h-full object-cover" />
+                : <span className="text-muted-foreground text-xs">Photo</span>
+              }
+            </div>
+            <div className="flex flex-col gap-1">
+              <input
+                ref={collabImageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleCollabImageUpload}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => collabImageInputRef.current?.click()}
+              >
+                Upload Photo
+              </Button>
+              {newCollab.image_url && (
+                <button
+                  type="button"
+                  onClick={() => setNewCollab((p) => ({ ...p, image_url: "" }))}
+                  className="text-xs text-muted-foreground hover:text-destructive transition-colors text-left"
+                >
+                  Remove photo
+                </button>
+              )}
+              <p className="text-xs text-muted-foreground">max 1 MB</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Input value={newCollab.name} onChange={(e) => setNewCollab((p) => ({ ...p, name: e.target.value }))} placeholder="Name *" />
             <Input value={newCollab.role} onChange={(e) => setNewCollab((p) => ({ ...p, role: e.target.value }))} placeholder="Role (e.g. Designer)" />
-            <Input value={newCollab.image_url} onChange={(e) => setNewCollab((p) => ({ ...p, image_url: e.target.value }))} placeholder="Image URL (optional)" />
           </div>
           <Button onClick={addCollab} disabled={savingCollabs || !newCollab.name.trim()} size="sm">
             {savingCollabs ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
-            Add
+            Add Collaborator
           </Button>
         </div>
       </PremiumCard>
