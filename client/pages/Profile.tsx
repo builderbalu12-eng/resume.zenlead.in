@@ -39,6 +39,16 @@ export const Profile: React.FC = () => {
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
 
+  // Job Preferences
+  const [jobPrefs, setJobPrefs] = useState({
+    desired_role: '',
+    preferred_location: '',
+    work_type: 'any',
+    preferred_sites: ['indeed', 'linkedin', 'google'] as string[],
+  });
+  const [isSavingPrefs, setIsSavingPrefs] = useState(false);
+  const [prefsMessage, setPrefsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   // Telegram
   const [telegramLinked, setTelegramLinked] = useState(false);
   const [telegramLoading, setTelegramLoading] = useState(false);
@@ -58,6 +68,11 @@ export const Profile: React.FC = () => {
         setUser(response);
         setFirstName(response.firstName || '');
         setLastName(response.lastName || '');
+        // Load job preferences
+        try {
+          const prefsRes = await apiClient.getJobPreferences();
+          if (prefsRes?.job_preferences) setJobPrefs(prefsRes.job_preferences);
+        } catch (_) {}
       } catch (err) {
         console.error('Failed to load user profile from API:', err);
         // Fallback to auth context user data if available
@@ -174,6 +189,20 @@ export const Profile: React.FC = () => {
       setPersonalMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to update profile' });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSavePreferences = async () => {
+    try {
+      setIsSavingPrefs(true);
+      setPrefsMessage(null);
+      await apiClient.updateJobPreferences(jobPrefs);
+      setPrefsMessage({ type: 'success', text: 'Job preferences saved!' });
+      setTimeout(() => setPrefsMessage(null), 3000);
+    } catch (err) {
+      setPrefsMessage({ type: 'error', text: 'Failed to save preferences' });
+    } finally {
+      setIsSavingPrefs(false);
     }
   };
 
@@ -456,6 +485,86 @@ export const Profile: React.FC = () => {
                       🚀 Upgrade Plan
                     </Button>
                   </div>
+                </div>
+              </div>
+
+              {/* Job Preferences card */}
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="border-b border-slate-100 dark:border-slate-800 px-6 py-5">
+                  <p className="font-semibold text-slate-900 dark:text-white">Job Preferences</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Used by the daily job feed to pre-fill relevant jobs for you</p>
+                </div>
+                <div className="px-6 py-5 space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">Desired Role</p>
+                      <Input
+                        placeholder="e.g. Senior AI Engineer"
+                        value={jobPrefs.desired_role}
+                        onChange={(e) => setJobPrefs(p => ({ ...p, desired_role: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">Preferred Location</p>
+                      <Input
+                        placeholder="e.g. Delhi, India"
+                        value={jobPrefs.preferred_location}
+                        onChange={(e) => setJobPrefs(p => ({ ...p, preferred_location: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">Work Type</p>
+                    <div className="flex gap-4">
+                      {[
+                        { label: 'Any', value: 'any' },
+                        { label: 'Remote', value: 'remote' },
+                        { label: 'On-site', value: 'on-site' },
+                      ].map(({ label, value }) => (
+                        <label key={value} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="job_work_type"
+                            checked={jobPrefs.work_type === value}
+                            onChange={() => setJobPrefs(p => ({ ...p, work_type: value }))}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm text-slate-700 dark:text-slate-300">{label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">Job Sites</p>
+                    <div className="flex flex-wrap gap-3">
+                      {['indeed', 'linkedin', 'google'].map(site => (
+                        <label key={site} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={jobPrefs.preferred_sites.includes(site)}
+                            onChange={() => setJobPrefs(p => ({
+                              ...p,
+                              preferred_sites: p.preferred_sites.includes(site)
+                                ? p.preferred_sites.filter(s => s !== site)
+                                : [...p.preferred_sites, site],
+                            }))}
+                            className="w-4 h-4 rounded"
+                          />
+                          <span className="text-sm text-slate-700 dark:text-slate-300 capitalize">{site}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  {prefsMessage && (
+                    <div className={cn("rounded-lg border px-4 py-2.5 text-sm font-medium",
+                      prefsMessage.type === "success" ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"
+                    )}>
+                      {prefsMessage.text}
+                    </div>
+                  )}
+                  <Button onClick={handleSavePreferences} disabled={isSavingPrefs} className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white">
+                    {isSavingPrefs ? 'Saving...' : 'Save Preferences'}
+                  </Button>
                 </div>
               </div>
 

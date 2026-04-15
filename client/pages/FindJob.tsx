@@ -280,49 +280,61 @@ export const FindJob: React.FC = () => {
   // VIEW 1: DEFAULT JOBS PAGE
   if (view === 'default') {
     return (
-      <Page size="xl" className="space-y-10">
-        <SectionHeader
-          title="Find jobs"
-          description="Discover opportunities matched to your resume."
-        />
+      <Page size="xl" className="space-y-6">
+        {/* Page title */}
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Find Jobs</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Discover opportunities matched to your resume.</p>
+        </div>
 
-          {/* Search Form */}
-          {!isSearching && <SearchForm onSubmit={handleSearch} isLoading={isSearching} />}
+        {/* Compact search bar — always visible */}
+        <SearchForm compact onSubmit={handleSearch} isLoading={isSearching} />
 
-          {/* Loading Overlay */}
-          {isSearching && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white dark:bg-slate-900 rounded-xl p-8 max-w-md w-full text-center space-y-4">
-                <Loader2 className="h-16 w-16 animate-spin text-purple-600 mx-auto" />
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">Searching jobs across LinkedIn, Indeed, Google & Naukri...</h2>
-                  <p className="text-slate-600 dark:text-slate-400 mt-2">AI is ranking them against your resume. This takes ~30–60 seconds.</p>
-                </div>
-              </div>
+        {/* Trending Jobs grid — visible immediately without scrolling */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                {defaultJobs.length > 0 ? 'Jobs For You' : 'Trending Jobs Today'}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {defaultJobs.length > 0
+                  ? 'Based on your preferences and search history'
+                  : 'Run a search above to get AI-matched jobs for your resume'}
+              </p>
             </div>
-          )}
-
-          {/* Default Jobs Grid */}
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Trending Jobs Today</h2>
-              <p className="text-slate-600 dark:text-slate-400">Run a search above to get AI-matched jobs for YOUR resume</p>
-            </div>
-
-            {defaultJobs.length === 0 ? (
-              <PremiumCard hover={false} className="p-12 text-center border-dashed">
-                <Briefcase className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-1">No jobs available yet</h3>
-                <p className="text-sm text-muted-foreground">Be the first to run a search.</p>
-              </PremiumCard>
-            ) : (
-              <div className="grid md:grid-cols-2 gap-6">
-                {defaultJobs.map(job => (
-                  <JobCard key={job.job_url} job={job} />
-                ))}
-              </div>
+            {defaultJobs.length > 0 && (
+              <span className="text-xs text-slate-400">{defaultJobs.length} jobs</span>
             )}
           </div>
+
+          {defaultJobs.length === 0 ? (
+            <PremiumCard hover={false} className="p-10 text-center border-dashed">
+              <Briefcase className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+              <h3 className="text-base font-semibold mb-1">No jobs yet</h3>
+              <p className="text-sm text-muted-foreground">Run a search above — results will appear here.</p>
+            </PremiumCard>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {defaultJobs.map(job => (
+                <JobCard key={job.job_url} job={job} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Loading Overlay */}
+        {isSearching && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-xl p-8 max-w-md w-full text-center space-y-4">
+              <Loader2 className="h-16 w-16 animate-spin text-purple-600 mx-auto" />
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Searching jobs across LinkedIn, Indeed, Google & Naukri...</h2>
+                <p className="text-slate-600 dark:text-slate-400 mt-2">AI is ranking them against your resume. This takes ~30–60 seconds.</p>
+              </div>
+            </div>
+          </div>
+        )}
       </Page>
     );
   }

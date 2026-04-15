@@ -615,6 +615,22 @@ export class APIClient {
   async deleteApplication(appId: string): Promise<any> {
     return this.request(`/api/applications/${appId}`, { method: 'DELETE' });
   }
+
+  async getJobPreferences(): Promise<any> {
+    return this.request('/api/user/me/job-preferences', { method: 'GET' });
+  }
+
+  async updateJobPreferences(prefs: {
+    desired_role: string;
+    preferred_location: string;
+    work_type: string;
+    preferred_sites: string[];
+  }): Promise<any> {
+    return this.request('/api/user/me/job-preferences', {
+      method: 'PUT',
+      body: JSON.stringify(prefs),
+    });
+  }
 }
 
 // ── Local ATS calculator (no API call — mirrors main branch calculateATSScore) ──
