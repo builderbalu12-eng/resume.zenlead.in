@@ -323,3 +323,18 @@ export async function getMongoDBResource(): Promise<MongoDBResource> {
   const res = await request<{ data: MongoDBResource }>("/admin/resources/mongodb");
   return res.data;
 }
+
+export type JSearchResource = {
+  api_key_masked: string;
+  requests_limit: number;
+  requests_remaining: number;
+  calls_today: number;
+  requests_reset: string | null;
+  last_updated: string | null;
+  usage_history: { date: string; calls: number }[];
+};
+
+export async function getJSearchResource(): Promise<JSearchResource> {
+  const res = await request<{ data: JSearchResource }>("/admin/resources/jsearch");
+  return res.data;
+}

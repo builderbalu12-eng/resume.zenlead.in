@@ -18,11 +18,11 @@ import {
   listAdminCoupons, createAdminCoupon, deleteAdminCoupon, getCouponUsage,
   getUserCreditsLog, getUserBilling,
   getAdminAnalytics,
-  getGeminiResource, updateGeminiConfig, listGeminiModels, getMongoDBResource,
+  getGeminiResource, updateGeminiConfig, listGeminiModels, getMongoDBResource, getJSearchResource,
   AdminStats, AdminUser, FeatureCost, AdminCoupon, CreateCouponData, CouponUsageEntry,
   AdminCreditLogEntry, AdminUserBilling,
   AnalyticsData, AnalyticsPeriod,
-  GeminiResource, GeminiModel, MongoDBResource,
+  GeminiResource, GeminiModel, MongoDBResource, JSearchResource,
 } from "@/services/adminService";
 
 type Tab = "overview" | "features" | "users" | "coupons" | "resources";
@@ -972,7 +972,7 @@ function CouponsTab() {
 
 // ── Resources Tab ─────────────────────────────────────────
 
-type ResourceSubTab = "google" | "mongodb" | "vercel";
+type ResourceSubTab = "google" | "mongodb" | "vercel" | "jsearch";
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -1316,6 +1316,122 @@ function VercelResourcePanel() {
   );
 }
 
+// ── JSearch / RapidAPI sub-tab ──────────────────────────────
+
+function JSearchResourcePanel() {
+  const [data, setData] = useState<JSearchResource | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = () => {
+    setLoading(true);
+    getJSearchResource()
+      .then(setData)
+      .catch(() => toast.error("Failed to load JSearch data"))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  if (loading) return (
+    <div className="flex justify-center py-12">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  );
+
+  const callsToday   = data?.calls_today ?? 0;
+  const limit        = data?.requests_limit ?? 200;
+  const remaining    = data?.requests_remaining ?? 200;
+  const usagePct     = Math.min(100, Math.round((callsToday / limit) * 100));
+  const usageColor   = usagePct >= 90 ? "#ef4444" : usagePct >= 70 ? "#f97316" : "#10b981";
+
+  return (
+    <PremiumCard className="p-6" hover={false}>
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-lg">
+            🔍
+          </div>
+          <div>
+            <h2 className="text-base font-semibold">JSearch API (RapidAPI)</h2>
+            {data?.last_updated && (
+              <p className="text-xs text-muted-foreground">
+                Last call: {new Date(data.last_updated).toLocaleString()}
+              </p>
+            )}
+          </div>
+        </div>
+        <Button variant="ghost" size="icon" onClick={load} title="Refresh">
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Key masked */}
+      <div className="mb-4">
+        <label className="text-xs font-medium text-muted-foreground mb-1 block">API Key</label>
+        <code className="text-sm font-mono bg-muted px-2 py-1 rounded">{data?.api_key_masked || "—"}</code>
+      </div>
+
+      {/* Usage stats */}
+      <div className="grid grid-cols-3 gap-4 mb-5">
+        <div className="bg-muted/40 rounded-lg p-3 text-center">
+          <p className="text-2xl font-bold" style={{ color: usageColor }}>{callsToday}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Calls Today</p>
+        </div>
+        <div className="bg-muted/40 rounded-lg p-3 text-center">
+          <p className="text-2xl font-bold text-green-500">{remaining}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Remaining</p>
+        </div>
+        <div className="bg-muted/40 rounded-lg p-3 text-center">
+          <p className="text-2xl font-bold">{limit}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Daily Limit</p>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mb-5">
+        <div className="flex justify-between text-xs text-muted-foreground mb-1">
+          <span>Usage today</span>
+          <span>{usagePct}%</span>
+        </div>
+        <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${usagePct}%`, backgroundColor: usageColor }}
+          />
+        </div>
+        {data?.requests_reset && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Resets: {data.requests_reset}
+          </p>
+        )}
+      </div>
+
+      {/* 30-day chart */}
+      {data && data.usage_history.length > 0 && (
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-2">30-Day Call History</p>
+          <ResponsiveContainer width="100%" height={120}>
+            <BarChart data={data.usage_history} barSize={8}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+              <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(d) => d.slice(5)} />
+              <YAxis tick={{ fontSize: 10 }} width={28} />
+              <Tooltip
+                contentStyle={{ fontSize: 12 }}
+                formatter={(v: number) => [v, "Calls"]}
+              />
+              <Bar dataKey="calls" fill={usageColor} radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      <p className="text-xs text-muted-foreground mt-4">
+        Free tier: 200 requests/day. Upgrade at rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch.
+      </p>
+    </PremiumCard>
+  );
+}
+
 // ── Resources Tab (outer, with inner sub-tabs) ─────────────
 
 function ResourcesTab() {
@@ -1325,6 +1441,7 @@ function ResourcesTab() {
     { id: "google",  label: "Google",  icon: "✦" },
     { id: "mongodb", label: "MongoDB", icon: "🍃" },
     { id: "vercel",  label: "Vercel",  icon: "▲" },
+    { id: "jsearch", label: "JSearch", icon: "🔍" },
   ];
 
   return (
@@ -1352,6 +1469,7 @@ function ResourcesTab() {
       {subTab === "google"  && <GoogleResourcePanel />}
       {subTab === "mongodb" && <MongoDBResourcePanel />}
       {subTab === "vercel"  && <VercelResourcePanel />}
+      {subTab === "jsearch" && <JSearchResourcePanel />}
     </div>
   );
 }
