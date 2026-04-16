@@ -23,12 +23,15 @@ import {
   getDefaultCredits, updateDefaultCredits,
   listAdminPlans, updateAdminPlan, deleteAdminPlan,
   getAppConfig, updateAppConfig,
+  getClaudeResource, updateClaudeConfig, listClaudeModels,
+  getActiveProvider, setActiveProvider,
   AdminStats, AdminUser, FeatureCost, AdminCoupon, CreateCouponData, CouponUsageEntry,
   AdminCreditLogEntry, AdminUserBilling,
   AnalyticsData, AnalyticsPeriod,
   GeminiResource, GeminiModel, MongoDBResource, JSearchResource,
   DailyFeedEntry, DailyFeedData, AdminPlan,
   AppConfig, Collaborator,
+  ClaudeResource, ClaudeModel,
 } from "@/services/adminService";
 import { AvatarGroup } from "@/components/AvatarGroup";
 
@@ -981,7 +984,7 @@ function CouponsTab() {
 
 // ── Resources Tab ─────────────────────────────────────────
 
-type ResourceSubTab = "google" | "mongodb" | "vercel" | "jsearch";
+type ResourceSubTab = "google" | "claude" | "mongodb" | "vercel" | "jsearch";
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -1876,11 +1879,305 @@ function PlansTab() {
 
 // ── Resources Tab (outer, with inner sub-tabs) ─────────────
 
+// ── Active Provider Card ───────────────────────────────────
+
+function ActiveProviderCard() {
+  const [provider, setProvider] = useState<"gemini" | "claude" | null>(null);
+  const [switching, setSwitching] = useState(false);
+
+  useEffect(() => {
+    getActiveProvider()
+      .then(setProvider)
+      .catch(() => setProvider("gemini"));
+  }, []);
+
+  const handleSwitch = async (next: "gemini" | "claude") => {
+    if (next === provider || switching) return;
+    setSwitching(true);
+    try {
+      await setActiveProvider(next);
+      setProvider(next);
+      toast.success(`Switched to ${next === "gemini" ? "Google Gemini" : "Anthropic Claude"} — all AI features updated`);
+    } catch (e: any) {
+      toast.error(e.message || "Switch failed");
+    } finally {
+      setSwitching(false);
+    }
+  };
+
+  const PROVIDERS = [
+    {
+      id: "gemini" as const,
+      label: "Google Gemini",
+      desc: "Gemini 2.5 Flash · fast, high quota",
+      icon: "✦",
+      activeColor: "border-blue-500 bg-blue-500/5",
+      iconColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+    },
+    {
+      id: "claude" as const,
+      label: "Anthropic Claude",
+      desc: "Claude Sonnet 4.6 · powerful reasoning",
+      icon: "◆",
+      activeColor: "border-violet-500 bg-violet-500/5",
+      iconColor: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    },
+  ];
+
+  return (
+    <PremiumCard className="p-5" hover={false}>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Active AI Provider</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">All AI features use this provider</p>
+        </div>
+        {switching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {PROVIDERS.map((p) => {
+          const isActive = provider === p.id;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => handleSwitch(p.id)}
+              disabled={switching || provider === null}
+              className={cn(
+                "flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all duration-200",
+                isActive
+                  ? p.activeColor
+                  : "border-border hover:border-muted-foreground/40 bg-background",
+                switching && "opacity-50 cursor-not-allowed",
+              )}
+            >
+              <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center text-lg shrink-0", p.iconColor)}>
+                {p.icon}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">{p.label}</span>
+                  {isActive && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Active
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground truncate mt-0.5">{p.desc}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </PremiumCard>
+  );
+}
+
+// ── Claude sub-tab ─────────────────────────────────────────
+
+function ClaudeResourcePanel() {
+  const [data, setData] = useState<ClaudeResource | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [selectedModel, setSelectedModel] = useState("");
+
+  const load = () => {
+    setLoading(true);
+    getClaudeResource()
+      .then((res) => {
+        setData(res);
+        setApiKey(res.api_key_full || "");
+        setSelectedModel(res.model);
+      })
+      .catch(() => toast.error("Failed to load Claude data"))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const update: Record<string, string> = {};
+      if (apiKey && apiKey !== data?.api_key_full) update.api_key = apiKey;
+      if (selectedModel !== data?.model) update.model = selectedModel;
+      if (Object.keys(update).length === 0) { toast.info("Nothing changed"); return; }
+      await updateClaudeConfig(update);
+      toast.success("Claude config saved — applied immediately");
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return (
+    <div className="flex justify-center py-12">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  );
+
+  const models: ClaudeModel[] = data?.available_models ?? [];
+
+  return (
+    <PremiumCard className="p-6" hover={false}>
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+            <span className="text-violet-600 dark:text-violet-400 font-bold text-base">◆</span>
+          </div>
+          <div>
+            <h2 className="text-base font-semibold">Claude API</h2>
+            {data?.updated_by && (
+              <p className="text-xs text-muted-foreground">
+                Last updated by {data.updated_by}
+                {data.updated_at ? ` · ${new Date(data.updated_at).toLocaleString()}` : ""}
+              </p>
+            )}
+          </div>
+        </div>
+        <Button variant="ghost" size="icon" onClick={load} title="Refresh">
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">API Key</label>
+            <div className="flex gap-2">
+              <Input
+                type={showKey ? "text" : "password"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk-ant-api03-..."
+                className="font-mono text-sm"
+              />
+              <Button variant="ghost" size="icon" onClick={() => setShowKey(!showKey)}>
+                {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Active Model</label>
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}{m.recommended ? " ★" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Button onClick={handleSave} disabled={saving} className="w-full" variant="gradient">
+            {saving ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving…</> : <><Save className="h-4 w-4 mr-2" />Save Config</>}
+          </Button>
+        </div>
+
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-3">Today's Usage</p>
+          <div className="flex items-end gap-2 mb-2">
+            <span className="text-3xl font-bold text-violet-600 dark:text-violet-400">{data?.today_usage ?? 0}</span>
+            <span className="text-sm text-muted-foreground mb-1">API calls today</span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Usage tracked per credit deduction. Claude uses token-based billing — monitor your Anthropic dashboard for cost.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <p className="text-xs font-medium text-muted-foreground mb-3">Available Models</p>
+        <div className="rounded-lg border border-border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">Model</th>
+                <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">Context</th>
+                <th className="px-4 py-2 text-xs font-medium text-muted-foreground"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {models.map((m) => (
+                <tr key={m.id} className={cn("border-b border-border last:border-0", m.id === data?.model && "bg-violet-500/5")}>
+                  <td className="px-4 py-2.5 font-medium">
+                    {m.name}
+                    {m.recommended && <span className="ml-2 text-[10px] text-amber-500 font-semibold">★ Recommended</span>}
+                  </td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
+                    {(m.context_window / 1000).toFixed(0)}k
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    {m.id === data?.model ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-violet-600 dark:text-violet-400 font-medium">
+                        <span className="h-1.5 w-1.5 rounded-full bg-violet-500 animate-pulse" />Active
+                      </span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 text-xs px-2"
+                        disabled={saving}
+                        onClick={async () => {
+                          setSelectedModel(m.id);
+                          setSaving(true);
+                          try {
+                            await updateClaudeConfig({ model: m.id });
+                            toast.success(`Switched to ${m.name}`);
+                            load();
+                          } catch (e: any) {
+                            toast.error(e.message || "Switch failed");
+                          } finally {
+                            setSaving(false);
+                          }
+                        }}
+                      >
+                        Switch
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {data?.usage_history && data.usage_history.length > 0 && (
+        <div className="mt-6">
+          <p className="text-xs font-medium text-muted-foreground mb-3">30-Day Usage</p>
+          <ResponsiveContainer width="100%" height={80}>
+            <BarChart data={data.usage_history} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+              <XAxis dataKey="date" hide />
+              <YAxis hide />
+              <Tooltip
+                contentStyle={tooltipStyle}
+                formatter={(v: number) => [v, "Calls"]}
+                labelFormatter={(l) => l}
+              />
+              <Bar dataKey="count" fill="#7c3aed" radius={[2, 2, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </PremiumCard>
+  );
+}
+
 function ResourcesTab() {
   const [subTab, setSubTab] = useState<ResourceSubTab>("google");
 
   const SUB_TABS: { id: ResourceSubTab; label: string; icon: string }[] = [
     { id: "google",  label: "Google",  icon: "✦" },
+    { id: "claude",  label: "Claude",  icon: "◆" },
     { id: "mongodb", label: "MongoDB", icon: "🍃" },
     { id: "vercel",  label: "Vercel",  icon: "▲" },
     { id: "jsearch", label: "JSearch", icon: "🔍" },
@@ -1888,6 +2185,9 @@ function ResourcesTab() {
 
   return (
     <div className="space-y-4">
+      {/* Active Provider switcher — always visible at top */}
+      <ActiveProviderCard />
+
       {/* Inner sub-tab bar */}
       <div className="flex gap-1 p-1 bg-muted/40 rounded-lg w-fit">
         {SUB_TABS.map(({ id, label, icon }) => (
@@ -1909,6 +2209,7 @@ function ResourcesTab() {
       </div>
 
       {subTab === "google"  && <GoogleResourcePanel />}
+      {subTab === "claude"  && <ClaudeResourcePanel />}
       {subTab === "mongodb" && <MongoDBResourcePanel />}
       {subTab === "vercel"  && <VercelResourcePanel />}
       {subTab === "jsearch" && <JSearchResourcePanel />}

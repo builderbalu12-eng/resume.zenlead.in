@@ -459,3 +459,59 @@ export async function updateAppConfig(data: Partial<AppConfig>): Promise<AppConf
   });
   return res.data;
 }
+
+// ── Claude / Active Provider ───────────────────────────────
+
+export type ClaudeModel = {
+  id: string;
+  name: string;
+  context_window: number;
+  recommended?: boolean;
+};
+
+export type ClaudeResource = {
+  api_key_masked: string;
+  api_key_full: string;
+  model: string;
+  temperature: number;
+  max_tokens: number;
+  updated_at: string | null;
+  updated_by: string | null;
+  today_usage: number;
+  usage_history: { date: string; count: number }[];
+  available_models: ClaudeModel[];
+};
+
+export async function getClaudeResource(): Promise<ClaudeResource> {
+  const res = await request<{ data: ClaudeResource }>("/admin/resources/claude");
+  return res.data;
+}
+
+export async function updateClaudeConfig(data: {
+  api_key?: string;
+  model?: string;
+  temperature?: number;
+  max_tokens?: number;
+}): Promise<void> {
+  await request("/admin/resources/claude", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function listClaudeModels(): Promise<ClaudeModel[]> {
+  const res = await request<{ data: ClaudeModel[] }>("/admin/resources/models/claude");
+  return res.data;
+}
+
+export async function getActiveProvider(): Promise<"gemini" | "claude"> {
+  const res = await request<{ data: { provider: string } }>("/admin/resources/active-provider");
+  return res.data.provider as "gemini" | "claude";
+}
+
+export async function setActiveProvider(provider: "gemini" | "claude"): Promise<void> {
+  await request("/admin/resources/active-provider", {
+    method: "PATCH",
+    body: JSON.stringify({ provider }),
+  });
+}
