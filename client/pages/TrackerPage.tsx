@@ -9,7 +9,12 @@ import {
   Loader2,
   Calendar,
   ExternalLink,
+  Mail,
+  Copy,
+  Sparkles,
 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { FollowupSheet, type UrgencyLevel } from "@/components/tracker/FollowupSheet";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -116,6 +121,47 @@ function StageBadge({ stage }: { stage: PipelineStage }) {
   );
 }
 
+// ── Urgency helpers ────────────────────────────────────────
+
+const FOLLOWUP_STAGES: PipelineStage[] = ["applied", "responded", "contacted"];
+
+function getDaysSince(dateStr: string): number {
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
+}
+
+function computeUrgency(days: number): UrgencyLevel {
+  if (days > 14) return "URGENT";
+  if (days > 7) return "OVERDUE";
+  if (days > 3) return "WAITING";
+  return "NOT_YET";
+}
+
+const URGENCY_BADGE: Record<UrgencyLevel, string> = {
+  URGENT:  "bg-red-100 text-red-700",
+  OVERDUE: "bg-orange-100 text-orange-700",
+  WAITING: "bg-yellow-100 text-yellow-700",
+  NOT_YET: "",
+};
+
+const URGENCY_LABEL: Record<UrgencyLevel, string> = {
+  URGENT:  "Urgent",
+  OVERDUE: "Overdue",
+  WAITING: "Waiting",
+  NOT_YET: "",
+};
+
+function UrgencyBadge({ app }: { app: TrackerApplication }) {
+  if (!FOLLOWUP_STAGES.includes(app.pipelineStage)) return null;
+  const days = getDaysSince(app.createdAt);
+  const urgency = computeUrgency(days);
+  if (urgency === "NOT_YET") return null;
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${URGENCY_BADGE[urgency]}`}>
+      {URGENCY_LABEL[urgency]}
+    </span>
+  );
+}
+
 // ── API helpers ────────────────────────────────────────────
 
 async function fetchApplications(): Promise<TrackerApplication[]> {
@@ -138,6 +184,15 @@ async function patchApplication(
 
 // ── Edit Dialog ────────────────────────────────────────────
 
+type ContactType = "hiring_manager" | "recruiter" | "peer" | "interviewer";
+
+const CONTACT_TYPE_LABELS: Record<ContactType, string> = {
+  hiring_manager: "Hiring Manager",
+  recruiter: "Recruiter",
+  peer: "Peer / Employee",
+  interviewer: "Interviewer",
+};
+
 function EditDialog({
   app,
   onClose,
@@ -147,10 +202,19 @@ function EditDialog({
   onClose: () => void;
   onSaved: (updated: Partial<TrackerApplication>) => void;
 }) {
+  // ── Application fields ────────────────────────────────
   const [stage, setStage] = useState<PipelineStage>(app.pipelineStage ?? "evaluated");
   const [notes, setNotes] = useState(app.notes ?? "");
   const [followUpDate, setFollowUpDate] = useState(app.followUpDate ?? "");
   const [saving, setSaving] = useState(false);
+
+  // ── Outreach fields ───────────────────────────────────
+  const [contactName, setContactName] = useState("");
+  const [contactTitle, setContactTitle] = useState("");
+  const [contactType, setContactType] = useState<ContactType>("hiring_manager");
+  const [generatingOutreach, setGeneratingOutreach] = useState(false);
+  const [outreachMessage, setOutreachMessage] = useState("");
+  const [outreachError, setOutreachError] = useState<{ text: string; isCredits: boolean } | null>(null);
 
   async function handleSave() {
     setSaving(true);
@@ -170,15 +234,57 @@ function EditDialog({
     }
   }
 
+  async function handleGenerateOutreach() {
+    if (!contactName.trim() || !contactTitle.trim()) {
+      toast.error("Enter contact name and title");
+      return;
+    }
+    setGeneratingOutreach(true);
+    setOutreachMessage("");
+    setOutreachError(null);
+    try {
+      const res = await apiClient.generateOutreach({
+        contactName: contactName.trim(),
+        contactTitle: contactTitle.trim(),
+        contactType,
+        company: app.company,
+        yourRole: app.jobTitle,
+        applicationId: app._id,
+      });
+      setOutreachMessage(res.message);
+    } catch (e: any) {
+      const status = e?.status ?? e?.statusCode ?? 0;
+      if (status === 402) {
+        setOutreachError({ text: "Not enough credits to generate a message.", isCredits: true });
+      } else {
+        setOutreachError({ text: e.message ?? "Failed to generate", isCredits: false });
+      }
+    } finally {
+      setGeneratingOutreach(false);
+    }
+  }
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(outreachMessage);
+      toast.success("Copied!");
+    } catch {
+      toast.error("Failed to copy");
+    }
+  }
+
+  const charCount = outreachMessage.length;
+
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {app.jobTitle} — {app.company}
           </DialogTitle>
         </DialogHeader>
 
+        {/* ── Application fields ── */}
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
             <Label>Pipeline Stage</Label>
@@ -216,6 +322,99 @@ function EditDialog({
           </div>
         </div>
 
+        {/* ── Outreach section ── */}
+        <Separator />
+
+        <div className="space-y-3 pb-2">
+          <p className="text-sm font-semibold">Generate LinkedIn Message</p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Contact Name</Label>
+              <Input
+                value={contactName}
+                onChange={(e) => setContactName(e.target.value)}
+                placeholder="e.g. Priya Sharma"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Contact Title</Label>
+              <Input
+                value={contactTitle}
+                onChange={(e) => setContactTitle(e.target.value)}
+                placeholder="e.g. Engineering Manager"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Contact Type</Label>
+            <Select value={contactType} onValueChange={(v) => setContactType(v as ContactType)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(CONTACT_TYPE_LABELS) as ContactType[]).map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {CONTACT_TYPE_LABELS[t]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleGenerateOutreach}
+              disabled={generatingOutreach}
+              className="gap-1.5"
+            >
+              {generatingOutreach && <Loader2 className="size-3.5 animate-spin" />}
+              Generate
+            </Button>
+            <span className="text-xs text-muted-foreground">(1 credit)</span>
+          </div>
+
+          {/* Credit / generic error */}
+          {outreachError && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs">
+              <p className="text-destructive">{outreachError.text}</p>
+              {outreachError.isCredits && (
+                <a href="/pricing" className="text-primary underline underline-offset-2 mt-0.5 block">
+                  Top up credits →
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Generated message */}
+          {outreachMessage && (
+            <div className="space-y-2">
+              <Textarea
+                value={outreachMessage}
+                onChange={(e) => setOutreachMessage(e.target.value.slice(0, 300))}
+                rows={4}
+                className="resize-none text-sm"
+              />
+              <div className="flex items-center justify-between">
+                <span
+                  className={`text-xs font-mono tabular-nums ${
+                    charCount > 300 ? "text-red-600 font-semibold" : "text-muted-foreground"
+                  }`}
+                >
+                  {charCount} / 300
+                </span>
+                <Button size="sm" variant="outline" className="gap-1.5 h-7" onClick={handleCopy}>
+                  <Copy className="size-3.5" />
+                  Copy
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
@@ -235,9 +434,11 @@ function EditDialog({
 function TableTab({
   apps,
   onEdit,
+  onFollowup,
 }: {
   apps: TrackerApplication[];
   onEdit: (app: TrackerApplication) => void;
+  onFollowup: (app: TrackerApplication) => void;
 }) {
   if (apps.length === 0) {
     return (
@@ -261,92 +462,344 @@ function TableTab({
             <TableHead>Applied Date</TableHead>
             <TableHead>Follow-up Date</TableHead>
             <TableHead>Notes</TableHead>
-            <TableHead className="w-10"></TableHead>
+            <TableHead className="w-24"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {apps.map((app) => (
-            <TableRow key={app._id}>
-              <TableCell className="font-medium">
-                {app.jobUrl ? (
-                  <a
-                    href={app.jobUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 hover:underline"
-                  >
-                    {app.company}
-                    <ExternalLink className="size-3 text-muted-foreground" />
-                  </a>
-                ) : (
-                  app.company
-                )}
-              </TableCell>
-              <TableCell>{app.jobTitle}</TableCell>
-              <TableCell>
-                <StageBadge stage={(app.pipelineStage as PipelineStage) ?? "evaluated"} />
-              </TableCell>
-              <TableCell className="text-right">
-                {app.matchPercentage > 0 ? (
-                  <span
-                    className={`font-mono text-xs font-semibold ${
-                      app.matchPercentage >= 75
-                        ? "text-green-600"
-                        : app.matchPercentage >= 50
-                        ? "text-amber-600"
-                        : "text-red-500"
-                    }`}
-                  >
-                    {app.matchPercentage}%
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground text-xs">—</span>
-                )}
-              </TableCell>
-              <TableCell className="text-xs text-muted-foreground">
-                {app.createdAt
-                  ? format(new Date(app.createdAt), "dd MMM yyyy")
-                  : "—"}
-              </TableCell>
-              <TableCell className="text-xs text-muted-foreground">
-                {app.followUpDate ? (
-                  <span className="flex items-center gap-1">
-                    <Calendar className="size-3" />
-                    {format(new Date(app.followUpDate), "dd MMM yyyy")}
-                  </span>
-                ) : (
-                  "—"
-                )}
-              </TableCell>
-              <TableCell className="max-w-[160px] truncate text-xs text-muted-foreground">
-                {app.notes || "—"}
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-7"
-                  onClick={() => onEdit(app)}
-                >
-                  <Edit2 className="size-3.5" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
+          {apps.map((app) => {
+            const isFollowupEligible = FOLLOWUP_STAGES.includes(app.pipelineStage);
+            return (
+              <TableRow key={app._id}>
+                <TableCell className="font-medium">
+                  {app.jobUrl ? (
+                    <a
+                      href={app.jobUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 hover:underline"
+                    >
+                      {app.company}
+                      <ExternalLink className="size-3 text-muted-foreground" />
+                    </a>
+                  ) : (
+                    app.company
+                  )}
+                </TableCell>
+                <TableCell>{app.jobTitle}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <StageBadge stage={(app.pipelineStage as PipelineStage) ?? "evaluated"} />
+                    <UrgencyBadge app={app} />
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  {app.matchPercentage > 0 ? (
+                    <span
+                      className={`font-mono text-xs font-semibold ${
+                        app.matchPercentage >= 75
+                          ? "text-green-600"
+                          : app.matchPercentage >= 50
+                          ? "text-amber-600"
+                          : "text-red-500"
+                      }`}
+                    >
+                      {app.matchPercentage}%
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">—</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {app.createdAt
+                    ? format(new Date(app.createdAt), "dd MMM yyyy")
+                    : "—"}
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {app.followUpDate ? (
+                    <span className="flex items-center gap-1">
+                      <Calendar className="size-3" />
+                      {format(new Date(app.followUpDate), "dd MMM yyyy")}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </TableCell>
+                <TableCell className="max-w-[160px] truncate text-xs text-muted-foreground">
+                  {app.notes || "—"}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    {isFollowupEligible && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7"
+                        title="Generate follow-up"
+                        onClick={() => onFollowup(app)}
+                      >
+                        <Mail className="size-3.5" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7"
+                      onClick={() => onEdit(app)}
+                    >
+                      <Edit2 className="size-3.5" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
   );
 }
 
-// ── Insights placeholder ───────────────────────────────────
+// ── Insights Tab ──────────────────────────────────────────
 
-function InsightsPlaceholder() {
+const FUNNEL_BAR_COLORS: Partial<Record<PipelineStage, string>> = {
+  applied:   "bg-blue-500",
+  responded: "bg-cyan-500",
+  contacted: "bg-violet-500",
+  interview: "bg-yellow-500",
+  offer:     "bg-green-500",
+  rejected:  "bg-red-500",
+};
+
+interface InsightsData {
+  totalApplications: number;
+  stageBreakdown: Record<string, number>;
+  avgAtsScoreByStage: Record<string, number | null>;
+}
+
+interface ObservationsData {
+  observations: string[];
+  generatedAt: string;
+  cached: boolean;
+}
+
+function InsightsTab({ totalApps }: { totalApps: number }) {
+  const THRESHOLD = 10;
+
+  const [stats, setStats] = useState<InsightsData | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [observations, setObservations] = useState<ObservationsData | null>(null);
+  const [obsLoading, setObsLoading] = useState(false);
+  const [obsError, setObsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (totalApps < THRESHOLD) return;
+    apiClient.getApplicationStats()
+      .then(setStats)
+      .catch(() => toast.error("Failed to load stats"))
+      .finally(() => setStatsLoading(false));
+  }, [totalApps]);
+
+  async function handleGenerateInsights() {
+    setObsLoading(true);
+    setObsError(null);
+    try {
+      const res = await apiClient.getApplicationInsights();
+      setObservations(res);
+    } catch (e: any) {
+      const status = e?.status ?? e?.statusCode ?? 0;
+      if (status === 402) {
+        setObsError("Not enough credits.");
+      } else {
+        setObsError(e.message ?? "Failed to generate insights");
+      }
+    } finally {
+      setObsLoading(false);
+    }
+  }
+
+  // ── Empty state ────────────────────────────────────────
+  if (totalApps < THRESHOLD) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground space-y-2">
+        <BarChart2 className="size-10 opacity-30" />
+        <p className="text-sm font-medium">Track 10+ applications to unlock AI insights</p>
+        <p className="text-xs">
+          You have{" "}
+          <span className="font-semibold text-foreground">{totalApps}</span>{" "}
+          tracked {totalApps === 1 ? "application" : "applications"}
+        </p>
+      </div>
+    );
+  }
+
+  if (statsLoading || !stats) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const stages = Object.keys(stats.stageBreakdown) as PipelineStage[];
+  const maxCount = Math.max(...Object.values(stats.stageBreakdown), 1);
+
+  // Find stage with highest avg ATS
+  let bestAtsStage: string | null = null;
+  let bestAtsScore = -1;
+  for (const [stage, score] of Object.entries(stats.avgAtsScoreByStage)) {
+    if (score !== null && score > bestAtsScore) {
+      bestAtsScore = score;
+      bestAtsStage = stage;
+    }
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-      <BarChart2 className="mb-3 size-10 opacity-30" />
-      <p className="text-sm font-medium">Insights coming soon</p>
-      <p className="text-xs mt-1">Track 10+ applications to unlock pattern analytics.</p>
+    <div className="space-y-8">
+
+      {/* ── Section A: Conversion Funnel ── */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold">Conversion Funnel</h3>
+        <div className="space-y-2">
+          {PIPELINE_STAGES_ORDER.map((stage) => {
+            const count = stats.stageBreakdown[stage] ?? 0;
+            const pct = stats.totalApplications > 0
+              ? Math.round((count / stats.totalApplications) * 100)
+              : 0;
+            const barColor = FUNNEL_BAR_COLORS[stage] ?? "bg-slate-400";
+            const barWidth = maxCount > 0 ? (count / maxCount) * 100 : 0;
+            return (
+              <div key={stage} className="flex items-center gap-3">
+                <span className="w-24 shrink-0 text-xs text-right text-muted-foreground capitalize">
+                  {STAGE_LABELS[stage]}
+                </span>
+                <div className="flex-1 h-5 rounded bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded ${barColor} transition-all duration-500`}
+                    style={{ width: `${barWidth}%` }}
+                  />
+                </div>
+                <span className="w-28 shrink-0 text-xs text-muted-foreground">
+                  {count > 0 ? `${count} app${count !== 1 ? "s" : ""} · ${pct}%` : "—"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Section B: ATS Score by Stage ── */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold">ATS Score by Stage</h3>
+        <div className="rounded-lg border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Stage</TableHead>
+                <TableHead className="text-right">Applications</TableHead>
+                <TableHead className="text-right">Avg ATS Score</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {PIPELINE_STAGES_ORDER.map((stage) => {
+                const count = stats.stageBreakdown[stage] ?? 0;
+                const avg = stats.avgAtsScoreByStage[stage];
+                const isBest = stage === bestAtsStage && avg !== null;
+                return (
+                  <TableRow
+                    key={stage}
+                    className={isBest ? "bg-green-50 dark:bg-green-950/20" : ""}
+                  >
+                    <TableCell className="capitalize text-sm">
+                      <span className="flex items-center gap-2">
+                        {STAGE_LABELS[stage]}
+                        {isBest && (
+                          <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">
+                            best
+                          </span>
+                        )}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right text-sm">{count || "—"}</TableCell>
+                    <TableCell className="text-right text-sm">
+                      {avg !== null && avg !== undefined
+                        ? <span className={isBest ? "font-semibold text-green-700" : ""}>{avg}%</span>
+                        : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      {/* ── Section C: AI Observations ── */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold">AI Observations</h3>
+        <div className="rounded-xl border bg-card p-5 space-y-4">
+          {!observations && !obsLoading && (
+            <div className="flex flex-col items-center gap-3 py-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                Get AI-powered observations from your application patterns.
+              </p>
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={handleGenerateInsights} className="gap-1.5">
+                  <Sparkles className="size-3.5" />
+                  Generate Insights
+                </Button>
+                <span className="text-xs text-muted-foreground">(1 credit)</span>
+              </div>
+              {obsError && (
+                <p className="text-xs text-destructive">{obsError}</p>
+              )}
+            </div>
+          )}
+
+          {obsLoading && (
+            <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
+              <Loader2 className="size-4 animate-spin" />
+              Analyzing your application patterns…
+            </div>
+          )}
+
+          {observations && !obsLoading && (
+            <div className="space-y-3">
+              <ul className="space-y-2">
+                {observations.observations.map((obs, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm">
+                    <span className="shrink-0 mt-0.5 text-primary">→</span>
+                    <span>{obs}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="flex items-center justify-between pt-2 border-t">
+                <p className="text-[11px] text-muted-foreground">
+                  {observations.cached ? "Cached · " : ""}
+                  Last generated: {format(new Date(observations.generatedAt), "dd MMM yyyy, HH:mm")}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleGenerateInsights}
+                    disabled={obsLoading}
+                    className="gap-1.5 h-7 text-xs"
+                  >
+                    <Sparkles className="size-3" />
+                    Refresh
+                  </Button>
+                  <span className="text-[11px] text-muted-foreground">(1 credit)</span>
+                </div>
+              </div>
+
+              {obsError && (
+                <p className="text-xs text-destructive">{obsError}</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -367,14 +820,17 @@ const STAGES_ORDER: PipelineStage[] = [
 function KanbanCard({
   app,
   onEdit,
+  onFollowup,
   onDragStart,
 }: {
   app: TrackerApplication;
   onEdit: (app: TrackerApplication) => void;
+  onFollowup: (app: TrackerApplication) => void;
   onDragStart: (e: React.DragEvent, appId: string) => void;
 }) {
   const isOverdue =
     app.followUpDate && new Date(app.followUpDate) < new Date();
+  const isFollowupEligible = FOLLOWUP_STAGES.includes(app.pipelineStage);
 
   return (
     <div
@@ -398,8 +854,8 @@ function KanbanCard({
         </Button>
       </div>
 
-      {/* ATS badge + follow-up */}
-      <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+      {/* ATS badge + urgency + follow-up date */}
+      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
         {app.matchPercentage > 0 ? (
           <span
             className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-semibold font-mono border ${
@@ -416,6 +872,8 @@ function KanbanCard({
           <span className="text-[11px] text-muted-foreground/60">No score</span>
         )}
 
+        <UrgencyBadge app={app} />
+
         {app.followUpDate && (
           <span
             className={`flex items-center gap-0.5 text-[11px] ${
@@ -424,10 +882,25 @@ function KanbanCard({
           >
             <Calendar className="size-3" />
             {format(new Date(app.followUpDate), "dd MMM")}
-            {isOverdue && <span className="ml-0.5">·overdue</span>}
+            {isOverdue && <span className="ml-0.5">· overdue</span>}
           </span>
         )}
       </div>
+
+      {/* Follow-up button */}
+      {isFollowupEligible && (
+        <div className="mt-2 pt-2 border-t border-border/40">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-full text-[11px] gap-1 text-muted-foreground hover:text-foreground"
+            onClick={(e) => { e.stopPropagation(); onFollowup(app); }}
+          >
+            <Mail className="size-3" />
+            Follow-up
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -435,10 +908,12 @@ function KanbanCard({
 function KanbanBoard({
   apps,
   onEdit,
+  onFollowup,
   onStageChange,
 }: {
   apps: TrackerApplication[];
   onEdit: (app: TrackerApplication) => void;
+  onFollowup: (app: TrackerApplication) => void;
   onStageChange: (appId: string, stage: PipelineStage) => void;
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -511,6 +986,7 @@ function KanbanBoard({
                   key={app._id}
                   app={app}
                   onEdit={onEdit}
+                  onFollowup={onFollowup}
                   onDragStart={handleDragStart}
                 />
               ))}
@@ -533,6 +1009,7 @@ export default function TrackerPage() {
   const [apps, setApps] = useState<TrackerApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingApp, setEditingApp] = useState<TrackerApplication | null>(null);
+  const [followupApp, setFollowupApp] = useState<TrackerApplication | null>(null);
 
   useEffect(() => {
     fetchApplications()
@@ -546,6 +1023,10 @@ export default function TrackerPage() {
       prev.map((a) => (a._id === id ? { ...a, ...updates } : a))
     );
   }
+
+  const followupUrgency: UrgencyLevel = followupApp
+    ? computeUrgency(getDaysSince(followupApp.createdAt))
+    : "NOT_YET";
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -581,6 +1062,7 @@ export default function TrackerPage() {
             <KanbanBoard
               apps={apps}
               onEdit={setEditingApp}
+              onFollowup={setFollowupApp}
               onStageChange={async (appId, stage) => {
                 setApps((prev) =>
                   prev.map((a) => (a._id === appId ? { ...a, pipelineStage: stage } : a))
@@ -602,7 +1084,7 @@ export default function TrackerPage() {
           </TabsContent>
 
           <TabsContent value="table">
-            <TableTab apps={apps} onEdit={setEditingApp} />
+            <TableTab apps={apps} onEdit={setEditingApp} onFollowup={setFollowupApp} />
           </TabsContent>
 
           <TabsContent value="insights">
@@ -616,6 +1098,17 @@ export default function TrackerPage() {
           app={editingApp}
           onClose={() => setEditingApp(null)}
           onSaved={(updates) => handleSaved(editingApp._id, updates)}
+        />
+      )}
+
+      {followupApp && (
+        <FollowupSheet
+          appId={followupApp._id}
+          jobTitle={followupApp.jobTitle}
+          company={followupApp.company}
+          urgency={followupUrgency}
+          open={!!followupApp}
+          onClose={() => setFollowupApp(null)}
         />
       )}
     </div>

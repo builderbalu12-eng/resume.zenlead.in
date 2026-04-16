@@ -656,8 +656,75 @@ export class APIClient {
     return this.request('/api/applications/stats', { method: 'GET' });
   }
 
+  async getApplicationInsights(): Promise<{
+    observations: string[];
+    generatedAt: string;
+    cached: boolean;
+  }> {
+    return this.request('/api/applications/insights', { method: 'GET' });
+  }
+
+  async generateFollowup(appId: string): Promise<{
+    emailDraft: string;
+    linkedinDraft: string;
+    daysSinceApplied: number;
+    urgency: string;
+  }> {
+    return this.request(`/api/applications/${appId}/followup`, { method: 'POST' });
+  }
+
   async deleteApplication(appId: string): Promise<any> {
     return this.request(`/api/applications/${appId}`, { method: 'DELETE' });
+  }
+
+  // ── STAR Stories ────────────────────────────────────────
+
+  async getStarStories(): Promise<{ stories: any[] }> {
+    return this.request('/api/star-stories', { method: 'GET' });
+  }
+
+  async createStarStory(body: {
+    title: string; situation: string; task: string; action: string; result: string; tags: string[];
+  }): Promise<{ story: any }> {
+    return this.request('/api/star-stories', { method: 'POST', body: JSON.stringify(body) });
+  }
+
+  async updateStarStory(
+    id: string,
+    body: Partial<{ title: string; situation: string; task: string; action: string; result: string; tags: string[] }>
+  ): Promise<{ story: any }> {
+    return this.request(`/api/star-stories/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+  }
+
+  async deleteStarStory(id: string): Promise<{ success: boolean }> {
+    return this.request(`/api/star-stories/${id}`, { method: 'DELETE' });
+  }
+
+  async suggestStarStories(body: {
+    jobTitle: string; company: string; jobDescription: string;
+  }): Promise<{ suggestions: { storyId: string; title: string; reason: string }[]; message?: string }> {
+    return this.request('/api/star-stories/suggest', { method: 'POST', body: JSON.stringify(body) });
+  }
+
+  // ── Company Research ────────────────────────────────────
+
+  async startCompanyResearch(body: {
+    company: string; role: string;
+  }): Promise<{ job_id: string; message: string }> {
+    return this.request('/api/interview/company-research', { method: 'POST', body: JSON.stringify(body) });
+  }
+
+  // ── Outreach ────────────────────────────────────────────
+
+  async generateOutreach(body: {
+    contactName: string;
+    contactTitle: string;
+    contactType: 'hiring_manager' | 'recruiter' | 'peer' | 'interviewer';
+    company: string;
+    yourRole: string;
+    applicationId?: string;
+  }): Promise<{ message: string; characterCount: number }> {
+    return this.request('/api/outreach/generate', { method: 'POST', body: JSON.stringify(body) });
   }
 
   async getJobPreferences(): Promise<any> {

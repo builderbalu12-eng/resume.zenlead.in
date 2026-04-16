@@ -1,5 +1,11 @@
-import { Loader2, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { apiClient } from "@/services/api";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -25,6 +31,7 @@ function gradeColor(grade: string): string {
   if (g === "A") return "bg-green-100 text-green-700 border-green-200";
   if (g === "B") return "bg-blue-100 text-blue-700 border-blue-200";
   if (g === "C") return "bg-amber-100 text-amber-700 border-amber-200";
+  if (g === "D") return "bg-orange-100 text-orange-800 border-orange-200";
   return "bg-red-100 text-red-700 border-red-200";
 }
 
@@ -90,9 +97,11 @@ interface Props {
 }
 
 export function JobEvaluationPanel({ result, loading }: Props) {
+  const [open, setOpen] = useState(true);
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
+      <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm border-t bg-muted/10">
         <Loader2 className="size-4 animate-spin" />
         Evaluating job…
       </div>
@@ -100,42 +109,55 @@ export function JobEvaluationPanel({ result, loading }: Props) {
   }
 
   return (
-    <div className="space-y-4 px-4 pb-4 pt-3 border-t bg-muted/10">
-      {/* Overall */}
-      <div className="flex items-center gap-4">
-        <OverallGradeBadge grade={result.overallGrade} score={result.overallScore} />
-        <div>
-          <p className="text-sm font-semibold leading-tight">
-            {result.overallGrade} · {result.overallScore.toFixed(1)}/5
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">{result.verdict}</p>
-          {result.cached && (
-            <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground/60">
-              <RefreshCw className="size-2.5" />
-              Cached — no credits spent
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Axes */}
-      <div className="space-y-2">
-        {(result.axes ?? []).map((axis) => (
-          <div key={axis.name} className="flex items-start gap-3">
-            <GradeBadge grade={axis.grade} />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-xs font-medium">{axis.name}</span>
-                <ScoreBar score={axis.score} />
-                <span className="text-[10px] text-muted-foreground tabular-nums">
-                  {axis.score.toFixed(1)}/5
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">{axis.reasoning}</p>
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className="border-t bg-muted/10">
+        {/* Header row — always visible */}
+        <CollapsibleTrigger className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-muted/20 transition-colors text-left">
+          <div className="flex items-center gap-3">
+            <OverallGradeBadge grade={result.overallGrade} score={result.overallScore} />
+            <div>
+              <p className="text-sm font-semibold leading-tight">
+                {result.overallGrade} · {result.overallScore.toFixed(1)}/5
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">{result.verdict}</p>
             </div>
           </div>
-        ))}
+          {open ? (
+            <ChevronUp className="size-4 text-muted-foreground shrink-0" />
+          ) : (
+            <ChevronDown className="size-4 text-muted-foreground shrink-0" />
+          )}
+        </CollapsibleTrigger>
+
+        {/* Collapsible body */}
+        <CollapsibleContent>
+          <div className="px-4 pb-4 space-y-3">
+            {/* Axes */}
+            <div className="space-y-2">
+              {(result.axes ?? []).map((axis) => (
+                <div key={axis.name} className="flex items-start gap-3">
+                  <GradeBadge grade={axis.grade} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs font-medium">{axis.name}</span>
+                      <ScoreBar score={axis.score} />
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {axis.score.toFixed(1)}/5
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{axis.reasoning}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Credit usage */}
+            <p className="text-[10px] text-muted-foreground/60 text-right">
+              {result.cached ? "Free (cached)" : "1 credit used"}
+            </p>
+          </div>
+        </CollapsibleContent>
       </div>
-    </div>
+    </Collapsible>
   );
 }
