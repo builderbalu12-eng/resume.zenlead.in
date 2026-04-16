@@ -1,7 +1,23 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, ExternalLink, AlertCircle, Calendar, DollarSign, User } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink, AlertCircle, Calendar, DollarSign, User, Bookmark, BookmarkCheck, Loader2, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { apiClient } from '@/services/api';
+import {
+  JobEvaluationPanel,
+  fetchJobEvaluation,
+  type JobEvaluationResult,
+} from './JobEvaluationPanel';
 
 interface JobCardProps {
   job: any;
@@ -32,6 +48,63 @@ const tagBase = 'inline-flex items-center gap-1 rounded border border-border/60 
 
 export const JobCard: React.FC<JobCardProps> = ({ job }) => {
   const [expanded, setExpanded] = useState(false);
+  const [trackOpen, setTrackOpen] = useState(false);
+  const [tracked, setTracked] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [evaluation, setEvaluation] = useState<JobEvaluationResult | null>(null);
+  const [evaluating, setEvaluating] = useState(false);
+  const [evalOpen, setEvalOpen] = useState(false);
+
+  async function handleAddToTracker() {
+    setSaving(true);
+    try {
+      await apiClient.saveApplication({
+        jobTitle: job.title ?? '',
+        company: job.company ?? '',
+        location: job.location ?? '',
+        jobUrl: job.job_url ?? '',
+        atsScoreBefore: job.fit_score ?? 0,
+        atsScoreAfter: 0,
+        matchPercentage: job.fit_score ?? 0,
+        matchedKeywords: job.matched_keywords ?? [],
+        missingKeywords: job.missing_keywords ?? [],
+        status: 'applied',
+        pipelineStage: 'evaluated',
+        followUpDate: followUpDate || undefined,
+      });
+      setTracked(true);
+      setTrackOpen(false);
+      toast.success('Added to Tracker');
+    } catch (e: any) {
+      toast.error(e.message ?? 'Failed to track job');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleEvaluate() {
+    if (evaluation) {
+      setEvalOpen(!evalOpen);
+      return;
+    }
+    setEvaluating(true);
+    setEvalOpen(true);
+    try {
+      const result = await fetchJobEvaluation({
+        jobUrl: job.job_url ?? '',
+        jobTitle: job.title ?? '',
+        company: job.company ?? '',
+        description: job.description ?? job.description_summary ?? '',
+      });
+      setEvaluation(result);
+    } catch (e: any) {
+      toast.error(e.message ?? 'Evaluation failed');
+      setEvalOpen(false);
+    } finally {
+      setEvaluating(false);
+    }
+  }
 
   const siteKey = (job.site ?? '').toLowerCase();
   const siteLabel = SITE_LABEL[siteKey] ?? job.site ?? 'Job';
@@ -173,14 +246,42 @@ export const JobCard: React.FC<JobCardProps> = ({ job }) => {
           Details
           {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
         </button>
-        <Button
-          size="sm"
-          className="h-7 px-3 text-xs gap-1 bg-primary hover:bg-primary/90"
-          onClick={() => window.open(job.job_url, '_blank')}
-        >
-          View Job
-          <ExternalLink className="h-3 w-3" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className={`h-7 px-3 text-xs gap-1 ${evaluation ? 'text-violet-600 border-violet-200' : ''}`}
+            onClick={handleEvaluate}
+            disabled={evaluating}
+          >
+            {evaluating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+            {evaluation ? evaluation.overallGrade : 'Evaluate'}
+          </Button>
+          {tracked ? (
+            <Button size="sm" variant="outline" className="h-7 px-3 text-xs gap-1 text-green-600 border-green-200 cursor-default" disabled>
+              <BookmarkCheck className="h-3 w-3" />
+              Tracked
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 px-3 text-xs gap-1"
+              onClick={() => setTrackOpen(true)}
+            >
+              <Bookmark className="h-3 w-3" />
+              Track
+            </Button>
+          )}
+          <Button
+            size="sm"
+            className="h-7 px-3 text-xs gap-1 bg-primary hover:bg-primary/90"
+            onClick={() => window.open(job.job_url, '_blank')}
+          >
+            View Job
+            <ExternalLink className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
 
       {/* ── Expandable details ───────────────────── */}
@@ -217,6 +318,44 @@ export const JobCard: React.FC<JobCardProps> = ({ job }) => {
             </div>
           )}
         </div>
+      )}
+      {/* ── Evaluation Panel ────────────────────────── */}
+      {evalOpen && (
+        <JobEvaluationPanel result={evaluation!} loading={evaluating} />
+      )}
+
+      {/* ── Track Dialog ──────────────────────────── */}
+      {trackOpen && (
+        <Dialog open onOpenChange={(open) => !open && setTrackOpen(false)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Add to Tracker</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-1">
+              <div>
+                <p className="text-sm font-medium">{job.title}</p>
+                <p className="text-xs text-muted-foreground">{job.company}{job.location ? ` · ${job.location}` : ''}</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Follow-up reminder date (optional)</Label>
+                <Input
+                  type="date"
+                  value={followUpDate}
+                  onChange={(e) => setFollowUpDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setTrackOpen(false)} disabled={saving}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddToTracker} disabled={saving}>
+                {saving && <Loader2 className="mr-2 size-4 animate-spin" />}
+                Add to Tracker
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </motion.div>
   );

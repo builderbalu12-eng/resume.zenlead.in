@@ -27,6 +27,7 @@ import { ResumeWorkspace } from "./pages/ResumeWorkspace";
 import { AdminPage } from "./pages/AdminPage";
 import { AdminRoute } from "./components/AdminRoute";
 import InterviewPrep from "./pages/InterviewPrep";
+import TrackerPage from "./pages/TrackerPage";
 import GitHubSync from "./pages/GitHubSync";
 import AutoApply from "./pages/AutoApply";
 import { Toaster } from "@/components/ui/sonner";
@@ -157,6 +158,17 @@ function AnimatedRoutes() {
             <ProtectedRoute>
               <AppShell>
                 <ChatPage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/tracker"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <TrackerPage />
               </AppShell>
             </ProtectedRoute>
           }

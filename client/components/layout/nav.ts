@@ -3,6 +3,7 @@ import {
   Building2,
   CreditCard,
   Home,
+  KanbanSquare,
   MessageCircle,
   Shield,
   User,
@@ -27,6 +28,7 @@ export const PRIMARY_NAV: NavItem[] = [
     requiresAuth: true,
   },
   { label: "AI Chat", path: "/chat", icon: MessageCircle, requiresAuth: true },
+  { label: "Tracker", path: "/tracker", icon: KanbanSquare, requiresAuth: true },
 ];
 
 export const ACCOUNT_NAV: NavItem[] = [
@@ -53,6 +55,7 @@ export function getRouteTitle(pathname: string): string {
   if (pathname.startsWith("/payment")) return "Payment";
   if (pathname.startsWith("/auth")) return "Authentication";
   if (pathname.startsWith("/admin")) return "Admin";
+  if (pathname.startsWith("/tracker")) return "Application Tracker";
   if (pathname.startsWith("/interview-prep")) return "Interview Prep";
   if (pathname.startsWith("/github-sync")) return "GitHub Sync";
   if (pathname.startsWith("/auto-apply")) return "Auto Apply";

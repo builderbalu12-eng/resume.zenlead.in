@@ -600,6 +600,11 @@ export class APIClient {
     matchedKeywords: string[];
     missingKeywords: string[];
     status: string;
+    pipelineStage?: string;
+    notes?: string;
+    followUpDate?: string;
+    evaluationGrade?: string;
+    compensationNotes?: string;
   }): Promise<any> {
     return this.request('/api/applications', {
       method: 'POST',
@@ -610,6 +615,39 @@ export class APIClient {
   async getApplicationHistory(): Promise<any[]> {
     const res = await this.request('/api/applications', { method: 'GET' });
     return res.applications || [];
+  }
+
+  async evaluateJob(params: {
+    jobUrl: string;
+    jobTitle: string;
+    company: string;
+    description: string;
+    userResumeId?: string;
+  }): Promise<{ data: any }> {
+    return this.request('/api/jobs/evaluate', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  async patchApplication(
+    appId: string,
+    data: {
+      pipelineStage?: string;
+      notes?: string;
+      followUpDate?: string | null;
+      evaluationGrade?: string;
+      compensationNotes?: string;
+    }
+  ): Promise<any> {
+    return this.request(`/api/applications/${appId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getApplicationStats(): Promise<{ total: number; stages: { stage: string; count: number; avg_ats: number }[] }> {
+    return this.request('/api/applications/stats', { method: 'GET' });
   }
 
   async deleteApplication(appId: string): Promise<any> {
