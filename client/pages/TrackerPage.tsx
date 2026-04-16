@@ -94,6 +94,18 @@ const STAGE_COLORS: Record<PipelineStage, string> = {
   discarded: "bg-gray-100 text-gray-500 border-gray-200",
 };
 
+// Column background colors for Kanban
+const STAGE_COLUMN_BG: Record<PipelineStage, string> = {
+  evaluated: "bg-slate-50 border-slate-200",
+  applied:   "bg-blue-50 border-blue-200",
+  responded: "bg-cyan-50 border-cyan-200",
+  contacted: "bg-violet-50 border-violet-200",
+  interview: "bg-yellow-50 border-yellow-200",
+  offer:     "bg-green-50 border-green-200",
+  rejected:  "bg-red-50 border-red-200",
+  discarded: "bg-gray-50 border-gray-200",
+};
+
 function StageBadge({ stage }: { stage: PipelineStage }) {
   return (
     <span
@@ -361,41 +373,58 @@ function KanbanCard({
   onEdit: (app: TrackerApplication) => void;
   onDragStart: (e: React.DragEvent, appId: string) => void;
 }) {
+  const isOverdue =
+    app.followUpDate && new Date(app.followUpDate) < new Date();
+
   return (
     <div
       draggable
       onDragStart={(e) => onDragStart(e, app._id)}
-      className="rounded-lg border bg-card p-3 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+      className="rounded-lg border bg-white p-3 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow select-none"
     >
+      {/* Company + edit */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-sm font-medium truncate">{app.company}</p>
-          <p className="text-xs text-muted-foreground truncate">{app.jobTitle}</p>
+          <p className="text-sm font-semibold truncate leading-tight">{app.company}</p>
+          <p className="text-xs text-muted-foreground truncate mt-0.5">{app.jobTitle}</p>
         </div>
-        <Button variant="ghost" size="icon" className="size-6 shrink-0" onClick={() => onEdit(app)}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-6 shrink-0 -mr-1 -mt-0.5"
+          onClick={(e) => { e.stopPropagation(); onEdit(app); }}
+        >
           <Edit2 className="size-3" />
         </Button>
       </div>
-      <div className="mt-2 flex items-center justify-between">
+
+      {/* ATS badge + follow-up */}
+      <div className="mt-2.5 flex items-center gap-2 flex-wrap">
         {app.matchPercentage > 0 ? (
           <span
-            className={`text-xs font-semibold font-mono ${
+            className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-semibold font-mono border ${
               app.matchPercentage >= 75
-                ? "text-green-600"
+                ? "bg-green-50 text-green-700 border-green-200"
                 : app.matchPercentage >= 50
-                ? "text-amber-600"
-                : "text-red-500"
+                ? "bg-amber-50 text-amber-700 border-amber-200"
+                : "bg-red-50 text-red-600 border-red-200"
             }`}
           >
-            {app.matchPercentage}% ATS
+            {app.matchPercentage}%
           </span>
         ) : (
-          <span className="text-xs text-muted-foreground">No score</span>
+          <span className="text-[11px] text-muted-foreground/60">No score</span>
         )}
+
         {app.followUpDate && (
-          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+          <span
+            className={`flex items-center gap-0.5 text-[11px] ${
+              isOverdue ? "text-red-600 font-medium" : "text-muted-foreground"
+            }`}
+          >
             <Calendar className="size-3" />
             {format(new Date(app.followUpDate), "dd MMM")}
+            {isOverdue && <span className="ml-0.5">·overdue</span>}
           </span>
         )}
       </div>
@@ -447,38 +476,36 @@ function KanbanBoard({
     setDragOverStage(null);
   }
 
-  if (apps.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-        <KanbanSquare className="mb-3 size-10 opacity-30" />
-        <p className="text-sm">No applications tracked yet.</p>
-        <p className="text-xs mt-1">Use the "Track" button on any job card in Find Jobs.</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex gap-3 overflow-x-auto pb-4">
+    <div className="flex gap-3 overflow-x-auto pb-4 items-start">
       {STAGES_ORDER.map((stage) => {
         const cards = byStage[stage];
         const isOver = dragOverStage === stage;
+        const colBg = STAGE_COLUMN_BG[stage];
         return (
           <div
             key={stage}
-            className={`flex w-52 shrink-0 flex-col rounded-xl border bg-muted/30 p-2 transition-colors ${
-              isOver ? "border-primary/50 bg-primary/5" : ""
+            className={`flex w-56 shrink-0 flex-col rounded-xl border p-2 transition-colors ${colBg} ${
+              isOver ? "ring-2 ring-primary/40 brightness-95" : ""
             }`}
             onDragOver={(e) => handleDragOver(e, stage)}
             onDragLeave={() => setDragOverStage(null)}
             onDrop={(e) => handleDrop(e, stage)}
           >
-            <div className="mb-2 flex items-center justify-between px-1">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            {/* Column header */}
+            <div className="mb-2 flex items-center justify-between px-1 py-0.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-foreground/70">
                 {STAGE_LABELS[stage]}
               </span>
-              <span className="text-xs text-muted-foreground">{cards.length}</span>
+              <span
+                className={`inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold min-w-[1.25rem] ${STAGE_COLORS[stage]}`}
+              >
+                {cards.length}
+              </span>
             </div>
-            <div className="flex flex-col gap-2 min-h-[80px]">
+
+            {/* Card list — scrollable */}
+            <div className="flex flex-col gap-2 min-h-[80px] max-h-[calc(100vh-260px)] overflow-y-auto">
               {cards.map((app) => (
                 <KanbanCard
                   key={app._id}
@@ -487,6 +514,11 @@ function KanbanBoard({
                   onDragStart={handleDragStart}
                 />
               ))}
+              {cards.length === 0 && (
+                <div className="flex items-center justify-center py-6 text-[11px] text-muted-foreground/50 select-none">
+                  Drop here
+                </div>
+              )}
             </div>
           </div>
         );
