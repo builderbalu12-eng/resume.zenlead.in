@@ -646,7 +646,11 @@ export class APIClient {
     });
   }
 
-  async getApplicationStats(): Promise<{ total: number; stages: { stage: string; count: number; avg_ats: number }[] }> {
+  async getApplicationStats(): Promise<{
+    totalApplications: number;
+    stageBreakdown: Record<string, number>;
+    avgAtsScoreByStage: Record<string, number | null>;
+  }> {
     return this.request('/api/applications/stats', { method: 'GET' });
   }
 
