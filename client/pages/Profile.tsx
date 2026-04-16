@@ -6,7 +6,9 @@ import { apiClient, User } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 type ProfileTab = 'account';
 
@@ -43,7 +45,6 @@ export const Profile: React.FC = () => {
   // North Star
   const [northStar, setNorthStar] = useState('');
   const [isSavingNorthStar, setIsSavingNorthStar] = useState(false);
-  const [northStarMessage, setNorthStarMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Job Preferences
   const [jobPrefs, setJobPrefs] = useState({
@@ -216,12 +217,10 @@ export const Profile: React.FC = () => {
   const handleSaveNorthStar = async () => {
     try {
       setIsSavingNorthStar(true);
-      setNorthStarMessage(null);
       await apiClient.updateCurrentUser({ northStar: northStar.trim() } as any);
-      setNorthStarMessage({ type: 'success', text: 'Career North Star saved!' });
-      setTimeout(() => setNorthStarMessage(null), 3000);
+      toast.success('Career North Star saved!');
     } catch (err) {
-      setNorthStarMessage({ type: 'error', text: 'Failed to save' });
+      toast.error('Failed to save Career North Star');
     } finally {
       setIsSavingNorthStar(false);
     }
@@ -596,26 +595,22 @@ export const Profile: React.FC = () => {
                   <p className="text-sm text-slate-500 dark:text-slate-400">Used by Job Evaluation AI to assess role alignment</p>
                 </div>
                 <div className="px-6 py-5 space-y-3">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Write 2–3 sentences about your ideal next role — the type of company, tech, seniority level, and what you want to work on.
-                  </p>
-                  <Textarea
-                    rows={4}
-                    maxLength={300}
-                    placeholder="e.g. I want to work on AI infrastructure at a Series B–D startup in a senior IC role focused on LLM evaluation pipelines..."
-                    value={northStar}
-                    onChange={(e) => setNorthStar(e.target.value)}
-                    className="resize-none"
-                  />
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">{northStar.length}/300</span>
-                    {northStarMessage && (
-                      <span className={cn("text-xs font-medium",
-                        northStarMessage.type === 'success' ? 'text-green-600' : 'text-red-600'
-                      )}>
-                        {northStarMessage.text}
-                      </span>
-                    )}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      What kind of role are you targeting?
+                    </Label>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Write 2–3 sentences about your ideal next role — the type of company, tech, seniority level, and what you want to work on.
+                    </p>
+                    <Textarea
+                      rows={4}
+                      maxLength={300}
+                      placeholder="e.g. I want to work on AI infrastructure at a Series B–D startup in a senior IC role focused on LLM evaluation pipelines..."
+                      value={northStar}
+                      onChange={(e) => setNorthStar(e.target.value)}
+                      className="resize-none"
+                    />
+                    <p className="text-xs text-slate-400 text-right">{northStar.length}/300</p>
                   </div>
                   <Button onClick={handleSaveNorthStar} disabled={isSavingNorthStar} className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white">
                     {isSavingNorthStar ? 'Saving...' : 'Save North Star'}
