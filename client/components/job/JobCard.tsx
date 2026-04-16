@@ -21,6 +21,8 @@ import {
 
 interface JobCardProps {
   job: any;
+  initialTracked?: boolean;
+  onTracked?: (jobUrl: string) => void;
 }
 
 const SITE_LABEL: Record<string, string> = {
@@ -46,10 +48,15 @@ function scoreStyle(score: number) {
 
 const tagBase = 'inline-flex items-center gap-1 rounded border border-border/60 bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-muted-foreground';
 
-export const JobCard: React.FC<JobCardProps> = ({ job }) => {
+export const JobCard: React.FC<JobCardProps> = ({ job, initialTracked = false, onTracked }) => {
   const [expanded, setExpanded] = useState(false);
   const [trackOpen, setTrackOpen] = useState(false);
-  const [tracked, setTracked] = useState(false);
+  const [tracked, setTracked] = useState(initialTracked);
+
+  // Sync if parent resolves tracked state after initial render
+  React.useEffect(() => {
+    if (initialTracked) setTracked(true);
+  }, [initialTracked]);
   const [followUpDate, setFollowUpDate] = useState('');
   const [saving, setSaving] = useState(false);
   const [evaluation, setEvaluation] = useState<JobEvaluationResult | null>(null);
@@ -75,7 +82,8 @@ export const JobCard: React.FC<JobCardProps> = ({ job }) => {
       });
       setTracked(true);
       setTrackOpen(false);
-      toast.success('Added to Tracker');
+      onTracked?.(job.job_url ?? '');
+      toast.success('Added to Tracker ✓');
     } catch (e: any) {
       toast.error(e.message ?? 'Failed to track job');
     } finally {

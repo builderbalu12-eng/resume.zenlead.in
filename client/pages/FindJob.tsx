@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Briefcase, Loader2, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { JobCard } from '@/components/job/JobCard';
+import { apiClient } from '@/services/api';
 import { StaggerParent, FadeInItem } from '@/components/motion';
 import { SearchForm } from '@/components/job/SearchForm';
 import { MySearchesSidebar } from '@/components/job/MySearchesSidebar';
@@ -74,6 +75,16 @@ export const FindJob: React.FC = () => {
   const [allJobs, setAllJobs] = useState<any[]>([]);
   const [allJobsTotal, setAllJobsTotal] = useState(0);
   const [allJobsTotalPages, setAllJobsTotalPages] = useState(0);
+
+  // Tracked job URLs — fetched once on mount so cards know their initial state
+  const [trackedUrls, setTrackedUrls] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    apiClient.getApplicationHistory().then((apps: any[]) => {
+      setTrackedUrls(new Set(apps.map((a: any) => a.jobUrl).filter(Boolean)));
+    }).catch(() => {/* non-critical — cards just start as untracked */});
+  }, [isAuthenticated]);
 
   // Load initial data
   useEffect(() => {
@@ -318,7 +329,7 @@ export const FindJob: React.FC = () => {
           ) : (
             <StaggerParent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {defaultJobs.map(job => (
-                <FadeInItem key={job.job_url}><JobCard job={job} /></FadeInItem>
+                <FadeInItem key={job.job_url}><JobCard job={job} initialTracked={trackedUrls.has(job.job_url)} onTracked={(url) => setTrackedUrls(prev => new Set(prev).add(url))} /></FadeInItem>
               ))}
             </StaggerParent>
           )}
@@ -392,7 +403,7 @@ export const FindJob: React.FC = () => {
             ) : (
               <StaggerParent className="grid md:grid-cols-2 gap-6">
                 {getSortedJobs(selectedListJobs).map(job => (
-                  <FadeInItem key={job.job_url}><JobCard job={job} /></FadeInItem>
+                  <FadeInItem key={job.job_url}><JobCard job={job} initialTracked={trackedUrls.has(job.job_url)} onTracked={(url) => setTrackedUrls(prev => new Set(prev).add(url))} /></FadeInItem>
                 ))}
               </StaggerParent>
             )}
@@ -527,7 +538,7 @@ export const FindJob: React.FC = () => {
           ) : (
             <StaggerParent className="grid md:grid-cols-2 gap-6">
               {allJobs.map(job => (
-                <FadeInItem key={job.id || job.job_url}><JobCard job={job} /></FadeInItem>
+                <FadeInItem key={job.id || job.job_url}><JobCard job={job} initialTracked={trackedUrls.has(job.job_url)} onTracked={(url) => setTrackedUrls(prev => new Set(prev).add(url))} /></FadeInItem>
               ))}
             </StaggerParent>
           )}
