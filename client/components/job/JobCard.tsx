@@ -104,6 +104,8 @@ export const JobCard: React.FC<JobCardProps> = ({ job, initialTracked = false, o
         jobTitle: job.title ?? '',
         company: job.company ?? '',
         description: job.description ?? job.description_summary ?? '',
+        datePosted: job.date_posted ?? undefined,
+        salary: job.salary ?? undefined,
       });
       setEvaluation(result);
     } catch (e: any) {

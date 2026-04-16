@@ -623,6 +623,8 @@ export class APIClient {
     company: string;
     description: string;
     userResumeId?: string;
+    datePosted?: string;
+    salary?: string;
   }): Promise<{ data: any }> {
     return this.request('/api/jobs/evaluate', {
       method: 'POST',

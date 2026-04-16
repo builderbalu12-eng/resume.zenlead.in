@@ -75,6 +75,8 @@ export async function fetchJobEvaluation(params: {
   jobTitle: string;
   company: string;
   description: string;
+  datePosted?: string;
+  salary?: string;
 }): Promise<JobEvaluationResult> {
   const res = await apiClient.evaluateJob(params);
   return res.data as JobEvaluationResult;
