@@ -79,6 +79,13 @@ export const FindJob: React.FC = () => {
   // Tracked job URLs — fetched once on mount so cards know their initial state
   const [trackedUrls, setTrackedUrls] = useState<Set<string>>(new Set());
 
+  // Archetype filter (client-side)
+  const [archetypeFilter, setArchetypeFilter] = useState<string>('');
+  const ARCHETYPE_OPTIONS = [
+    'AI Platform / LLMOps', 'Agentic / Automation', 'Technical AI PM',
+    'Solutions Architect', 'Forward Deployed', 'Transformation Lead',
+  ];
+
   useEffect(() => {
     if (!isAuthenticated) return;
     apiClient.getApplicationHistory().then((apps: any[]) => {
@@ -237,7 +244,10 @@ export const FindJob: React.FC = () => {
   };
 
   const getSortedJobs = (jobs: any[]) => {
-    const sorted = [...jobs];
+    let filtered = archetypeFilter
+      ? jobs.filter((j) => j.archetype === archetypeFilter)
+      : jobs;
+    const sorted = [...filtered];
     if (sortBy === 'fit_score') {
       return sorted.sort((a, b) => (b.fit_score || 0) - (a.fit_score || 0));
     } else if (sortBy === 'date_posted') {
@@ -381,15 +391,27 @@ export const FindJob: React.FC = () => {
                     {new Date(selectedListMeta.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </p>
                 </div>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="h-7 cursor-pointer rounded-md border border-border/70 bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring shrink-0"
-                >
-                  <option value="best_match">Best Match</option>
-                  <option value="fit_score">Highest Score</option>
-                  <option value="date_posted">Newest</option>
-                </select>
+                <div className="flex items-center gap-2 shrink-0">
+                  <select
+                    value={archetypeFilter}
+                    onChange={(e) => setArchetypeFilter(e.target.value)}
+                    className="h-7 cursor-pointer rounded-md border border-border/70 bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <option value="">All Archetypes</option>
+                    {ARCHETYPE_OPTIONS.map((a) => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="h-7 cursor-pointer rounded-md border border-border/70 bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <option value="best_match">Best Match</option>
+                    <option value="fit_score">Highest Score</option>
+                    <option value="date_posted">Newest</option>
+                  </select>
+                </div>
               </div>
             </div>
           )}

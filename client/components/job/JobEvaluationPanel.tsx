@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, ChevronDown, ChevronUp, TrendingUp } from "lucide-react";
 import { apiClient } from "@/services/api";
+import { Button } from "@/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
@@ -89,14 +90,197 @@ export async function fetchJobEvaluation(params: {
   return res.data as JobEvaluationResult;
 }
 
+// ── Compensation Section ──────────────────────────────────
+
+interface CompensationData {
+  currency: string;
+  salaryRange: { min: number; median: number; max: number };
+  verdict: string;
+  verdictDetail: string;
+  rationale: string;
+  disclaimer: string;
+}
+
+const VERDICT_STYLE: Record<string, string> = {
+  "below market": "bg-red-100 text-red-700 border-red-200",
+  "at market":    "bg-green-100 text-green-700 border-green-200",
+  "above market": "bg-blue-100 text-blue-700 border-blue-200",
+  "unknown":      "bg-muted text-muted-foreground border-border",
+};
+
+function formatSalary(n: number, currency: string): string {
+  if (currency === "INR") {
+    if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+    return `₹${n.toLocaleString("en-IN")}`;
+  }
+  if (n >= 1000) return `${currency === "USD" ? "$" : currency === "GBP" ? "£" : ""}${Math.round(n / 1000)}k`;
+  return `${n}`;
+}
+
+function CompensationSection({
+  jobTitle,
+  jobLocation,
+  statedSalary,
+}: {
+  jobTitle: string;
+  jobLocation: string;
+  statedSalary?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<CompensationData | null>(null);
+  const [error, setError] = useState<{ text: string; isCredits: boolean } | null>(null);
+
+  async function handleResearch() {
+    if (data) return; // already fetched
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiClient.researchCompensation({
+        role: jobTitle,
+        location: jobLocation,
+        statedSalary: statedSalary || undefined,
+      });
+      setData(res);
+    } catch (e: any) {
+      const status = e?.status ?? e?.statusCode ?? 0;
+      if (status === 402) {
+        setError({ text: "Not enough credits to research compensation.", isCredits: true });
+      } else {
+        setError({ text: e.message ?? "Research failed", isCredits: false });
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Collapsible
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (o && !data && !loading) handleResearch();
+      }}
+    >
+      <div className="border-t border-dashed">
+        <CollapsibleTrigger className="w-full flex items-center justify-between px-4 py-2 hover:bg-muted/10 transition-colors text-left">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="size-3.5 text-muted-foreground" />
+            <span className="text-xs font-medium">Compensation Research</span>
+            {!data && !open && (
+              <span className="text-[10px] text-muted-foreground">(2 credits)</span>
+            )}
+            {data && (
+              <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold capitalize ${VERDICT_STYLE[data.verdict] ?? VERDICT_STYLE["unknown"]}`}>
+                {data.verdict}
+              </span>
+            )}
+          </div>
+          {open ? <ChevronUp className="size-3.5 text-muted-foreground shrink-0" /> : <ChevronDown className="size-3.5 text-muted-foreground shrink-0" />}
+        </CollapsibleTrigger>
+
+        <CollapsibleContent>
+          <div className="px-4 pb-4 space-y-3">
+            {loading && (
+              <div className="flex items-center gap-2 py-3 text-muted-foreground text-xs">
+                <Loader2 className="size-3.5 animate-spin" />
+                Researching market rate…
+              </div>
+            )}
+
+            {error && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs">
+                <p className="text-destructive">{error.text}</p>
+                {error.isCredits && (
+                  <a href="/pricing" className="text-primary underline underline-offset-2 mt-0.5 block">
+                    Top up credits →
+                  </a>
+                )}
+              </div>
+            )}
+
+            {data && !loading && (
+              <div className="space-y-3">
+                {/* Salary range bar */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {formatSalary(data.salaryRange.min, data.currency)}
+                    </span>
+                    <span className="font-semibold text-foreground">
+                      {formatSalary(data.salaryRange.median, data.currency)} median
+                    </span>
+                    <span className="text-muted-foreground">
+                      {formatSalary(data.salaryRange.max, data.currency)}
+                    </span>
+                  </div>
+                  {/* Visual bar */}
+                  <div className="relative h-3 rounded-full bg-muted overflow-visible">
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-300 via-green-400 to-blue-400 opacity-40" />
+                    {/* Median marker */}
+                    <div
+                      className="absolute top-1/2 -translate-y-1/2 h-4 w-1 rounded bg-foreground/60 shadow"
+                      style={{ left: "50%" }}
+                      title="Median"
+                    />
+                    {/* Stated salary marker */}
+                    {statedSalary && data.verdict !== "unknown" && (() => {
+                      // Try to extract a number from statedSalary string
+                      const match = statedSalary.replace(/,/g, "").match(/\d+/g);
+                      if (!match) return null;
+                      const val = parseInt(match[0]);
+                      const { min, max } = data.salaryRange;
+                      const clamped = Math.min(Math.max(val, min), max);
+                      const pct = max > min ? ((clamped - min) / (max - min)) * 100 : 50;
+                      return (
+                        <div
+                          className="absolute top-1/2 -translate-y-1/2 h-4 w-1.5 rounded bg-primary shadow-md"
+                          style={{ left: `${pct}%` }}
+                          title={`Stated: ${statedSalary}`}
+                        />
+                      );
+                    })()}
+                  </div>
+                  {statedSalary && (
+                    <p className="text-[10px] text-muted-foreground">
+                      <span className="inline-block w-2.5 h-2.5 rounded bg-primary/70 align-middle mr-1" />
+                      Stated salary: {statedSalary}
+                    </p>
+                  )}
+                </div>
+
+                {/* Verdict detail */}
+                {data.verdictDetail && (
+                  <p className="text-xs text-muted-foreground leading-relaxed">{data.verdictDetail}</p>
+                )}
+
+                {/* Rationale */}
+                <p className="text-xs text-muted-foreground leading-relaxed">{data.rationale}</p>
+
+                {/* Disclaimer */}
+                <p className="text-[10px] text-muted-foreground/60 leading-relaxed border-t pt-2 mt-2">
+                  {data.disclaimer}
+                </p>
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+}
+
 // ── Panel ─────────────────────────────────────────────────
 
 interface Props {
   result: JobEvaluationResult;
   loading?: boolean;
+  jobTitle?: string;
+  jobLocation?: string;
+  statedSalary?: string;
 }
 
-export function JobEvaluationPanel({ result, loading }: Props) {
+export function JobEvaluationPanel({ result, loading, jobTitle, jobLocation, statedSalary }: Props) {
   const [open, setOpen] = useState(true);
 
   if (loading) {
@@ -159,5 +343,27 @@ export function JobEvaluationPanel({ result, loading }: Props) {
         </CollapsibleContent>
       </div>
     </Collapsible>
+  );
+}
+
+// Re-export Panel with compensation section wired in
+export function JobEvaluationPanelWithCompensation({
+  result,
+  loading,
+  jobTitle,
+  jobLocation,
+  statedSalary,
+}: Props) {
+  return (
+    <div>
+      <JobEvaluationPanel result={result} loading={loading} />
+      {result && !loading && (
+        <CompensationSection
+          jobTitle={jobTitle ?? result.verdict ?? ""}
+          jobLocation={jobLocation ?? ""}
+          statedSalary={statedSalary}
+        />
+      )}
+    </div>
   );
 }

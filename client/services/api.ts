@@ -604,6 +604,7 @@ export class APIClient {
     notes?: string;
     followUpDate?: string;
     evaluationGrade?: string;
+    evaluationScore?: number;
     compensationNotes?: string;
   }): Promise<any> {
     return this.request('/api/applications', {
@@ -639,6 +640,7 @@ export class APIClient {
       notes?: string;
       followUpDate?: string | null;
       evaluationGrade?: string;
+      evaluationScore?: number;
       compensationNotes?: string;
     }
   ): Promise<any> {
@@ -725,6 +727,24 @@ export class APIClient {
     applicationId?: string;
   }): Promise<{ message: string; characterCount: number }> {
     return this.request('/api/outreach/generate', { method: 'POST', body: JSON.stringify(body) });
+  }
+
+  // ── Compensation Research ────────────────────────────────────
+  async researchCompensation(body: {
+    role: string;
+    location: string;
+    yearsOfExperience?: number;
+    statedSalary?: string;
+  }): Promise<{
+    currency: string;
+    salaryRange: { min: number; median: number; max: number };
+    verdict: string;
+    verdictDetail: string;
+    rationale: string;
+    disclaimer: string;
+  }> {
+    const res = await this.request('/api/compensation/research', { method: 'POST', body: JSON.stringify(body) });
+    return res.data;
   }
 
   async getJobPreferences(): Promise<any> {

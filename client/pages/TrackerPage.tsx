@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
@@ -70,6 +71,7 @@ export interface TrackerApplication {
   notes: string;
   followUpDate?: string;
   evaluationGrade: string;
+  evaluationScore?: number;
   compensationNotes: string;
   createdAt: string;
   userId: string;
@@ -117,6 +119,29 @@ function StageBadge({ stage }: { stage: PipelineStage }) {
       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${STAGE_COLORS[stage]}`}
     >
       {STAGE_LABELS[stage]}
+    </span>
+  );
+}
+
+// ── Grade helpers ──────────────────────────────────────────
+
+function gradeColor(grade: string): string {
+  const g = (grade ?? "").charAt(0).toUpperCase();
+  if (g === "A") return "bg-green-100 text-green-700 border-green-200";
+  if (g === "B") return "bg-blue-100 text-blue-700 border-blue-200";
+  if (g === "C") return "bg-amber-100 text-amber-700 border-amber-200";
+  if (g === "D") return "bg-orange-100 text-orange-800 border-orange-200";
+  if (g === "F") return "bg-red-100 text-red-700 border-red-200";
+  return "";
+}
+
+function GradeTag({ grade }: { grade?: string }) {
+  if (!grade) return <span className="text-xs text-muted-foreground">—</span>;
+  return (
+    <span
+      className={`inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-bold tabular-nums min-w-[2rem] ${gradeColor(grade)}`}
+    >
+      {grade}
     </span>
   );
 }
@@ -459,6 +484,7 @@ function TableTab({
             <TableHead>Role</TableHead>
             <TableHead>Stage</TableHead>
             <TableHead className="text-right">ATS Score</TableHead>
+            <TableHead>Grade</TableHead>
             <TableHead>Applied Date</TableHead>
             <TableHead>Follow-up Date</TableHead>
             <TableHead>Notes</TableHead>
@@ -508,6 +534,9 @@ function TableTab({
                   ) : (
                     <span className="text-muted-foreground text-xs">—</span>
                   )}
+                </TableCell>
+                <TableCell>
+                  <GradeTag grade={app.evaluationGrade} />
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {app.createdAt
@@ -560,6 +589,11 @@ function TableTab({
 }
 
 // ── Insights Tab ──────────────────────────────────────────
+
+const PIPELINE_STAGES_ORDER: PipelineStage[] = [
+  "evaluated", "applied", "responded", "contacted",
+  "interview", "offer", "rejected", "discarded",
+];
 
 const FUNNEL_BAR_COLORS: Partial<Record<PipelineStage, string>> = {
   applied:   "bg-blue-500",
@@ -872,6 +906,14 @@ function KanbanCard({
           <span className="text-[11px] text-muted-foreground/60">No score</span>
         )}
 
+        {app.evaluationGrade && (
+          <span
+            className={`inline-flex items-center justify-center rounded border px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${gradeColor(app.evaluationGrade)}`}
+          >
+            {app.evaluationGrade}
+          </span>
+        )}
+
         <UrgencyBadge app={app} />
 
         {app.followUpDate && (
@@ -1010,6 +1052,10 @@ export default function TrackerPage() {
   const [loading, setLoading] = useState(true);
   const [editingApp, setEditingApp] = useState<TrackerApplication | null>(null);
   const [followupApp, setFollowupApp] = useState<TrackerApplication | null>(null);
+  const [searchParams] = useSearchParams();
+  const [stageFilter, setStageFilter] = useState<PipelineStage | "all">(
+    () => (searchParams.get("stage") as PipelineStage | null) ?? "all"
+  );
 
   useEffect(() => {
     fetchApplications()
@@ -1018,11 +1064,22 @@ export default function TrackerPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Sync stage filter if URL param changes
+  useEffect(() => {
+    const s = searchParams.get("stage") as PipelineStage | null;
+    if (s) setStageFilter(s);
+  }, [searchParams]);
+
   function handleSaved(id: string, updates: Partial<TrackerApplication>) {
     setApps((prev) =>
       prev.map((a) => (a._id === id ? { ...a, ...updates } : a))
     );
   }
+
+  const filteredApps = useMemo(
+    () => stageFilter === "all" ? apps : apps.filter((a) => a.pipelineStage === stageFilter),
+    [apps, stageFilter]
+  );
 
   const followupUrgency: UrgencyLevel = followupApp
     ? computeUrgency(getDaysSince(followupApp.createdAt))
@@ -1084,11 +1141,42 @@ export default function TrackerPage() {
           </TabsContent>
 
           <TabsContent value="table">
-            <TableTab apps={apps} onEdit={setEditingApp} onFollowup={setFollowupApp} />
+            {/* Stage filter bar */}
+            <div className="mb-4 flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground font-medium shrink-0">Filter:</span>
+              <button
+                onClick={() => setStageFilter("all")}
+                className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                  stageFilter === "all"
+                    ? "bg-foreground text-background border-foreground"
+                    : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                All ({apps.length})
+              </button>
+              {(Object.keys(STAGE_LABELS) as PipelineStage[]).map((s) => {
+                const count = apps.filter((a) => a.pipelineStage === s).length;
+                if (count === 0) return null;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setStageFilter(stageFilter === s ? "all" : s)}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                      stageFilter === s
+                        ? STAGE_COLORS[s]
+                        : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {STAGE_LABELS[s]} ({count})
+                  </button>
+                );
+              })}
+            </div>
+            <TableTab apps={filteredApps} onEdit={setEditingApp} onFollowup={setFollowupApp} />
           </TabsContent>
 
           <TabsContent value="insights">
-            <InsightsPlaceholder />
+            <InsightsTab totalApps={apps.length} />
           </TabsContent>
         </Tabs>
       )}

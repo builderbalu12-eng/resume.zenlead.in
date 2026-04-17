@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Zap,
   ArrowRight,
@@ -22,16 +22,26 @@ import { AvatarGroup } from "@/components/AvatarGroup";
 import { WhatYouCanObtain } from "@/components/WhatYouCanObtain";
 import Lottie from "lottie-react";
 import { FloatingChatButton } from "@/components/chat/FloatingChatButton";
+import { apiClient } from "@/services/api";
 import { FloatingBlobs } from "@/components/motion/FloatingBlobs";
 import { BlurFade, FadeIn, MountSlideUp, StaggerParent, FadeInItem } from "@/components/motion";
 import { AnimatedGradientText } from "@/components/motion/AnimatedGradientText";
 
+interface PipelineCounts {
+  applied: number;
+  interview: number;
+  offer: number;
+  rejected: number;
+}
+
 export const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const { app_name: appName, support_email: supportEmail, social_links: socialLinks, collaborators } = useAppConfig();
+  const navigate = useNavigate();
   const [masterResume, setMasterResume] = useState<ResumeData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedSummary, setExpandedSummary] = useState(false);
+  const [pipeline, setPipeline] = useState<PipelineCounts | null>(null);
 
   // Hero cycling state
   const [heroState, setHeroState] = useState<0 | 1 | 2 | 3>(0);
@@ -195,10 +205,22 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated && user) {
       console.log('[Dashboard] User authenticated:', user.email);
-      // Refresh resume data when user logs in
       loadDashboardData();
+      // Load pipeline counts
+      apiClient.getApplicationStats()
+        .then((stats: any) => {
+          const breakdown = stats?.stageBreakdown ?? {};
+          setPipeline({
+            applied: breakdown.applied ?? 0,
+            interview: breakdown.interview ?? 0,
+            offer: breakdown.offer ?? 0,
+            rejected: breakdown.rejected ?? 0,
+          });
+        })
+        .catch(() => { /* pipeline widget is optional — fail silently */ });
     } else {
       setMasterResume(null);
+      setPipeline(null);
     }
   }, [isAuthenticated, user]);
 
@@ -349,6 +371,48 @@ export const Dashboard: React.FC = () => {
                 </div>
               </Link>
             </div>
+
+            {/* My Pipeline strip */}
+            {pipeline && (pipeline.applied + pipeline.interview + pipeline.offer + pipeline.rejected) > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-muted-foreground font-medium shrink-0">My Pipeline:</span>
+                {pipeline.applied > 0 && (
+                  <button
+                    onClick={() => navigate("/tracker?stage=applied")}
+                    className="rounded-full border border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                  >
+                    {pipeline.applied} Applied
+                  </button>
+                )}
+                {pipeline.interview > 0 && (
+                  <button
+                    onClick={() => navigate("/tracker?stage=interview")}
+                    className="rounded-full border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+                  >
+                    {pipeline.interview} Interview
+                  </button>
+                )}
+                {pipeline.offer > 0 && (
+                  <button
+                    onClick={() => navigate("/tracker?stage=offer")}
+                    className="rounded-full border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 px-3 py-1 text-xs font-semibold text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
+                  >
+                    {pipeline.offer} Offer
+                  </button>
+                )}
+                {pipeline.rejected > 0 && (
+                  <button
+                    onClick={() => navigate("/tracker?stage=rejected")}
+                    className="rounded-full border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 px-3 py-1 text-xs font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                  >
+                    {pipeline.rejected} Rejected
+                  </button>
+                )}
+                <Link to="/tracker" className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 ml-1">
+                  View all →
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { apiClient } from '@/services/api';
 import {
   JobEvaluationPanel,
+  JobEvaluationPanelWithCompensation,
   fetchJobEvaluation,
   type JobEvaluationResult,
 } from './JobEvaluationPanel';
@@ -23,6 +24,15 @@ interface JobCardProps {
   job: any;
   initialTracked?: boolean;
   onTracked?: (jobUrl: string) => void;
+}
+
+function _gradeColor(grade: string): string {
+  const g = (grade ?? '').charAt(0).toUpperCase();
+  if (g === 'A') return 'bg-green-100 text-green-700 border-green-200';
+  if (g === 'B') return 'bg-blue-100 text-blue-700 border-blue-200';
+  if (g === 'C') return 'bg-amber-100 text-amber-700 border-amber-200';
+  if (g === 'D') return 'bg-orange-100 text-orange-800 border-orange-200';
+  return 'bg-red-100 text-red-700 border-red-200';
 }
 
 const SITE_LABEL: Record<string, string> = {
@@ -47,6 +57,15 @@ function scoreStyle(score: number) {
 }
 
 const tagBase = 'inline-flex items-center gap-1 rounded border border-border/60 bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-muted-foreground';
+
+const ARCHETYPE_COLORS: Record<string, string> = {
+  'AI Platform / LLMOps':     'bg-violet-100 text-violet-700 border-violet-200',
+  'Agentic / Automation':     'bg-purple-100 text-purple-700 border-purple-200',
+  'Technical AI PM':          'bg-blue-100 text-blue-700 border-blue-200',
+  'Solutions Architect':      'bg-sky-100 text-sky-700 border-sky-200',
+  'Forward Deployed':         'bg-teal-100 text-teal-700 border-teal-200',
+  'Transformation Lead':      'bg-indigo-100 text-indigo-700 border-indigo-200',
+};
 
 export const JobCard: React.FC<JobCardProps> = ({ job, initialTracked = false, onTracked }) => {
   const [expanded, setExpanded] = useState(false);
@@ -79,6 +98,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, initialTracked = false, o
         status: 'applied',
         pipelineStage: 'evaluated',
         followUpDate: followUpDate || undefined,
+        evaluationGrade: evaluation?.overallGrade ?? '',
       });
       setTracked(true);
       setTrackOpen(false);
@@ -179,10 +199,17 @@ export const JobCard: React.FC<JobCardProps> = ({ job, initialTracked = false, o
       {/* ── Body ────────────────────────────────── */}
       <div className="px-4 pb-4 space-y-3">
 
-        {/* Role label */}
-        {job.best_role_label && (
-          <span className={tagBase}>{job.best_role_label}</span>
-        )}
+        {/* Role label + archetype */}
+        <div className="flex flex-wrap gap-1.5">
+          {job.best_role_label && (
+            <span className={tagBase}>{job.best_role_label}</span>
+          )}
+          {job.archetype && job.archetype !== 'General' && (
+            <span className={`inline-flex items-center rounded border px-2 py-0.5 text-[11px] font-medium ${ARCHETYPE_COLORS[job.archetype] ?? 'bg-muted/50 text-muted-foreground border-border/60'}`}>
+              {job.archetype}
+            </span>
+          )}
+        </div>
 
         {/* Summary */}
         {job.description_summary && (
@@ -331,7 +358,13 @@ export const JobCard: React.FC<JobCardProps> = ({ job, initialTracked = false, o
       )}
       {/* ── Evaluation Panel ────────────────────────── */}
       {evalOpen && (
-        <JobEvaluationPanel result={evaluation!} loading={evaluating} />
+        <JobEvaluationPanelWithCompensation
+          result={evaluation!}
+          loading={evaluating}
+          jobTitle={job.title ?? ''}
+          jobLocation={job.location ?? ''}
+          statedSalary={job.salary ?? undefined}
+        />
       )}
 
       {/* ── Track Dialog ──────────────────────────── */}
@@ -346,6 +379,22 @@ export const JobCard: React.FC<JobCardProps> = ({ job, initialTracked = false, o
                 <p className="text-sm font-medium">{job.title}</p>
                 <p className="text-xs text-muted-foreground">{job.company}{job.location ? ` · ${job.location}` : ''}</p>
               </div>
+
+              {/* Evaluation preview — shown if already evaluated */}
+              {evaluation && (
+                <div className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2">
+                  <span className={`inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-sm font-bold tabular-nums ${_gradeColor(evaluation.overallGrade)}`}>
+                    {evaluation.overallGrade}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium leading-snug">
+                      {evaluation.overallGrade} · {evaluation.overallScore.toFixed(1)}/5
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate">{evaluation.verdict}</p>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <Label className="text-xs">Follow-up reminder date (optional)</Label>
                 <Input
