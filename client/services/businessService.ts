@@ -64,6 +64,7 @@ export interface Client {
   lng?: number;
   has_website?: boolean;
   phone?: string;
+  email?: string;
   address?: string;
   rating?: number;
   rating_count?: number;
@@ -73,6 +74,8 @@ export interface Client {
   tags?: string[];
   website?: string | null;
   company?: string;
+  notes?: string;
+  ai_insight?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -187,6 +190,10 @@ export const businessService = {
       method: "DELETE",
       auth: true,
     });
+  },
+
+  async analyzeLead(id: string): Promise<{ success: boolean; insight: string; cached: boolean }> {
+    return request(`/api/clients/${id}/analyze`, { method: "POST", auth: true });
   },
 
   async getFindLeadsCost(): Promise<{ cost_per_unit: number; unit: string }> {

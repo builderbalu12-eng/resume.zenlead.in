@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { Mail } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import type { Client, ClientStatus } from "@/services/businessService";
 import { BusinessCard } from "./BusinessCard";
+import { EmailComposerDialog } from "./EmailComposerDialog";
 
 export interface BusinessResultsListProps {
   leads: Client[];
@@ -31,6 +33,7 @@ export function BusinessResultsList({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<ClientStatus>("lead");
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [showEmailComposer, setShowEmailComposer] = useState(false);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -166,6 +169,17 @@ export function BusinessResultsList({
             {selectedIds.size} selected
           </span>
 
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 gap-1 px-2 text-xs"
+            disabled={bulkLoading}
+            onClick={() => setShowEmailComposer(true)}
+          >
+            <Mail className="h-3 w-3" />
+            Email
+          </Button>
+
           <div className="flex flex-1 items-center gap-1.5">
             <select
               value={bulkStatus}
@@ -212,6 +226,14 @@ export function BusinessResultsList({
             ✕
           </Button>
         </div>
+      )}
+
+      {showEmailComposer && (
+        <EmailComposerDialog
+          leads={leads.filter((l) => l.id && selectedIds.has(l.id))}
+          onClose={() => setShowEmailComposer(false)}
+          onSent={clearSelection}
+        />
       )}
     </div>
   );

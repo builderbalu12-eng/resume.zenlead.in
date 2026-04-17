@@ -111,6 +111,11 @@ export function useBusinessSearch() {
     }
   }, []);
 
+  const updateLeadInPlace = useCallback((id: string, changes: Partial<Client>) => {
+    setLeads((prev) => prev.map((c) => (c.id === id ? { ...c, ...changes } : c)));
+    setSelectedLead((prev) => (prev && prev.id === id ? { ...prev, ...changes } : prev));
+  }, []);
+
   const filteredLeads = useMemo(() => {
     let result = [...leads];
 
@@ -164,6 +169,7 @@ export function useBusinessSearch() {
     searchParams,
     search,
     updateLeadStatus,
+    updateLeadInPlace,
     deleteLead,
     stats,
     showingHistory,

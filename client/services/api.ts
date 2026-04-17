@@ -25,6 +25,8 @@ export interface User {
   auth_provider: string;
   has_payments?: boolean;
   is_admin?: boolean;
+  gmail_connected?: boolean;
+  gmail_email?: string;
 }
 
 export interface SubscriptionPlan {
@@ -411,6 +413,28 @@ export class APIClient {
   async disconnectTelegram(): Promise<any> {
     return this.request('/api/telegram/unlink', {
       method: 'DELETE',
+    });
+  }
+
+  // ============ GMAIL ENDPOINTS ============
+
+  async getGmailAuthUrl(): Promise<{ success: boolean; auth_url: string }> {
+    return this.request('/api/gmail/url', { method: 'GET' });
+  }
+
+  async disconnectGmail(): Promise<any> {
+    return this.request('/api/gmail/disconnect', { method: 'DELETE' });
+  }
+
+  async sendLeadsEmail(payload: {
+    lead_ids: string[];
+    subject: string;
+    body_template: string;
+    from_name?: string;
+  }): Promise<{ success: boolean; sent: number; failed: number; message: string }> {
+    return this.request('/api/gmail/send-leads', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
   }
 

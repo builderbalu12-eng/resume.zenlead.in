@@ -56,6 +56,11 @@ export const Profile: React.FC = () => {
   const [isSavingPrefs, setIsSavingPrefs] = useState(false);
   const [prefsMessage, setPrefsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Gmail
+  const [gmailConnected, setGmailConnected] = useState(false);
+  const [gmailEmail, setGmailEmail] = useState<string | null>(null);
+  const [gmailLoading, setGmailLoading] = useState(false);
+
   // Telegram
   const [telegramLinked, setTelegramLinked] = useState(false);
   const [telegramLoading, setTelegramLoading] = useState(false);
@@ -76,6 +81,8 @@ export const Profile: React.FC = () => {
         setFirstName(response.firstName || '');
         setLastName(response.lastName || '');
         setNorthStar((response as any).northStar || '');
+        setGmailConnected(response.gmail_connected ?? false);
+        setGmailEmail(response.gmail_email ?? null);
         // Load job preferences
         try {
           const prefsRes = await apiClient.getJobPreferences();
@@ -156,6 +163,19 @@ export const Profile: React.FC = () => {
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
+
+  // Handle Gmail OAuth callback redirect
+  useEffect(() => {
+    const gmailParam = searchParams.get('gmail');
+    const gmailEmailParam = searchParams.get('email');
+    if (gmailParam === 'connected' && gmailEmailParam) {
+      setGmailConnected(true);
+      setGmailEmail(gmailEmailParam);
+      toast.success(`Gmail connected: ${gmailEmailParam}`);
+    } else if (gmailParam === 'error') {
+      toast.error('Failed to connect Gmail. Please try again.');
+    }
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -299,6 +319,33 @@ export const Profile: React.FC = () => {
       setTelegramMessage({ type: 'error', text: 'Failed to disconnect Telegram' });
     } finally {
       setTelegramLoading(false);
+    }
+  };
+
+  const handleConnectGmail = async () => {
+    try {
+      setGmailLoading(true);
+      const res = await apiClient.getGmailAuthUrl();
+      window.location.href = res.auth_url;
+    } catch {
+      toast.error('Failed to initiate Gmail connection');
+    } finally {
+      setGmailLoading(false);
+    }
+  };
+
+  const handleDisconnectGmail = async () => {
+    if (!window.confirm('Disconnect Gmail? You will no longer be able to send emails from your Gmail account.')) return;
+    try {
+      setGmailLoading(true);
+      await apiClient.disconnectGmail();
+      setGmailConnected(false);
+      setGmailEmail(null);
+      toast.success('Gmail disconnected');
+    } catch {
+      toast.error('Failed to disconnect Gmail');
+    } finally {
+      setGmailLoading(false);
     }
   };
 
@@ -479,6 +526,39 @@ export const Profile: React.FC = () => {
                     )}>
                       {telegramMessage.text}
                     </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Gmail Connect card */}
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="border-b border-slate-100 dark:border-slate-800 px-6 py-5">
+                  <p className="font-semibold text-slate-900 dark:text-white">Gmail for Lead Emails</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Connect your Gmail to send emails to leads directly from your account</p>
+                </div>
+                <div className="px-6 py-5">
+                  {gmailConnected && gmailEmail ? (
+                    <>
+                      <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950/30">
+                        <p className="font-medium text-green-700 dark:text-green-400">✅ Gmail Connected</p>
+                        <p className="mt-1 text-sm text-green-600 dark:text-green-500">Sending as: <span className="font-medium">{gmailEmail}</span></p>
+                      </div>
+                      <Button onClick={handleDisconnectGmail} disabled={gmailLoading} variant="outline" size="sm" className="border-red-500 text-red-600 hover:bg-red-50">
+                        {gmailLoading ? 'Disconnecting...' : 'Disconnect Gmail'}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="mb-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300 space-y-1">
+                        <p className="font-medium text-slate-700 dark:text-slate-200 mb-1">With Gmail connected you can:</p>
+                        <p>📧 Send bulk emails to selected leads</p>
+                        <p>✍️ Use personalized templates with variables</p>
+                        <p>📬 Emails appear in your Gmail Sent folder</p>
+                      </div>
+                      <Button onClick={handleConnectGmail} disabled={gmailLoading} className="bg-red-600 hover:bg-red-700 text-white">
+                        {gmailLoading ? 'Redirecting...' : 'Connect Gmail'}
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
