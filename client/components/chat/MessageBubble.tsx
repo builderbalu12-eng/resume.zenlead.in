@@ -10,6 +10,7 @@ import { ResumeContextCard } from './ResumeContextCard';
 
 interface MessageBubbleProps {
   message: ChatMessage;
+  onSendMessage?: (msg: string) => void;
 }
 
 // ── Inline table (used for leads) ────────────────────────────────────────────
@@ -56,7 +57,7 @@ function InlineTable({ columns, rows }: { columns: string[]; rows: Record<string
 
 // ── Action cards ─────────────────────────────────────────────────────────────
 
-function JobsActionCard({ data }: { data: any }) {
+function JobsActionCard({ data, onSendMessage }: { data: any; onSendMessage?: (msg: string) => void }) {
   const jobs: Record<string, any>[] = data?.jobs ?? [];
   if (!jobs.length) return null;
 
@@ -66,16 +67,19 @@ function JobsActionCard({ data }: { data: any }) {
         <JobRecommendationCard
           key={i}
           job={{
-            Title: j.Title ?? j.title ?? '',
-            Company: j.Company ?? j.company ?? '',
-            Location: j.Location ?? j.location ?? '',
+            Title:      j.Title      ?? j.title      ?? '',
+            Company:    j.Company    ?? j.company    ?? '',
+            Location:   j.Location   ?? j.location   ?? '',
             Experience: j.Experience ?? j.experience ?? '',
-            Salary: j.Salary ?? j.salary ?? '',
-            URL: j.URL ?? j.url ?? j.job_url ?? '',
-            pitch: j.pitch ?? '',
+            Salary:     j.Salary     ?? j.salary     ?? '',
+            Site:       j.Site       ?? j.site       ?? '',
+            Type:       j.Type       ?? j.type       ?? j.job_type ?? '',
+            URL:        j.URL        ?? j.url        ?? j.job_url  ?? '',
+            pitch:      j.pitch      ?? '',
           }}
           index={i}
           total={jobs.length}
+          onSendMessage={onSendMessage}
         />
       ))}
     </div>
@@ -179,7 +183,7 @@ function TailoredResumeCard({ data }: { data: any }) {
 
 // ── Main bubble ──────────────────────────────────────────────────────────────
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, onSendMessage }: MessageBubbleProps) {
   const isUser = message.role === 'user';
 
   // Special resume context card
@@ -264,7 +268,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
           {/* Action cards */}
           {message.action_type === 'jobs_results' && (
-            <JobsActionCard data={message.action_data} />
+            <JobsActionCard data={message.action_data} onSendMessage={onSendMessage} />
           )}
           {message.action_type === 'leads_results' && (
             <LeadsActionCard data={message.action_data} />

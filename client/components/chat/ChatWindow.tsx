@@ -7,9 +7,10 @@ import { Sparkles, ChevronDown } from 'lucide-react';
 interface ChatWindowProps {
   messages: ChatMessage[];
   isLoading: boolean;
+  onSendMessage?: (msg: string) => void;
 }
 
-export function ChatWindow({ messages, isLoading }: ChatWindowProps) {
+export function ChatWindow({ messages, isLoading, onSendMessage }: ChatWindowProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const bottomRef = React.useRef<HTMLDivElement>(null);
   const [showScrollBtn, setShowScrollBtn] = React.useState(false);
@@ -61,7 +62,11 @@ export function ChatWindow({ messages, isLoading }: ChatWindowProps) {
           ) : (
             <div className="flex flex-col py-6 px-4 max-w-2xl mx-auto w-full">
               {messages.map((message, index) => (
-                <MessageBubble key={`${message.timestamp}-${index}`} message={message} />
+                <MessageBubble
+                  key={`${message.timestamp}-${index}`}
+                  message={message}
+                  onSendMessage={onSendMessage}
+                />
               ))}
               {isLoading && <TypingIndicator />}
               {/* Invisible anchor for scroll-to-bottom */}

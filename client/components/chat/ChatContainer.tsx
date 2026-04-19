@@ -150,7 +150,7 @@ export function ChatContainer({
       )}
 
       <div className="flex flex-1 flex-col min-w-0">
-        <ChatWindow messages={messages} isLoading={isLoading} />
+        <ChatWindow messages={messages} isLoading={isLoading} onSendMessage={sendMessage} />
         <ChatInput onSend={sendMessage} disabled={isLoading} />
       </div>
     </div>

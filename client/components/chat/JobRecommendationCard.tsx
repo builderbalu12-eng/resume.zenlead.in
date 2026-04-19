@@ -1,8 +1,12 @@
 import { useState } from 'react';
-import { ExternalLink, ThumbsDown, ThumbsUp, Check, Building2, MapPin, Briefcase } from 'lucide-react';
+import {
+  ExternalLink, Check, Building2, MapPin, Briefcase,
+  DollarSign, Star, BarChart2, Search,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { chatApi } from '@/services/chatApi';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 export interface JobCard {
   Title: string;
@@ -10,6 +14,8 @@ export interface JobCard {
   Location: string;
   Experience?: string;
   Salary?: string;
+  Site?: string;
+  Type?: string;
   URL?: string;
   pitch?: string;
 }
@@ -18,33 +24,60 @@ interface JobRecommendationCardProps {
   job: JobCard;
   index: number;
   total: number;
+  onSendMessage?: (msg: string) => void;
 }
 
-export function JobRecommendationCard({ job, index, total }: JobRecommendationCardProps) {
-  const [state, setState] = useState<'idle' | 'interested' | 'skipped'>('idle');
-  const [loading, setLoading] = useState(false);
+const SITE_COLORS: Record<string, string> = {
+  naukri:   'bg-orange-50 text-orange-600 border-orange-200',
+  linkedin: 'bg-blue-50 text-blue-600 border-blue-200',
+  indeed:   'bg-indigo-50 text-indigo-600 border-indigo-200',
+  jsearch:  'bg-purple-50 text-purple-600 border-purple-200',
+};
 
-  const handleInterested = async () => {
-    setLoading(true);
+export function JobRecommendationCard({ job, index, total, onSendMessage }: JobRecommendationCardProps) {
+  const [tracked, setTracked]   = useState(false);
+  const [skipped, setSkipped]   = useState(false);
+  const [tracking, setTracking] = useState(false);
+
+  const handleTrack = async () => {
+    setTracking(true);
     try {
       await chatApi.saveJobInterest({
         job_title: job.Title,
-        company: job.Company,
-        job_url: job.URL || '',
-        location: job.Location,
+        company:   job.Company,
+        job_url:   job.URL || '',
+        location:  job.Location,
       });
-      setState('interested');
-      toast.success('Added to your Tracker!');
+      setTracked(true);
+      toast.success('Added to Tracker!');
     } catch {
       toast.error('Failed to save job');
     } finally {
-      setLoading(false);
+      setTracking(false);
     }
   };
 
-  if (state === 'skipped') {
+  const handleEvaluate = () => {
+    if (!onSendMessage) return;
+    const jd = [
+      job.Title && `Job Title: ${job.Title}`,
+      job.Company && `Company: ${job.Company}`,
+      job.Location && `Location: ${job.Location}`,
+      job.Experience && `Experience: ${job.Experience}`,
+      job.Salary && `Salary: ${job.Salary}`,
+      job.URL && `Job URL: ${job.URL}`,
+    ].filter(Boolean).join('\n');
+    onSendMessage(`evaluate job:\n${jd}`);
+  };
+
+  const handleResearch = () => {
+    if (!onSendMessage) return;
+    onSendMessage(`research company ${job.Company}`);
+  };
+
+  if (skipped) {
     return (
-      <div className="mt-2 rounded-2xl border border-border/30 bg-muted/20 px-4 py-2.5 opacity-50">
+      <div className="mt-2 rounded-2xl border border-border/30 bg-muted/20 px-4 py-2.5 opacity-40">
         <p className="text-xs text-muted-foreground line-through">
           {job.Title} · {job.Company}
         </p>
@@ -52,29 +85,36 @@ export function JobRecommendationCard({ job, index, total }: JobRecommendationCa
     );
   }
 
+  const siteLabel = job.Site?.toLowerCase() || '';
+  const siteChipClass = SITE_COLORS[siteLabel] || 'bg-muted/60 text-muted-foreground border-border/40';
+
   return (
     <div
-      className={`mt-2 rounded-2xl border bg-white shadow-sm overflow-hidden transition-all duration-200 ${
-        state === 'interested' ? 'border-green-300 shadow-green-100' : 'border-border/60'
-      }`}
+      className={cn(
+        'mt-2 rounded-2xl border bg-white overflow-hidden transition-all duration-200',
+        tracked
+          ? 'border-green-300 shadow-sm shadow-green-100'
+          : 'border-border/60 shadow-sm hover:shadow-md hover:border-border',
+      )}
     >
-      {state === 'interested' && (
-        <div className="flex items-center gap-1.5 bg-green-50 px-4 py-1.5 border-b border-green-200">
-          <Check className="h-3.5 w-3.5 text-green-600" />
-          <span className="text-xs font-medium text-green-700">Added to Tracker ✓</span>
+      {/* Tracked banner */}
+      {tracked && (
+        <div className="flex items-center gap-1.5 bg-green-50 px-4 py-1.5 border-b border-green-100">
+          <Check className="h-3.5 w-3.5 text-green-600 shrink-0" />
+          <span className="text-xs font-medium text-green-700">Added to Tracker</span>
         </div>
       )}
 
-      <div className="p-4">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-1">
+      <div className="p-4 pb-3">
+        {/* Title row */}
+        <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-foreground leading-tight truncate">
+            <p className="text-sm font-bold text-foreground leading-snug">
               {job.Title}
             </p>
-            <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
-              <Building2 className="h-3 w-3 shrink-0" />
-              <span className="truncate">{job.Company}</span>
+            <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
+              <Building2 className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+              <span className="font-medium truncate">{job.Company}</span>
             </div>
           </div>
           {job.URL && (
@@ -82,66 +122,122 @@ export function JobRecommendationCard({ job, index, total }: JobRecommendationCa
               href={job.URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 rounded-md p-1 text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
-              title="View job"
+              className="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+              title="Apply"
             >
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
           )}
         </div>
 
-        {/* Meta */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mb-2">
+        {/* Meta chips row */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
           {job.Location && (
-            <span className="flex items-center gap-1">
-              <MapPin className="h-3 w-3 shrink-0" />
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted/50 border border-border/40 px-2 py-0.5 text-[11px] text-muted-foreground">
+              <MapPin className="h-2.5 w-2.5" />
               {job.Location}
             </span>
           )}
           {job.Experience && (
-            <span className="flex items-center gap-1">
-              <Briefcase className="h-3 w-3 shrink-0" />
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted/50 border border-border/40 px-2 py-0.5 text-[11px] text-muted-foreground">
+              <Briefcase className="h-2.5 w-2.5" />
               {job.Experience}
+            </span>
+          )}
+          {job.Salary && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+              <DollarSign className="h-2.5 w-2.5" />
+              {job.Salary}
+            </span>
+          )}
+          {job.Type && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 border border-sky-200 px-2 py-0.5 text-[11px] text-sky-700">
+              {job.Type}
+            </span>
+          )}
+          {siteLabel && (
+            <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium', siteChipClass)}>
+              {siteLabel.charAt(0).toUpperCase() + siteLabel.slice(1)}
             </span>
           )}
         </div>
 
         {/* AI pitch */}
         {job.pitch && (
-          <p className="text-xs text-muted-foreground leading-relaxed italic border-l-2 border-purple-300 pl-2.5 mb-3">
+          <p className="text-xs text-violet-700 dark:text-violet-400 leading-relaxed italic border-l-2 border-violet-300 pl-2.5 mb-3 bg-violet-50 dark:bg-violet-950/20 rounded-r py-1">
             {job.pitch}
           </p>
         )}
 
-        {/* Actions */}
-        {state === 'idle' && (
-          <div className="flex gap-2 mt-3">
+        {/* Action row */}
+        <div className="flex gap-1.5 flex-wrap">
+          {/* Track button */}
+          {!tracked ? (
+            <Button
+              size="sm"
+              className="h-7 text-[11px] gap-1 bg-green-600 hover:bg-green-700 text-white border-0 px-3 rounded-full"
+              onClick={handleTrack}
+              disabled={tracking}
+            >
+              <Star className="h-3 w-3" />
+              {tracking ? 'Saving…' : 'Track'}
+            </Button>
+          ) : (
+            <span className="inline-flex items-center gap-1 h-7 px-3 rounded-full bg-green-50 border border-green-200 text-[11px] font-medium text-green-700">
+              <Check className="h-3 w-3" /> Tracked
+            </span>
+          )}
+
+          {/* Evaluate button */}
+          {onSendMessage && (
             <Button
               size="sm"
               variant="outline"
-              className="flex-1 h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
-              onClick={() => setState('skipped')}
+              className="h-7 text-[11px] gap-1 px-3 rounded-full border-violet-200 text-violet-700 hover:bg-violet-50"
+              onClick={handleEvaluate}
             >
-              <ThumbsDown className="h-3 w-3" />
-              Not interested
+              <BarChart2 className="h-3 w-3" />
+              Evaluate
             </Button>
+          )}
+
+          {/* Research company button */}
+          {onSendMessage && job.Company && (
             <Button
               size="sm"
-              className="flex-1 h-8 text-xs gap-1.5 bg-green-600 hover:bg-green-700 text-white border-0"
-              onClick={handleInterested}
-              disabled={loading}
+              variant="outline"
+              className="h-7 text-[11px] gap-1 px-3 rounded-full border-sky-200 text-sky-700 hover:bg-sky-50"
+              onClick={handleResearch}
             >
-              <ThumbsUp className="h-3 w-3" />
-              Yes, Interested
+              <Search className="h-3 w-3" />
+              Research
             </Button>
-          </div>
-        )}
+          )}
+
+          {/* Skip */}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-[11px] px-2 rounded-full text-muted-foreground/60 hover:text-muted-foreground ml-auto"
+            onClick={() => setSkipped(true)}
+          >
+            Skip
+          </Button>
+        </div>
       </div>
 
-      <div className="px-4 pb-2 flex justify-between items-center">
-        <span className="text-[10px] text-muted-foreground/60">{index + 1} of {total}</span>
-        {job.Salary && (
-          <span className="text-[10px] font-medium text-emerald-600">{job.Salary}</span>
+      {/* Footer */}
+      <div className="px-4 py-1.5 border-t border-border/30 bg-muted/20 flex items-center justify-between">
+        <span className="text-[10px] text-muted-foreground/50">{index + 1} of {total}</span>
+        {job.URL && (
+          <a
+            href={job.URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-primary/60 hover:text-primary flex items-center gap-0.5 transition-colors"
+          >
+            View & Apply <ExternalLink className="h-2.5 w-2.5" />
+          </a>
         )}
       </div>
     </div>
