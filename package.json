@@ -37,6 +37,7 @@
     "razorpay": "^2.9.2",
     "react-ga4": "^2.1.0",
     "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "vercel": "^50.32.3",
     "zod": "^3.25.76"
   },

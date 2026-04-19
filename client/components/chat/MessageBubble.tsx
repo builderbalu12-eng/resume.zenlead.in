@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ChatMessage } from '@/types/chat';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Sparkles, Download, FileSpreadsheet, FileText, TrendingUp, ExternalLink } from 'lucide-react';
 import { exportToCSV, exportToDocx } from '@/utils/exportUtils';
 import { JobRecommendationCard } from './JobRecommendationCard';
@@ -261,9 +262,13 @@ export function MessageBubble({ message, onSendMessage }: MessageBubbleProps) {
               '[&_pre]:bg-muted [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:mb-3 [&_pre]:overflow-x-auto',
               '[&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-foreground',
               '[&_blockquote]:border-l-2 [&_blockquote]:border-primary/40 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-muted-foreground',
+              '[&_table]:w-full [&_table]:border-collapse [&_table]:text-xs [&_table]:my-2',
+              '[&_th]:border [&_th]:border-border/50 [&_th]:bg-muted/60 [&_th]:px-2 [&_th]:py-1.5 [&_th]:text-left [&_th]:font-medium [&_th]:text-muted-foreground',
+              '[&_td]:border [&_td]:border-border/40 [&_td]:px-2 [&_td]:py-1.5 [&_td]:align-top',
+              '[&_tr]:hover:[&_td]:bg-muted/20',
             )}
           >
-            <ReactMarkdown>{message.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
           </div>
 
           {/* Action cards */}

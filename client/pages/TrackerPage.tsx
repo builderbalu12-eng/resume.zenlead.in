@@ -91,26 +91,26 @@ const STAGE_LABELS: Record<PipelineStage, string> = {
 };
 
 const STAGE_COLORS: Record<PipelineStage, string> = {
-  evaluated: "bg-slate-100 text-slate-700 border-slate-200",
-  applied: "bg-blue-100 text-blue-700 border-blue-200",
-  responded: "bg-cyan-100 text-cyan-700 border-cyan-200",
-  contacted: "bg-violet-100 text-violet-700 border-violet-200",
-  interview: "bg-amber-100 text-amber-700 border-amber-200",
-  offer: "bg-green-100 text-green-700 border-green-200",
-  rejected: "bg-red-100 text-red-700 border-red-200",
-  discarded: "bg-gray-100 text-gray-500 border-gray-200",
+  evaluated: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+  applied:   "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+  responded: "bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800",
+  contacted: "bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800",
+  interview: "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+  offer:     "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
+  rejected:  "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800",
+  discarded: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700",
 };
 
 // Column background colors for Kanban
 const STAGE_COLUMN_BG: Record<PipelineStage, string> = {
-  evaluated: "bg-slate-50 border-slate-200",
-  applied:   "bg-blue-50 border-blue-200",
-  responded: "bg-cyan-50 border-cyan-200",
-  contacted: "bg-violet-50 border-violet-200",
-  interview: "bg-yellow-50 border-yellow-200",
-  offer:     "bg-green-50 border-green-200",
-  rejected:  "bg-red-50 border-red-200",
-  discarded: "bg-gray-50 border-gray-200",
+  evaluated: "bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700",
+  applied:   "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800",
+  responded: "bg-cyan-50 dark:bg-cyan-950/30 border-cyan-200 dark:border-cyan-800",
+  contacted: "bg-violet-50 dark:bg-violet-950/30 border-violet-200 dark:border-violet-800",
+  interview: "bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800",
+  offer:     "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800",
+  rejected:  "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800",
+  discarded: "bg-gray-50 dark:bg-gray-900/40 border-gray-200 dark:border-gray-700",
 };
 
 function StageBadge({ stage }: { stage: PipelineStage }) {
@@ -127,11 +127,11 @@ function StageBadge({ stage }: { stage: PipelineStage }) {
 
 function gradeColor(grade: string): string {
   const g = (grade ?? "").charAt(0).toUpperCase();
-  if (g === "A") return "bg-green-100 text-green-700 border-green-200";
-  if (g === "B") return "bg-blue-100 text-blue-700 border-blue-200";
-  if (g === "C") return "bg-amber-100 text-amber-700 border-amber-200";
-  if (g === "D") return "bg-orange-100 text-orange-800 border-orange-200";
-  if (g === "F") return "bg-red-100 text-red-700 border-red-200";
+  if (g === "A") return "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800";
+  if (g === "B") return "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800";
+  if (g === "C") return "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800";
+  if (g === "D") return "bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-300 border-orange-200 dark:border-orange-800";
+  if (g === "F") return "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800";
   return "";
 }
 
@@ -162,9 +162,9 @@ function computeUrgency(days: number): UrgencyLevel {
 }
 
 const URGENCY_BADGE: Record<UrgencyLevel, string> = {
-  URGENT:  "bg-red-100 text-red-700",
-  OVERDUE: "bg-orange-100 text-orange-700",
-  WAITING: "bg-yellow-100 text-yellow-700",
+  URGENT:  "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300",
+  OVERDUE: "bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300",
+  WAITING: "bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300",
   NOT_YET: "",
 };
 
@@ -870,7 +870,7 @@ function KanbanCard({
     <div
       draggable
       onDragStart={(e) => onDragStart(e, app._id)}
-      className="rounded-lg border bg-white p-3 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow select-none"
+      className="rounded-lg border bg-white dark:bg-card p-3 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow select-none"
     >
       {/* Company + edit */}
       <div className="flex items-start justify-between gap-2">
@@ -894,10 +894,10 @@ function KanbanCard({
           <span
             className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-semibold font-mono border ${
               app.matchPercentage >= 75
-                ? "bg-green-50 text-green-700 border-green-200"
+                ? "bg-green-50 dark:bg-green-900/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800"
                 : app.matchPercentage >= 50
-                ? "bg-amber-50 text-amber-700 border-amber-200"
-                : "bg-red-50 text-red-600 border-red-200"
+                ? "bg-amber-50 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+                : "bg-red-50 dark:bg-red-900/40 text-red-600 dark:text-red-300 border-red-200 dark:border-red-800"
             }`}
           >
             {app.matchPercentage}%
