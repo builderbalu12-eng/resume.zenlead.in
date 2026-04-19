@@ -245,7 +245,7 @@ export function MessageBubble({ message, onSendMessage }: MessageBubbleProps) {
       <div className="flex-1 min-w-0 pt-0.5 max-w-[85%]">
         <p className="text-[11px] font-semibold text-foreground/60 mb-1">Nova</p>
 
-        <div className="rounded-2xl rounded-tl-sm bg-white shadow-sm border border-border/40 px-4 py-3">
+        <div className="rounded-2xl rounded-tl-sm bg-white dark:bg-card shadow-sm border border-border/40 px-4 py-3">
           <div
             className={cn(
               'text-sm leading-relaxed text-foreground',

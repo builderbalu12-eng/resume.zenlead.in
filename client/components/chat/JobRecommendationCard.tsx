@@ -91,7 +91,7 @@ export function JobRecommendationCard({ job, index, total, onSendMessage }: JobR
   return (
     <div
       className={cn(
-        'mt-2 rounded-2xl border bg-white overflow-hidden transition-all duration-200',
+        'mt-2 rounded-2xl border bg-white dark:bg-card overflow-hidden transition-all duration-200',
         tracked
           ? 'border-green-300 shadow-sm shadow-green-100'
           : 'border-border/60 shadow-sm hover:shadow-md hover:border-border',
