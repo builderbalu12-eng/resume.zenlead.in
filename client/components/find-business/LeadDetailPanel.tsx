@@ -65,7 +65,7 @@ export function LeadDetailPanel({ lead, onClose, onUpdate }: LeadDetailPanelProp
       const res = await businessService.analyzeLead(lead.id);
       setInsight(res.insight);
       onUpdate(lead.id, { ai_insight: res.insight });
-      if (!res.cached) toast.success("AI insight generated (1 credit used)");
+      if (!res.cached) toast.success("AI insight generated");
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to generate insight");
     } finally {
@@ -175,7 +175,7 @@ export function LeadDetailPanel({ lead, onClose, onUpdate }: LeadDetailPanelProp
                 ) : (
                   <Sparkles className="h-3 w-3" />
                 )}
-                {insight ? "Refresh" : "Analyze"} (1 credit)
+                {insight ? "Refresh" : "Analyze"}
               </Button>
             </div>
             {insight ? (
