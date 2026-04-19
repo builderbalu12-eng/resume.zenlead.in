@@ -2,10 +2,10 @@ import * as React from 'react';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatWindow } from './ChatWindow';
 import { ChatInput } from './ChatInput';
-import { QuickActions } from './QuickActions';
 import { ChatSession, ChatMessage, SendMessageRequest } from '@/types/chat';
 import { chatApi } from '@/services/chatApi';
 import { toast } from 'sonner';
+import { apiClient } from '@/services/api';
 
 interface ChatContainerProps {
   currentSession: string | null;
@@ -14,6 +14,16 @@ interface ChatContainerProps {
   onSessionSelect: (sessionId: string) => void;
   onSessionsChange: () => void;
   hideSidebar?: boolean;
+}
+
+type OnboardingStep = 'name' | 'company' | 'role' | 'city' | 'mobility' | null;
+
+function makeAIMessage(content: string): ChatMessage {
+  return {
+    role: 'assistant',
+    content,
+    timestamp: new Date().toISOString(),
+  };
 }
 
 export function ChatContainer({
@@ -26,9 +36,18 @@ export function ChatContainer({
 }: ChatContainerProps) {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
-  const hasMessages = messages.length > 0;
-  // Prevent loadHistory from overwriting state when we just created a new session mid-send
   const skipNextHistory = React.useRef(false);
+
+  // Onboarding state
+  const [onboardingStep, setOnboardingStep] = React.useState<OnboardingStep>(null);
+  const [onboardingData, setOnboardingData] = React.useState({
+    name: '',
+    company: '',
+    role: '',
+    city: '',
+    mobility: '',
+  });
+  const onboardingChecked = React.useRef(false);
 
   // Load history when session changes
   React.useEffect(() => {
@@ -40,8 +59,56 @@ export function ChatContainer({
       loadHistory(currentSession);
     } else {
       setMessages([]);
+      // Check onboarding only once per new empty session
+      if (!onboardingChecked.current) {
+        onboardingChecked.current = true;
+        checkOnboarding();
+      }
     }
   }, [currentSession]);
+
+  // Check context status (resume) only on fresh new sessions
+  React.useEffect(() => {
+    if (!currentSession) {
+      checkContextStatus();
+    }
+  }, [currentSession]);
+
+  const checkOnboarding = async () => {
+    try {
+      const res = await apiClient.getJobPreferences();
+      const prefs = res?.data ?? res;
+      if (!prefs?.desired_role) {
+        // Start onboarding — inject intro message
+        setOnboardingStep('name');
+        setMessages([makeAIMessage(
+          "hi, i'm Nova 👋\n\ni help you find the best next job. i scan thousands of roles daily to find the right one for you.\n\nso... what's your full name?"
+        )]);
+      }
+    } catch {
+      // If preferences fetch fails, skip onboarding silently
+    }
+  };
+
+  const checkContextStatus = async () => {
+    try {
+      const res = await chatApi.getContextStatus();
+      if (res?.data?.has_resume) {
+        const resumeMsg = {
+          role: 'assistant' as const,
+          content: "i've loaded your resume.",
+          timestamp: new Date(Date.now() - 1000).toISOString(),
+          _type: 'resume_context',
+        };
+        setMessages((prev) => {
+          if (prev.some((m) => (m as any)._type === 'resume_context')) return prev;
+          return [resumeMsg as any, ...prev];
+        });
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const loadHistory = async (sessionId: string) => {
     try {
@@ -55,8 +122,90 @@ export function ChatContainer({
     }
   };
 
+  // Handle onboarding step progression
+  const handleOnboardingReply = async (input: string) => {
+    const userMsg = makeAIMessage(input);
+    userMsg.role = 'user';
+
+    setMessages((prev) => [...prev, userMsg]);
+
+    if (onboardingStep === 'name') {
+      const name = input.trim();
+      setOnboardingData((d) => ({ ...d, name }));
+      setOnboardingStep('company');
+      setTimeout(() => {
+        setMessages((prev) => [...prev, makeAIMessage(
+          `nice to meet you, ${name}! which company are you currently working at? (or type "no" if not employed)`
+        )]);
+      }, 400);
+    } else if (onboardingStep === 'company') {
+      setOnboardingData((d) => ({ ...d, company: input.trim() }));
+      setOnboardingStep('role');
+      setTimeout(() => {
+        setMessages((prev) => [...prev, makeAIMessage('which role are you targeting next?')]);
+      }, 400);
+    } else if (onboardingStep === 'role') {
+      setOnboardingData((d) => ({ ...d, role: input.trim() }));
+      setOnboardingStep('city');
+      setTimeout(() => {
+        setMessages((prev) => [...prev, makeAIMessage('which city are you based in?')]);
+      }, 400);
+    } else if (onboardingStep === 'city') {
+      const city = input.trim();
+      setOnboardingData((d) => ({ ...d, city }));
+      setOnboardingStep('mobility');
+      setTimeout(() => {
+        setMessages((prev) => [...prev, makeAIMessage(
+          `open to relocating for the right opportunity, or staying in ${city}?`
+        )]);
+      }, 400);
+    } else if (onboardingStep === 'mobility') {
+      const mobility = input.trim();
+      const data = { ...onboardingData, mobility };
+      setOnboardingData(data);
+      setOnboardingStep(null);
+
+      // Save preferences
+      try {
+        await apiClient.updateJobPreferences({
+          desired_role: data.role,
+          preferred_location: data.city,
+          work_type: mobility.toLowerCase().includes('open') || mobility.toLowerCase().includes('reloc') ? 'any' : 'onsite',
+          preferred_sites: [],
+        });
+        // Also update name if available
+        if (data.name) {
+          const [firstName, ...rest] = data.name.split(' ');
+          try {
+            await apiClient.updateCurrentUser({ firstName, lastName: rest.join(' ') });
+          } catch {}
+        }
+      } catch {
+        // Don't block if save fails
+      }
+
+      // Done message + auto job search
+      setTimeout(() => {
+        setMessages((prev) => [
+          ...prev,
+          makeAIMessage(`perfect. let me find the best **${data.role}** matches for you in **${data.city}**... 🔍`),
+        ]);
+        // Auto-trigger job search after a short delay
+        setTimeout(() => {
+          sendMessage(`find ${data.role} jobs in ${data.city}`);
+        }, 800);
+      }, 400);
+    }
+  };
+
   const sendMessage = async (message: string) => {
     if (!message.trim() || isLoading) return;
+
+    // If in onboarding, intercept
+    if (onboardingStep) {
+      handleOnboardingReply(message);
+      return;
+    }
 
     // Add user message immediately
     const userMessage: ChatMessage = {
@@ -76,8 +225,6 @@ export function ChatContainer({
       const response = await chatApi.sendMessage(request);
 
       if (response.success) {
-        // If no session existed, backend auto-created one — sync it to state
-        // Set flag so the resulting useEffect doesn't reload history and wipe action_data
         if (!currentSession && response.data.session_id) {
           skipNextHistory.current = true;
           onSessionSelect(response.data.session_id);
@@ -92,7 +239,7 @@ export function ChatContainer({
           timestamp: response.data.timestamp,
         };
         setMessages((prev) => [...prev, assistantMessage]);
-        onSessionsChange(); // Refresh sessions to update preview
+        onSessionsChange();
       }
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -126,7 +273,6 @@ export function ChatContainer({
 
   return (
     <div className="flex h-full w-full overflow-hidden">
-      {/* Sidebar - hidden on mobile and when hideSidebar=true */}
       {!hideSidebar && (
         <div className="hidden md:block w-64 shrink-0">
           <ChatSidebar
@@ -141,9 +287,8 @@ export function ChatContainer({
       )}
 
       {/* Main Chat Area */}
-      <div className="flex flex-1 flex-col min-w-0 bg-background">
+      <div className="flex flex-1 flex-col min-w-0">
         <ChatWindow messages={messages} isLoading={isLoading} />
-        {!hasMessages && <QuickActions onAction={sendMessage} disabled={isLoading} />}
         <ChatInput onSend={sendMessage} disabled={isLoading} />
       </div>
     </div>

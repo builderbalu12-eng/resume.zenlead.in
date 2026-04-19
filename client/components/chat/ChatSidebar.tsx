@@ -70,7 +70,7 @@ export function ChatSidebar({
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-4 py-4 border-b">
         <img src="/logo/lo9o.png" alt="Logo" className="h-7 w-7 rounded-lg object-contain" />
-        <span className="text-sm font-semibold text-foreground">Maya</span>
+        <span className="text-sm font-semibold text-foreground">Nova</span>
       </div>
 
       {/* New Chat */}

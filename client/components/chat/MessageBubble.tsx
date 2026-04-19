@@ -5,12 +5,14 @@ import { ChatMessage } from '@/types/chat';
 import ReactMarkdown from 'react-markdown';
 import { Sparkles, Download, FileSpreadsheet, FileText, TrendingUp, ExternalLink } from 'lucide-react';
 import { exportToCSV, exportToDocx } from '@/utils/exportUtils';
+import { JobRecommendationCard } from './JobRecommendationCard';
+import { ResumeContextCard } from './ResumeContextCard';
 
 interface MessageBubbleProps {
   message: ChatMessage;
 }
 
-// ── Shared tiny table ────────────────────────────────────────────────────────
+// ── Inline table (used for leads) ────────────────────────────────────────────
 
 function InlineTable({ columns, rows }: { columns: string[]; rows: Record<string, any>[] }) {
   return (
@@ -58,31 +60,24 @@ function JobsActionCard({ data }: { data: any }) {
   const jobs: Record<string, any>[] = data?.jobs ?? [];
   if (!jobs.length) return null;
 
-  const columns = ['Title', 'Company', 'Location', 'Experience', 'URL'];
-  const tableRows = jobs.map((j) => ({
-    Title: j.Title ?? j.title ?? '',
-    Company: j.Company ?? j.company ?? '',
-    Location: j.Location ?? j.location ?? '',
-    Experience: j.Experience ?? j.experience ?? '',
-    URL: j.URL ?? j.url ?? j.job_url ?? '',
-  }));
-
   return (
-    <div className="mt-3 rounded-xl border bg-muted/30 p-3 space-y-2.5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <FileSpreadsheet className="h-4 w-4 text-primary shrink-0" />
-          <span className="text-xs font-medium text-foreground">{jobs.length} jobs found</span>
-        </div>
-        <button
-          onClick={() => exportToCSV(jobs, `jobs_${Date.now()}.csv`)}
-          className="flex items-center gap-1.5 h-7 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted transition-colors"
-        >
-          <Download className="h-3 w-3" />
-          Download CSV
-        </button>
-      </div>
-      <InlineTable columns={columns} rows={tableRows} />
+    <div className="mt-2 space-y-0">
+      {jobs.map((j, i) => (
+        <JobRecommendationCard
+          key={i}
+          job={{
+            Title: j.Title ?? j.title ?? '',
+            Company: j.Company ?? j.company ?? '',
+            Location: j.Location ?? j.location ?? '',
+            Experience: j.Experience ?? j.experience ?? '',
+            Salary: j.Salary ?? j.salary ?? '',
+            URL: j.URL ?? j.url ?? j.job_url ?? '',
+            pitch: j.pitch ?? '',
+          }}
+          index={i}
+          total={jobs.length}
+        />
+      ))}
     </div>
   );
 }
@@ -93,7 +88,6 @@ function LeadsActionCard({ data }: { data: any }) {
 
   const city = data?.city ? ` · ${data.city}` : '';
   const cat = data?.category ? ` · ${data.category}` : '';
-
   const columns = ['Name', 'Phone', 'Address', 'Has Website', 'Rating'];
   const tableRows = leads.map((l) => ({
     Name: l.Name ?? l.name ?? '',
@@ -162,7 +156,6 @@ function TailoredResumeCard({ data }: { data: any }) {
           />
         </div>
       </div>
-
       <div className="flex flex-wrap gap-2">
         <button
           onClick={handleDocx}
@@ -189,19 +182,39 @@ function TailoredResumeCard({ data }: { data: any }) {
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
 
+  // Special resume context card
+  if ((message as any)._type === 'resume_context') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="flex gap-3 mb-4"
+      >
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 shadow-sm mt-0.5">
+          <Sparkles className="h-4 w-4 text-white" />
+        </div>
+        <div className="flex-1 min-w-0 pt-0.5">
+          <p className="text-[11px] font-semibold text-foreground/60 mb-1">Nova</p>
+          <ResumeContextCard />
+        </div>
+      </motion.div>
+    );
+  }
+
   if (isUser) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-        className="flex justify-end mb-4"
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+        className="flex justify-end mb-3"
       >
-        <div className="max-w-[72%]">
-          <div className="bg-primary text-primary-foreground px-4 py-3 rounded-2xl rounded-tr-sm text-sm leading-relaxed shadow-sm">
+        <div className="max-w-[75%]">
+          <div className="bg-[#F4C6A0] text-gray-900 px-4 py-2.5 rounded-2xl rounded-tr-sm text-sm leading-relaxed shadow-sm">
             <p className="whitespace-pre-wrap m-0">{message.content}</p>
           </div>
-          <p className="text-[11px] text-muted-foreground mt-1 text-right pr-1">
+          <p className="text-[10px] text-muted-foreground/70 mt-1 text-right pr-1">
             {new Date(message.timestamp).toLocaleTimeString([], {
               hour: '2-digit',
               minute: '2-digit',
@@ -216,57 +229,57 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
-      className="flex gap-3 mb-6"
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+      className="flex gap-3 mb-5"
     >
-      {/* AI Avatar */}
+      {/* Nova avatar */}
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 shadow-sm mt-0.5">
         <Sparkles className="h-4 w-4 text-white" />
       </div>
 
-      {/* AI Message */}
-      <div className="flex-1 min-w-0 pt-0.5">
-        <p className="text-xs font-semibold text-foreground mb-1.5">Maya</p>
+      {/* Nova message */}
+      <div className="flex-1 min-w-0 pt-0.5 max-w-[85%]">
+        <p className="text-[11px] font-semibold text-foreground/60 mb-1">Nova</p>
 
-        <div
-          className={cn(
-            'text-sm leading-relaxed text-foreground',
-            '[&_p]:mb-3 [&_p]:last:mb-0',
-            '[&_ul]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1',
-            '[&_ol]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1',
-            '[&_li]:leading-relaxed',
-            '[&_strong]:font-semibold [&_strong]:text-foreground',
-            '[&_h1]:text-lg [&_h1]:font-bold [&_h1]:mb-2 [&_h1]:mt-1',
-            '[&_h2]:text-base [&_h2]:font-semibold [&_h2]:mb-2 [&_h2]:mt-1',
-            '[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-1 [&_h3]:mt-1',
-            '[&_code]:bg-muted [&_code]:text-primary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono',
-            '[&_pre]:bg-muted [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:mb-3 [&_pre]:overflow-x-auto',
-            '[&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-foreground',
-            '[&_blockquote]:border-l-2 [&_blockquote]:border-primary/40 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-muted-foreground',
+        <div className="rounded-2xl rounded-tl-sm bg-white shadow-sm border border-border/40 px-4 py-3">
+          <div
+            className={cn(
+              'text-sm leading-relaxed text-foreground',
+              '[&_p]:mb-3 [&_p]:last:mb-0',
+              '[&_ul]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1',
+              '[&_ol]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1',
+              '[&_li]:leading-relaxed',
+              '[&_strong]:font-semibold [&_strong]:text-foreground',
+              '[&_h1]:text-lg [&_h1]:font-bold [&_h1]:mb-2 [&_h1]:mt-1',
+              '[&_h2]:text-base [&_h2]:font-semibold [&_h2]:mb-2 [&_h2]:mt-1',
+              '[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-1 [&_h3]:mt-1',
+              '[&_code]:bg-muted [&_code]:text-primary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono',
+              '[&_pre]:bg-muted [&_pre]:p-4 [&_pre]:rounded-xl [&_pre]:mb-3 [&_pre]:overflow-x-auto',
+              '[&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-foreground',
+              '[&_blockquote]:border-l-2 [&_blockquote]:border-primary/40 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-muted-foreground',
+            )}
+          >
+            <ReactMarkdown>{message.content}</ReactMarkdown>
+          </div>
+
+          {/* Action cards */}
+          {message.action_type === 'jobs_results' && (
+            <JobsActionCard data={message.action_data} />
           )}
-        >
-          <ReactMarkdown>{message.content}</ReactMarkdown>
+          {message.action_type === 'leads_results' && (
+            <LeadsActionCard data={message.action_data} />
+          )}
+          {message.action_type === 'tailored_resume' && (
+            <TailoredResumeCard data={message.action_data} />
+          )}
         </div>
 
-        {/* Action cards */}
-        {message.action_type === 'jobs_results' && (
-          <JobsActionCard data={message.action_data} />
-        )}
-        {message.action_type === 'leads_results' && (
-          <LeadsActionCard data={message.action_data} />
-        )}
-        {message.action_type === 'tailored_resume' && (
-          <TailoredResumeCard data={message.action_data} />
-        )}
-
-        <div className="flex items-center gap-2 mt-2">
-          <span className="text-[11px] text-muted-foreground">
-            {new Date(message.timestamp).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </span>
-        </div>
+        <p className="text-[10px] text-muted-foreground/70 mt-1 pl-1">
+          {new Date(message.timestamp).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </p>
       </div>
     </motion.div>
   );

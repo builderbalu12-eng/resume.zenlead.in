@@ -91,6 +91,28 @@ class ChatApiService {
     });
     return this.handleResponse<ChatSessionsResponse>(response);
   }
+
+  async getContextStatus(): Promise<ApiResponse<{ has_resume: boolean; job_prefs_set: boolean }>> {
+    const response = await fetch(`${CHAT_BASE}/context-status`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  async saveJobInterest(data: {
+    job_title: string;
+    company: string;
+    job_url: string;
+    location: string;
+  }): Promise<ApiResponse<{ application_id: string }>> {
+    const response = await fetch(`${CHAT_BASE}/job-interest`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return this.handleResponse(response);
+  }
 }
 
 export const chatApi = new ChatApiService();

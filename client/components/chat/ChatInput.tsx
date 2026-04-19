@@ -2,7 +2,37 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { ArrowUp } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ArrowUp, Briefcase, Zap, Users, Search, Lightbulb } from 'lucide-react';
+
+interface QuickAction {
+  icon: React.ReactNode;
+  label: string;
+  query: string;
+}
+
+const QUICK_ACTIONS: QuickAction[] = [
+  {
+    icon: <Briefcase className="h-3.5 w-3.5" />,
+    label: 'Find Jobs',
+    query: 'Help me find software developer jobs that match my skills',
+  },
+  {
+    icon: <Users className="h-3.5 w-3.5" />,
+    label: 'Hire Talent',
+    query: 'I need to find a qualified freelancer for my project',
+  },
+  {
+    icon: <Search className="h-3.5 w-3.5" />,
+    label: 'Career Advice',
+    query: 'Give me personalized career advice based on my profile',
+  },
+  {
+    icon: <Lightbulb className="h-3.5 w-3.5" />,
+    label: 'Resume Tips',
+    query: 'Help me improve my resume and professional profile',
+  },
+];
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -10,8 +40,9 @@ interface ChatInputProps {
   placeholder?: string;
 }
 
-export function ChatInput({ onSend, disabled, placeholder = 'Message Maya...' }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, placeholder = 'Message Nova…' }: ChatInputProps) {
   const [message, setMessage] = React.useState('');
+  const [powersOpen, setPowersOpen] = React.useState(false);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   React.useEffect(() => {
@@ -28,6 +59,11 @@ export function ChatInput({ onSend, disabled, placeholder = 'Message Maya...' }:
         textareaRef.current.style.height = 'auto';
       }
     }
+  };
+
+  const handleQuickAction = (query: string) => {
+    setPowersOpen(false);
+    onSend(query);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -47,14 +83,15 @@ export function ChatInput({ onSend, disabled, placeholder = 'Message Maya...' }:
   const hasContent = message.trim().length > 0;
 
   return (
-    <div className="px-4 pb-6 pt-2">
-      <div className="max-w-3xl mx-auto">
+    <div className="bg-[#FDF6EE] dark:bg-background px-4 pb-5 pt-2">
+      <div className="max-w-2xl mx-auto space-y-2">
+        {/* Input row */}
         <div
           className={cn(
-            'relative flex items-end gap-2 rounded-2xl border bg-background px-4 py-3',
-            'shadow-[0_2px_16px_rgba(0,0,0,0.08)]',
+            'relative flex items-end gap-2 rounded-2xl border bg-white dark:bg-card px-4 py-3',
+            'shadow-[0_2px_12px_rgba(0,0,0,0.08)]',
             'transition-shadow duration-200',
-            'focus-within:shadow-[0_2px_24px_rgba(99,102,241,0.15)] focus-within:border-primary/30'
+            'focus-within:shadow-[0_2px_20px_rgba(99,102,241,0.12)] focus-within:border-primary/30'
           )}
         >
           <Textarea
@@ -86,9 +123,51 @@ export function ChatInput({ onSend, disabled, placeholder = 'Message Maya...' }:
             <ArrowUp className="h-4 w-4" />
           </Button>
         </div>
-        <p className="text-[11px] text-muted-foreground text-center mt-2">
-          Press Enter to send · Shift+Enter for new line
-        </p>
+
+        {/* Bottom action bar */}
+        <div className="flex items-center gap-2">
+          {/* ⚡ Powers */}
+          <Popover open={powersOpen} onOpenChange={setPowersOpen}>
+            <PopoverTrigger asChild>
+              <button
+                disabled={disabled}
+                className="flex items-center gap-1.5 rounded-full bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 shadow-sm"
+              >
+                <Zap className="h-3 w-3" />
+                Powers
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" side="top" className="w-72 p-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-2 mb-2">
+                Quick actions
+              </p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {QUICK_ACTIONS.map((action) => (
+                  <button
+                    key={action.label}
+                    onClick={() => handleQuickAction(action.query)}
+                    className="flex items-center gap-2 rounded-lg border border-border/60 bg-background p-2.5 text-left text-xs font-medium hover:bg-muted hover:border-primary/30 transition-colors"
+                  >
+                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                      {action.icon}
+                    </span>
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Jobs shortcut */}
+          <button
+            onClick={() => !disabled && onSend('find me jobs matching my profile')}
+            disabled={disabled}
+            className="flex items-center gap-1.5 rounded-full border border-border/60 bg-white dark:bg-card hover:bg-muted px-3 py-1.5 text-xs font-medium text-foreground transition-colors disabled:opacity-50 shadow-sm"
+          >
+            <Briefcase className="h-3 w-3" />
+            Jobs
+          </button>
+        </div>
       </div>
     </div>
   );
