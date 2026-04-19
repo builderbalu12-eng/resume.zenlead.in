@@ -59,41 +59,28 @@ export function ChatContainer({
       loadHistory(currentSession);
     } else {
       setMessages([]);
-      // Check onboarding only once per new empty session
+      // Check onboarding + context once per fresh session
       if (!onboardingChecked.current) {
         onboardingChecked.current = true;
-        checkOnboarding();
+        checkSessionContext();
       }
     }
   }, [currentSession]);
 
-  // Check context status (resume) only on fresh new sessions
-  React.useEffect(() => {
-    if (!currentSession) {
-      checkContextStatus();
-    }
-  }, [currentSession]);
-
-  const checkOnboarding = async () => {
+  // Single combined check: resume context + onboarding gate
+  const checkSessionContext = async () => {
     try {
-      const res = await apiClient.getJobPreferences();
-      const prefs = res?.data ?? res;
-      if (!prefs?.desired_role) {
-        // Start onboarding — inject intro message
-        setOnboardingStep('name');
-        setMessages([makeAIMessage(
-          "hi, i'm Nova 👋\n\ni help you find the best next job. i scan thousands of roles daily to find the right one for you.\n\nso... what's your full name?"
-        )]);
-      }
-    } catch {
-      // If preferences fetch fails, skip onboarding silently
-    }
-  };
+      const [statusRes, prefsRes] = await Promise.all([
+        chatApi.getContextStatus(),
+        apiClient.getJobPreferences(),
+      ]);
 
-  const checkContextStatus = async () => {
-    try {
-      const res = await chatApi.getContextStatus();
-      if (res?.data?.has_resume) {
+      const hasResume = statusRes?.data?.has_resume ?? false;
+      const prefs = prefsRes?.data ?? prefsRes;
+      const hasPrefs = !!(prefs?.desired_role);
+
+      // Show resume loaded card if resume exists
+      if (hasResume) {
         const resumeMsg = {
           role: 'assistant' as const,
           content: "i've loaded your resume.",
@@ -105,8 +92,16 @@ export function ChatContainer({
           return [resumeMsg as any, ...prev];
         });
       }
+
+      // Only start onboarding if NO resume and NO preferences set
+      if (!hasResume && !hasPrefs) {
+        setOnboardingStep('name');
+        setMessages([makeAIMessage(
+          "hi, i'm Nova 👋\n\ni help you find the best next job. i scan thousands of roles daily to find the right one for you.\n\nso... what's your full name?"
+        )]);
+      }
     } catch {
-      // ignore
+      // Silently skip both checks on error
     }
   };
 
