@@ -2,9 +2,10 @@ import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { chatApi } from '@/services/chatApi';
 import { ChatSession } from '@/types/chat';
-import { toast } from 'sonner';
 import { ChatContainer } from '@/components/chat';
 import { Skeleton } from '@/components/ui/skeleton';
+
+const LAST_SESSION_KEY = 'nova_last_session';
 
 export default function ChatPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -12,15 +13,26 @@ export default function ChatPage() {
   const [sessions, setSessions] = React.useState<ChatSession[]>([]);
   const [isReady, setIsReady] = React.useState(false);
 
+  // On mount: if no session in URL, restore from localStorage
   React.useEffect(() => {
+    const saved = localStorage.getItem(LAST_SESSION_KEY);
+    if (!currentSession && saved) {
+      setSearchParams({ session: saved }, { replace: true });
+    }
     loadSessions();
   }, []);
+
+  // Persist active session to localStorage whenever it changes
+  React.useEffect(() => {
+    if (currentSession) {
+      localStorage.setItem(LAST_SESSION_KEY, currentSession);
+    }
+  }, [currentSession]);
 
   const loadSessions = async () => {
     try {
       const response = await chatApi.getAllSessions();
       if (response.success) {
-        // Only show sessions that have at least one message
         setSessions(response.data.sessions.filter((s: any) => s.message_count > 0));
       }
     } catch (error) {
@@ -35,21 +47,20 @@ export default function ChatPage() {
       setSearchParams({ session: sessionId });
     } else {
       setSearchParams({});
+      localStorage.removeItem(LAST_SESSION_KEY);
     }
   };
 
   const handleNewSession = async () => {
-    // Silently delete all empty sessions first
     chatApi.cleanupEmptySessions().catch(() => {});
-    // Clear ?session= from URL — backend auto-creates when user sends first message
     setSearchParams({});
+    localStorage.removeItem(LAST_SESSION_KEY);
     await loadSessions();
   };
 
   if (!isReady) {
     return (
       <div className="flex h-[calc(100vh-6rem)] -mx-4 -my-6 md:-mx-6 md:-my-8">
-        {/* Session list skeleton */}
         <div className="w-64 shrink-0 border-r border-border bg-card flex flex-col">
           <div className="p-3 border-b border-border">
             <Skeleton className="h-8 w-full rounded-lg" />
@@ -63,7 +74,6 @@ export default function ChatPage() {
             ))}
           </div>
         </div>
-        {/* Message area skeleton */}
         <div className="flex-1 flex flex-col p-6 gap-4 overflow-hidden">
           <div className="flex gap-3 items-end">
             <Skeleton className="h-8 w-8 rounded-full shrink-0" />
@@ -75,9 +85,6 @@ export default function ChatPage() {
           <div className="flex gap-3 items-end">
             <Skeleton className="h-8 w-8 rounded-full shrink-0" />
             <Skeleton className="h-20 w-72 rounded-2xl rounded-bl-none" />
-          </div>
-          <div className="flex gap-3 items-end justify-end">
-            <Skeleton className="h-10 w-48 rounded-2xl rounded-br-none" />
           </div>
           <div className="mt-auto">
             <Skeleton className="h-12 w-full rounded-xl" />
