@@ -160,7 +160,7 @@ export function ChatContainer({
       setOnboardingData(data);
       setOnboardingStep(null);
 
-      // Save preferences
+      // Save job preferences only — never touch profile name from chat
       try {
         await apiClient.updateJobPreferences({
           desired_role: data.role,
@@ -168,13 +168,6 @@ export function ChatContainer({
           work_type: mobility.toLowerCase().includes('open') || mobility.toLowerCase().includes('reloc') ? 'any' : 'onsite',
           preferred_sites: [],
         });
-        // Also update name if available
-        if (data.name) {
-          const [firstName, ...rest] = data.name.split(' ');
-          try {
-            await apiClient.updateCurrentUser({ firstName, lastName: rest.join(' ') });
-          } catch {}
-        }
       } catch {
         // Don't block if save fails
       }
