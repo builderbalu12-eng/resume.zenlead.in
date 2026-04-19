@@ -28,10 +28,13 @@ interface JobRecommendationCardProps {
 }
 
 const SITE_COLORS: Record<string, string> = {
-  naukri:   'bg-orange-50 text-orange-600 border-orange-200',
-  linkedin: 'bg-blue-50 text-blue-600 border-blue-200',
-  indeed:   'bg-indigo-50 text-indigo-600 border-indigo-200',
-  jsearch:  'bg-purple-50 text-purple-600 border-purple-200',
+  naukri:       'bg-orange-50 text-orange-600 border-orange-200',
+  linkedin:     'bg-blue-50 text-blue-600 border-blue-200',
+  indeed:       'bg-indigo-50 text-indigo-600 border-indigo-200',
+  glassdoor:    'bg-green-50 text-green-700 border-green-200',
+  ziprecruiter: 'bg-red-50 text-red-600 border-red-200',
+  shine:        'bg-yellow-50 text-yellow-700 border-yellow-200',
+  monster:      'bg-violet-50 text-violet-600 border-violet-200',
 };
 
 export function JobRecommendationCard({ job, index, total, onSendMessage }: JobRecommendationCardProps) {
