@@ -477,8 +477,17 @@ export type ClaudeResource = {
   max_tokens: number;
   updated_at: string | null;
   updated_by: string | null;
+  // today
   today_usage: number;
-  usage_history: { date: string; count: number }[];
+  today_input_tokens: number;
+  today_output_tokens: number;
+  // this month
+  month_usage: number;
+  month_input_tokens: number;
+  month_output_tokens: number;
+  estimated_cost_month: number;
+  // history
+  usage_history: { date: string; count: number; input_tokens: number; output_tokens: number }[];
   available_models: ClaudeModel[];
 };
 

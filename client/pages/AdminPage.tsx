@@ -2082,15 +2082,57 @@ function ClaudeResourcePanel() {
           </Button>
         </div>
 
-        <div>
-          <p className="text-xs font-medium text-muted-foreground mb-3">Today's Usage</p>
-          <div className="flex items-end gap-2 mb-2">
-            <span className="text-3xl font-bold text-violet-600 dark:text-violet-400">{data?.today_usage ?? 0}</span>
-            <span className="text-sm text-muted-foreground mb-1">API calls today</span>
+        <div className="space-y-4">
+          {/* Today stats */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Today</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-lg bg-muted/40 px-3 py-2">
+                <p className="text-[10px] text-muted-foreground">Requests</p>
+                <p className="text-xl font-bold text-violet-600 dark:text-violet-400">{(data?.today_usage ?? 0).toLocaleString()}</p>
+              </div>
+              <div className="rounded-lg bg-muted/40 px-3 py-2">
+                <p className="text-[10px] text-muted-foreground">Input tok</p>
+                <p className="text-xl font-bold">{((data?.today_input_tokens ?? 0) / 1000).toFixed(1)}k</p>
+              </div>
+              <div className="rounded-lg bg-muted/40 px-3 py-2">
+                <p className="text-[10px] text-muted-foreground">Output tok</p>
+                <p className="text-xl font-bold">{((data?.today_output_tokens ?? 0) / 1000).toFixed(1)}k</p>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Usage tracked per credit deduction. Claude uses token-based billing — monitor your Anthropic dashboard for cost.
-          </p>
+
+          {/* This month stats */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">This Month</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-lg bg-muted/40 px-3 py-2">
+                <p className="text-[10px] text-muted-foreground">Requests</p>
+                <p className="text-xl font-bold">{(data?.month_usage ?? 0).toLocaleString()}</p>
+              </div>
+              <div className="rounded-lg bg-muted/40 px-3 py-2">
+                <p className="text-[10px] text-muted-foreground">Input tok</p>
+                <p className="text-xl font-bold">{((data?.month_input_tokens ?? 0) / 1000).toFixed(1)}k</p>
+              </div>
+              <div className="rounded-lg bg-muted/40 px-3 py-2">
+                <p className="text-[10px] text-muted-foreground">Output tok</p>
+                <p className="text-xl font-bold">{((data?.month_output_tokens ?? 0) / 1000).toFixed(1)}k</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Estimated cost */}
+          <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/20 px-4 py-3">
+            <div className="flex items-baseline justify-between">
+              <p className="text-xs font-medium text-muted-foreground">Est. Cost This Month</p>
+              <p className="text-2xl font-bold text-violet-600 dark:text-violet-400">
+                ${(data?.estimated_cost_month ?? 0).toFixed(4)}
+              </p>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Based on model pricing · verify on Anthropic dashboard
+            </p>
+          </div>
         </div>
       </div>
 
@@ -2152,20 +2194,38 @@ function ClaudeResourcePanel() {
       </div>
 
       {data?.usage_history && data.usage_history.length > 0 && (
-        <div className="mt-6">
-          <p className="text-xs font-medium text-muted-foreground mb-3">30-Day Usage</p>
-          <ResponsiveContainer width="100%" height={80}>
-            <BarChart data={data.usage_history} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-              <XAxis dataKey="date" hide />
-              <YAxis hide />
-              <Tooltip
-                contentStyle={tooltipStyle}
-                formatter={(v: number) => [v, "Calls"]}
-                labelFormatter={(l) => l}
-              />
-              <Bar dataKey="count" fill="#7c3aed" radius={[2, 2, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="mt-6 space-y-4">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">30-Day Requests</p>
+            <ResponsiveContainer width="100%" height={70}>
+              <BarChart data={data.usage_history} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                <XAxis dataKey="date" hide />
+                <YAxis hide />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  formatter={(v: number) => [v.toLocaleString(), "Requests"]}
+                  labelFormatter={(l) => l}
+                />
+                <Bar dataKey="count" fill="#7c3aed" radius={[2, 2, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">30-Day Tokens (in + out)</p>
+            <ResponsiveContainer width="100%" height={70}>
+              <BarChart data={data.usage_history} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                <XAxis dataKey="date" hide />
+                <YAxis hide />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  formatter={(v: number, name: string) => [v.toLocaleString(), name === "input_tokens" ? "Input tok" : "Output tok"]}
+                  labelFormatter={(l) => l}
+                />
+                <Bar dataKey="input_tokens"  fill="#7c3aed" radius={[2, 2, 0, 0]} stackId="t" />
+                <Bar dataKey="output_tokens" fill="#a855f7" radius={[2, 2, 0, 0]} stackId="t" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
     </PremiumCard>
