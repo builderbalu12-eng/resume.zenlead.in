@@ -9,6 +9,7 @@ import { exportToCSV, exportToDocx } from '@/utils/exportUtils';
 import { JobRecommendationCard } from './JobRecommendationCard';
 import { ResumeContextCard } from './ResumeContextCard';
 import { FreelancerCard } from './FreelancerCard';
+import { LeadCard } from './LeadCard';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -88,24 +89,16 @@ function JobsActionCard({ data, onSendMessage }: { data: any; onSendMessage?: (m
   );
 }
 
-function LeadsActionCard({ data }: { data: any }) {
+function LeadsActionCard({ data, onSendMessage }: { data: any; onSendMessage?: (msg: string) => void }) {
   const leads: Record<string, any>[] = data?.leads ?? [];
   if (!leads.length) return null;
 
   const city = data?.city ? ` · ${data.city}` : '';
   const cat = data?.category ? ` · ${data.category}` : '';
-  const columns = ['Name', 'Phone', 'Address', 'Has Website', 'Rating'];
-  const tableRows = leads.map((l) => ({
-    Name: l.Name ?? l.name ?? '',
-    Phone: l.Phone ?? l.phone ?? '',
-    Address: l.Address ?? l.address ?? '',
-    'Has Website': l['Has Website'] ?? (l.has_website ? 'Yes' : 'No'),
-    Rating: l.Rating ?? l.rating ?? '',
-  }));
 
   return (
-    <div className="mt-3 rounded-xl border bg-muted/30 p-3 space-y-2.5">
-      <div className="flex items-center justify-between">
+    <div className="mt-3 space-y-0">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <span className="text-xs font-medium text-foreground">
@@ -120,7 +113,23 @@ function LeadsActionCard({ data }: { data: any }) {
           Download CSV
         </button>
       </div>
-      <InlineTable columns={columns} rows={tableRows} />
+      {leads.map((l, i) => (
+        <LeadCard
+          key={i}
+          lead={{
+            Name:           l.Name ?? l.name ?? '',
+            Phone:          l.Phone ?? l.phone,
+            Address:        l.Address ?? l.address,
+            Website:        l.Website ?? l.website,
+            'Has Website':  typeof l['Has Website'] === 'boolean' ? l['Has Website'] : l['Has Website'] === 'Yes',
+            Rating:         l.Rating ?? l.rating ?? null,
+            Category:       l.Category ?? l.category,
+            lat:            l.lat ?? null,
+            lng:            l.lng ?? null,
+          }}
+          onSendMessage={onSendMessage}
+        />
+      ))}
     </div>
   );
 }
@@ -190,6 +199,25 @@ function FreelancersActionCard({ data }: { data: any }) {
     <div className="mt-2 space-y-0">
       {freelancers.map((f: any, i: number) => (
         <FreelancerCard key={f.user_id || i} freelancer={f} index={i} />
+      ))}
+    </div>
+  );
+}
+
+// ── Suggestion chips ─────────────────────────────────────────────────────────
+
+function SuggestionChips({ chips, onSend }: { chips: string[]; onSend?: (msg: string) => void }) {
+  if (!onSend) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-border/20">
+      {chips.map((chip) => (
+        <button
+          key={chip}
+          onClick={() => onSend(chip)}
+          className="rounded-full border border-border/50 bg-background dark:bg-muted/30 px-3 py-1 text-xs font-medium text-foreground/80 hover:bg-muted hover:border-primary/30 transition-colors"
+        >
+          ↳ {chip}
+        </button>
       ))}
     </div>
   );
@@ -286,16 +314,38 @@ export function MessageBubble({ message, onSendMessage }: MessageBubbleProps) {
 
           {/* Action cards */}
           {message.action_type === 'jobs_results' && (
-            <JobsActionCard data={message.action_data} onSendMessage={onSendMessage} />
+            <>
+              <JobsActionCard data={message.action_data} onSendMessage={onSendMessage} />
+              <SuggestionChips onSend={onSendMessage} chips={[
+                'Tailor my resume for the top job',
+                'Evaluate this job',
+                'Find more jobs like these',
+                'Research the company',
+              ]} />
+            </>
           )}
           {message.action_type === 'leads_results' && (
-            <LeadsActionCard data={message.action_data} />
+            <>
+              <LeadsActionCard data={message.action_data} onSendMessage={onSendMessage} />
+              <SuggestionChips onSend={onSendMessage} chips={[
+                'Find more leads in another city',
+                'Which lead is the best prospect?',
+                'Find a different category of leads',
+                'Export these leads',
+              ]} />
+            </>
           )}
           {message.action_type === 'tailored_resume' && (
             <TailoredResumeCard data={message.action_data} />
           )}
           {message.action_type === 'freelancers_results' && (
-            <FreelancersActionCard data={message.action_data} />
+            <>
+              <FreelancersActionCard data={message.action_data} />
+              <SuggestionChips onSend={onSendMessage} chips={[
+                'Find freelancers with a different skill',
+                'Which freelancer is the best fit?',
+              ]} />
+            </>
           )}
         </div>
 
