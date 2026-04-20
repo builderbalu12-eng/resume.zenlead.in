@@ -4,8 +4,9 @@ import { cn } from '@/lib/utils';
 import { ChatMessage } from '@/types/chat';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Sparkles, Download, FileSpreadsheet, FileText, TrendingUp, ExternalLink } from 'lucide-react';
-import { exportToCSV, exportToDocx } from '@/utils/exportUtils';
+import { Sparkles, Download, FileSpreadsheet, FileText, TrendingUp, ExternalLink, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { exportToCSV } from '@/utils/exportUtils';
+import { downloadResumePDF, generateResumeDocx } from '@/services/resumeGenerator';
 import { JobRecommendationCard } from './JobRecommendationCard';
 import { ResumeContextCard } from './ResumeContextCard';
 import { FreelancerCard } from './FreelancerCard';
@@ -135,58 +136,162 @@ function LeadsActionCard({ data, onSendMessage }: { data: any; onSendMessage?: (
 }
 
 function TailoredResumeCard({ data }: { data: any }) {
-  const text: string = data?.tailored_resume ?? '';
-  const ats: number = data?.ats_score ?? 0;
-  const [loading, setLoading] = useState(false);
+  const [loadingBtn, setLoadingBtn] = useState<null | 'pdf' | 'docx'>(null);
+  const [notesExpanded, setNotesExpanded] = useState(false);
 
-  if (!text) return null;
+  // ── In-progress state ────────────────────────────────────────────────────
+  if (data?._progress) {
+    const { step, total, label } = data._progress;
+    return (
+      <div className="mt-3 rounded-xl border bg-muted/30 p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+          <span className="text-sm font-medium text-foreground">{label}</span>
+        </div>
+        <div className="flex gap-1.5">
+          {[1, 2, 3].map((n) => (
+            <div
+              key={n}
+              className={cn(
+                'h-1.5 flex-1 rounded-full transition-all duration-500',
+                n < step  ? 'bg-primary' :
+                n === step ? 'bg-primary/50 animate-pulse' :
+                'bg-muted',
+              )}
+            />
+          ))}
+        </div>
+        <p className="text-[11px] text-muted-foreground">Step {step} of {total}</p>
+      </div>
+    );
+  }
+
+  // ── Nothing to show yet ───────────────────────────────────────────────────
+  const ats: number  = data?.ats_score ?? 0;
+  const resumeData   = data?.resume_data;
+  const text: string = data?.tailored_resume ?? '';
+  const notes: string[] = data?.optimization_notes ?? [];
+  const scoreBreakdown: Record<string, number> = data?.score_breakdown ?? {};
+  const company  = data?.company  || 'Company';
+  const jobTitle = data?.job_title || 'Resume';
+
+  if (!ats && !text) return null;
 
   const scoreColor =
-    ats >= 80
-      ? 'text-green-600 dark:text-green-400'
-      : ats >= 60
-        ? 'text-amber-600 dark:text-amber-400'
-        : 'text-red-600 dark:text-red-400';
+    ats >= 80 ? 'text-green-600 dark:text-green-400' :
+    ats >= 60 ? 'text-amber-600 dark:text-amber-400' :
+    'text-red-600 dark:text-red-400';
+
+  const scoreBg =
+    ats >= 80 ? 'bg-green-500' : ats >= 60 ? 'bg-amber-400' : 'bg-red-500';
+
+  const breakdownKeys = Object.keys(scoreBreakdown).slice(0, 4);
+  const visibleNotes  = notesExpanded ? notes : notes.slice(0, 3);
+
+  const handlePDF = async () => {
+    if (!resumeData) return;
+    setLoadingBtn('pdf');
+    try { await downloadResumePDF(resumeData, company, jobTitle); }
+    finally { setLoadingBtn(null); }
+  };
 
   const handleDocx = async () => {
-    setLoading(true);
+    setLoadingBtn('docx');
     try {
-      await exportToDocx(text, `tailored_resume_${Date.now()}.docx`);
-    } finally {
-      setLoading(false);
-    }
+      const blob = resumeData
+        ? await generateResumeDocx(resumeData, company, jobTitle)
+        : new Blob([text], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      const url = URL.createObjectURL(blob);
+      const a   = document.createElement('a');
+      a.href = url; a.download = `tailored_resume_${Date.now()}.docx`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } finally { setLoadingBtn(null); }
   };
 
   return (
-    <div className="mt-3 rounded-xl border bg-muted/30 p-3 space-y-2.5">
+    <div className="mt-3 rounded-xl border bg-muted/30 p-3 space-y-3">
+      {/* ATS score bar */}
       <div className="flex items-center gap-3">
         <TrendingUp className="h-4 w-4 text-primary shrink-0" />
         <span className="text-xs font-medium text-foreground">
           ATS Score: <span className={scoreColor}>{ats}%</span>
         </span>
-        <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
-          <div
-            className={`h-full rounded-full ${ats >= 80 ? 'bg-green-500' : ats >= 60 ? 'bg-amber-400' : 'bg-red-500'}`}
-            style={{ width: `${ats}%` }}
-          />
+        <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+          <div className={`h-full rounded-full transition-all duration-700 ${scoreBg}`} style={{ width: `${ats}%` }} />
         </div>
       </div>
-      <div className="flex flex-wrap gap-2">
+
+      {/* Score breakdown */}
+      {breakdownKeys.length > 0 && (
+        <div className="space-y-1.5 pt-1 border-t border-border/30">
+          {breakdownKeys.map((key) => {
+            const val = Math.min(100, Math.max(0, scoreBreakdown[key] ?? 0));
+            const label = key.charAt(0).toUpperCase() + key.slice(1);
+            const barColor = val >= 70 ? 'bg-green-400' : val >= 45 ? 'bg-amber-400' : 'bg-red-400';
+            return (
+              <div key={key} className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground w-20 shrink-0 capitalize">{label}</span>
+                <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+                  <div className={`h-full rounded-full ${barColor}`} style={{ width: `${val}%` }} />
+                </div>
+                <span className="text-[10px] text-muted-foreground w-7 text-right">{val}%</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Optimization notes */}
+      {notes.length > 0 && (
+        <div className="space-y-1 pt-1 border-t border-border/30">
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Key improvements</p>
+          <ul className="space-y-0.5">
+            {visibleNotes.map((n, i) => (
+              <li key={i} className="text-[11px] text-foreground/80 flex gap-1.5">
+                <span className="text-primary shrink-0">·</span>{n}
+              </li>
+            ))}
+          </ul>
+          {notes.length > 3 && (
+            <button
+              onClick={() => setNotesExpanded((v) => !v)}
+              className="flex items-center gap-1 text-[11px] text-primary/70 hover:text-primary mt-1"
+            >
+              {notesExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              {notesExpanded ? 'Show less' : `+${notes.length - 3} more improvements`}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Download buttons */}
+      <div className="flex flex-wrap gap-2 pt-1 border-t border-border/30">
+        <button
+          onClick={handlePDF}
+          disabled={loadingBtn !== null || !resumeData}
+          className="flex items-center gap-1.5 h-7 rounded-md border border-red-200 bg-red-50 dark:bg-red-950/20 px-3 text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-100 transition-colors disabled:opacity-50"
+        >
+          {loadingBtn === 'pdf' ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+          {loadingBtn === 'pdf' ? 'Generating…' : 'Download PDF'}
+        </button>
         <button
           onClick={handleDocx}
-          disabled={loading}
+          disabled={loadingBtn !== null}
           className="flex items-center gap-1.5 h-7 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
         >
-          <FileText className="h-3 w-3" />
-          {loading ? 'Generating…' : 'Download DOCX'}
+          {loadingBtn === 'docx' ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+          {loadingBtn === 'docx' ? 'Generating…' : 'Download DOCX'}
         </button>
-        <button
-          onClick={() => exportToCSV([{ resume: text }], `tailored_resume_${Date.now()}.txt`)}
-          className="flex items-center gap-1.5 h-7 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted transition-colors"
-        >
-          <Download className="h-3 w-3" />
-          Download as TXT
-        </button>
+        {text && (
+          <button
+            onClick={() => exportToCSV([{ resume: text }], `tailored_resume_${Date.now()}.txt`)}
+            className="flex items-center gap-1.5 h-7 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            <Download className="h-3 w-3" />
+            TXT
+          </button>
+        )}
       </div>
     </div>
   );

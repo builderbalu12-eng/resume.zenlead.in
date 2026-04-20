@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   ExternalLink, Check, Building2, MapPin, Briefcase,
-  DollarSign, Star, BarChart2, Search,
+  DollarSign, Star, BarChart2, Search, FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { chatApi } from '@/services/chatApi';
@@ -76,6 +76,19 @@ export function JobRecommendationCard({ job, index, total, onSendMessage }: JobR
   const handleResearch = () => {
     if (!onSendMessage) return;
     onSendMessage(`research company ${job.Company}`);
+  };
+
+  const handleTailor = () => {
+    if (!onSendMessage) return;
+    const jd = [
+      job.Title    && `Job Title: ${job.Title}`,
+      job.Company  && `Company: ${job.Company}`,
+      job.Location && `Location: ${job.Location}`,
+      job.Experience && `Experience: ${job.Experience}`,
+      job.Salary   && `Salary: ${job.Salary}`,
+      job.URL      && `Job URL: ${job.URL}`,
+    ].filter(Boolean).join('\n');
+    onSendMessage(`tailor my resume for:\n${jd}`);
   };
 
   if (skipped) {
@@ -214,6 +227,19 @@ export function JobRecommendationCard({ job, index, total, onSendMessage }: JobR
             >
               <Search className="h-3 w-3" />
               Research
+            </Button>
+          )}
+
+          {/* Tailor resume button */}
+          {onSendMessage && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-[11px] gap-1 px-3 rounded-full border-amber-200 text-amber-700 hover:bg-amber-50"
+              onClick={handleTailor}
+            >
+              <FileText className="h-3 w-3" />
+              Tailor
             </Button>
           )}
 

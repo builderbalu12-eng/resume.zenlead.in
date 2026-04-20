@@ -1,6 +1,6 @@
 import { APIClient } from "@/services/api";
 import { getMasterResume, setMasterResume, getSettings } from "@/utils/storage";
-import { downloadResume } from "@/services/resumeGenerator";
+import { downloadResume, downloadResumePDF } from "@/services/resumeGenerator";
 import { ResumeData, JobDescription, ATSScore } from "@/types";
 
 interface SidebarState {
@@ -122,6 +122,7 @@ const STANDARD_CONTENT = `
   <div id="buttons" class="hidden" style="display:flex;flex-direction:column;gap:8px">
     <button class="button button-primary" id="tailor-btn">⚡ Analyze &amp; Tailor Resume</button>
     <button class="button button-secondary" id="download-btn" disabled>⬇️ Download DOCX</button>
+    <button class="button button-secondary" id="download-pdf-btn" disabled>📄 Download PDF</button>
   </div>
 
   <div id="idle-actions" class="card hidden">
@@ -373,6 +374,8 @@ function renderUI() {
     // ── Action buttons ───────────────────────────────────────────────────
     buttonsEl?.classList.remove("hidden");
     if (downloadBtn) { downloadBtn.disabled = false; downloadBtn.style.opacity = "1"; }
+    const downloadPdfBtn = $("download-pdf-btn") as HTMLButtonElement | null;
+    if (downloadPdfBtn) { downloadPdfBtn.disabled = false; downloadPdfBtn.style.opacity = "1"; }
     return;
   }
 
@@ -407,8 +410,9 @@ function renderUI() {
 // ─── Button bindings ─────────────────────────────────────────────────────────
 
 function bindButtons() {
-  ($("tailor-btn")        as HTMLButtonElement | null)?.addEventListener("click", handleTailor);
-  ($("download-btn")      as HTMLButtonElement | null)?.addEventListener("click", handleDownload);
+  ($("tailor-btn")         as HTMLButtonElement | null)?.addEventListener("click", handleTailor);
+  ($("download-btn")       as HTMLButtonElement | null)?.addEventListener("click", handleDownload);
+  ($("download-pdf-btn")   as HTMLButtonElement | null)?.addEventListener("click", handleDownloadPDF);
   ($("custom-analyse-btn") as HTMLButtonElement | null)?.addEventListener("click", handleCustomAnalyse);
 }
 
@@ -619,6 +623,27 @@ async function handleTailor() {
       err.textContent = `✗ Error: ${error instanceof Error ? error.message : "Unknown error"}`;
     }
     if (tailorBtn) tailorBtn.disabled = false;
+  }
+}
+
+async function handleDownloadPDF() {
+  if (!state.tailoredResume || !state.jobData) return;
+
+  const btn     = $("download-pdf-btn") as HTMLButtonElement | null;
+  const errorEl = $("error");
+  const successEl = $("success");
+
+  if (btn) btn.disabled = true;
+  if (errorEl) errorEl.classList.add("hidden");
+  if (successEl) successEl.classList.add("hidden");
+
+  try {
+    await downloadResumePDF(state.tailoredResume, state.jobData.company, state.jobData.title);
+    if (successEl) { successEl.classList.remove("hidden"); successEl.textContent = "✓ PDF downloaded!"; }
+  } catch (error) {
+    if (errorEl) { errorEl.classList.remove("hidden"); errorEl.textContent = `✗ PDF failed: ${error instanceof Error ? error.message : "Unknown error"}`; }
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 

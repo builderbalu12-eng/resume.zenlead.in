@@ -113,6 +113,25 @@ export function ChatContainer({
           }
         }
 
+        if (event.type === 'progress') {
+          setMessages((prev) => prev.map((m: any) =>
+            m._streamId === placeholderId
+              ? {
+                  ...m,
+                  content: event.step_label || 'Processing…',
+                  action_type: event.action_type,
+                  action_data: {
+                    _progress: {
+                      step: event.step,
+                      total: event.total_steps,
+                      label: event.step_label,
+                    },
+                  },
+                }
+              : m
+          ));
+        }
+
         if (event.type === 'item') {
           const actionType: string = event.action_type;
           const item = event.item;
