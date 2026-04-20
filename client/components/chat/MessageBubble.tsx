@@ -8,6 +8,7 @@ import { Sparkles, Download, FileSpreadsheet, FileText, TrendingUp, ExternalLink
 import { exportToCSV, exportToDocx } from '@/utils/exportUtils';
 import { JobRecommendationCard } from './JobRecommendationCard';
 import { ResumeContextCard } from './ResumeContextCard';
+import { FreelancerCard } from './FreelancerCard';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -182,6 +183,18 @@ function TailoredResumeCard({ data }: { data: any }) {
   );
 }
 
+function FreelancersActionCard({ data }: { data: any }) {
+  const freelancers: any[] = data?.freelancers ?? [];
+  if (!freelancers.length) return null;
+  return (
+    <div className="mt-2 space-y-0">
+      {freelancers.map((f: any, i: number) => (
+        <FreelancerCard key={f.user_id || i} freelancer={f} index={i} />
+      ))}
+    </div>
+  );
+}
+
 // ── Main bubble ──────────────────────────────────────────────────────────────
 
 export function MessageBubble({ message, onSendMessage }: MessageBubbleProps) {
@@ -280,6 +293,9 @@ export function MessageBubble({ message, onSendMessage }: MessageBubbleProps) {
           )}
           {message.action_type === 'tailored_resume' && (
             <TailoredResumeCard data={message.action_data} />
+          )}
+          {message.action_type === 'freelancers_results' && (
+            <FreelancersActionCard data={message.action_data} />
           )}
         </div>
 

@@ -3,7 +3,8 @@ import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ArrowUp, Briefcase, Zap, Users, Search, Lightbulb } from 'lucide-react';
+import { ArrowUp, Briefcase, Zap, Users, Search, Lightbulb, Paperclip, X } from 'lucide-react';
+import { parseFile } from '@/services/resumeParser';
 
 interface QuickAction {
   icon: React.ReactNode;
@@ -43,7 +44,10 @@ interface ChatInputProps {
 export function ChatInput({ onSend, disabled, placeholder = 'Message Nova…' }: ChatInputProps) {
   const [message, setMessage] = React.useState('');
   const [powersOpen, setPowersOpen] = React.useState(false);
+  const [attachedFile, setAttachedFile] = React.useState<{ name: string; text: string } | null>(null);
+  const [parsing, setParsing] = React.useState(false);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     if (!disabled && textareaRef.current) {
@@ -51,8 +55,30 @@ export function ChatInput({ onSend, disabled, placeholder = 'Message Nova…' }:
     }
   }, [disabled]);
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setParsing(true);
+    try {
+      const text = await parseFile(file);
+      setAttachedFile({ name: file.name, text });
+    } catch {
+      // ignore parse error — user can still send
+    } finally {
+      setParsing(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = () => {
-    if (message.trim() && !disabled) {
+    if (disabled) return;
+    if (attachedFile) {
+      onSend(`__RESUME_FILE__\n${attachedFile.text}`);
+      setAttachedFile(null);
+      setMessage('');
+      return;
+    }
+    if (message.trim()) {
       onSend(message.trim());
       setMessage('');
       if (textareaRef.current) {
@@ -80,7 +106,7 @@ export function ChatInput({ onSend, disabled, placeholder = 'Message Nova…' }:
     target.style.height = `${Math.min(target.scrollHeight, 160)}px`;
   };
 
-  const hasContent = message.trim().length > 0;
+  const hasContent = message.trim().length > 0 || !!attachedFile;
 
   return (
     <div className="bg-[#FDF6EE] dark:bg-background px-4 pb-5 pt-2">
@@ -94,20 +120,55 @@ export function ChatInput({ onSend, disabled, placeholder = 'Message Nova…' }:
             'focus-within:shadow-[0_2px_20px_rgba(99,102,241,0.12)] focus-within:border-primary/30'
           )}
         >
-          <Textarea
-            ref={textareaRef}
-            value={message}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            disabled={disabled}
-            className={cn(
-              'min-h-[28px] max-h-[160px] resize-none border-0 bg-transparent px-0 py-1',
-              'focus-visible:ring-0 focus-visible:ring-offset-0',
-              'placeholder:text-muted-foreground/50 text-sm leading-relaxed'
-            )}
-            rows={1}
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.docx,.doc,.txt"
+            className="hidden"
+            onChange={handleFileSelect}
           />
+
+          {/* Attach button */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled || parsing}
+            title="Attach resume (PDF, DOCX, TXT)"
+            className="shrink-0 flex items-center justify-center h-7 w-7 rounded-full text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted transition-colors disabled:opacity-40 mb-0.5"
+          >
+            <Paperclip className="h-4 w-4" />
+          </button>
+
+          <div className="flex-1 min-w-0">
+            {/* File chip */}
+            {attachedFile && (
+              <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-violet-50 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800 px-3 py-1 text-[11px] font-medium text-violet-700 dark:text-violet-300">
+                <Paperclip className="h-3 w-3" />
+                {attachedFile.name}
+                <button
+                  onClick={() => setAttachedFile(null)}
+                  className="ml-0.5 hover:text-violet-900 transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+            <Textarea
+              ref={textareaRef}
+              value={message}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              placeholder={attachedFile ? 'Add a note (optional)…' : placeholder}
+              disabled={disabled}
+              className={cn(
+                'min-h-[28px] max-h-[160px] resize-none border-0 bg-transparent px-0 py-1',
+                'focus-visible:ring-0 focus-visible:ring-offset-0',
+                'placeholder:text-muted-foreground/50 text-sm leading-relaxed'
+              )}
+              rows={1}
+            />
+          </div>
 
           <Button
             onClick={handleSubmit}

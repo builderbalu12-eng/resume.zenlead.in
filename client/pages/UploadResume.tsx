@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
+import { apiClient } from "@/services/api";
+import { Input } from "@/components/ui/input";
 import { ResumeUpload } from "@/components/ResumeUpload";
 import { Settings } from "@/components/Settings";
 import { ResumeData } from "@/types";
@@ -21,6 +23,23 @@ export const UploadResume: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [portfolioUrl, setPortfolioUrl] = useState('');
+  const [savingPortfolio, setSavingPortfolio] = useState(false);
+  const [portfolioSaved, setPortfolioSaved] = useState(false);
+
+  const handleSavePortfolio = async () => {
+    if (!portfolioUrl.trim()) return;
+    setSavingPortfolio(true);
+    try {
+      await apiClient.updateCurrentUser({ portfolio_url: portfolioUrl.trim() } as any);
+      setPortfolioSaved(true);
+      setTimeout(() => setPortfolioSaved(false), 3000);
+    } catch {
+      // ignore
+    } finally {
+      setSavingPortfolio(false);
+    }
+  };
 
   const handleUploadSuccess = async (uploadedResume: ResumeData) => {
     setIsLoading(true);
@@ -112,6 +131,7 @@ export const UploadResume: React.FC = () => {
 
       clearTimeout(saveTimeout);
       setResume(uploadedResume);
+      if (uploadedResume.contact.website) setPortfolioUrl(uploadedResume.contact.website);
     } catch (err) {
       clearTimeout(saveTimeout);
       setError(
@@ -320,6 +340,28 @@ export const UploadResume: React.FC = () => {
               <Button variant="secondary" onClick={() => navigate("/")}>
                 Dashboard
               </Button>
+            </div>
+
+            {/* Portfolio URL capture */}
+            <div className="mt-6 rounded-xl border border-border/40 bg-muted/20 p-4 text-left space-y-3">
+              <div>
+                <p className="text-sm font-medium">Portfolio / Website</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Add your portfolio link — it'll show on your freelancer profile and be searchable via Nova.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={portfolioUrl}
+                  onChange={(e) => setPortfolioUrl(e.target.value)}
+                  placeholder="https://yourportfolio.com"
+                  className="flex-1 text-sm"
+                />
+                <Button size="sm" onClick={handleSavePortfolio} disabled={savingPortfolio || !portfolioUrl.trim()}>
+                  {savingPortfolio ? 'Saving…' : 'Save'}
+                </Button>
+              </div>
+              {portfolioSaved && <p className="text-xs text-green-600">Saved ✓</p>}
             </div>
           </div>
         </PremiumCard>

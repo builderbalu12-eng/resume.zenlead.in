@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, Loader2, PencilLine } from 'lucide-react';
+import { Eye, EyeOff, Loader2, PencilLine, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient, User } from '@/services/api';
 import { Button } from '@/components/ui/button';
@@ -46,6 +46,20 @@ export const Profile: React.FC = () => {
   const [northStar, setNorthStar] = useState('');
   const [isSavingNorthStar, setIsSavingNorthStar] = useState(false);
 
+  // Freelance Profile
+  const [freelanceProfile, setFreelanceProfile] = useState({
+    available_for_hire: false,
+    portfolio_url: '',
+    linkedin_url: '',
+    github_url: '',
+    hourly_rate: '',
+    freelance_bio: '',
+    freelance_skills: [] as string[],
+  });
+  const [freelanceSkillInput, setFreelanceSkillInput] = useState('');
+  const [isSavingFreelance, setIsSavingFreelance] = useState(false);
+  const skillInputRef = useRef<HTMLInputElement>(null);
+
   // Job Preferences
   const [jobPrefs, setJobPrefs] = useState({
     desired_role: '',
@@ -81,6 +95,16 @@ export const Profile: React.FC = () => {
         setFirstName(response.firstName || '');
         setLastName(response.lastName || '');
         setNorthStar((response as any).northStar || '');
+        const r = response as any;
+        setFreelanceProfile({
+          available_for_hire: r.available_for_hire ?? false,
+          portfolio_url: r.portfolio_url ?? '',
+          linkedin_url: r.linkedin_url ?? '',
+          github_url: r.github_url ?? '',
+          hourly_rate: r.hourly_rate != null ? String(r.hourly_rate) : '',
+          freelance_bio: r.freelance_bio ?? '',
+          freelance_skills: r.freelance_skills ?? [],
+        });
         setGmailConnected(response.gmail_connected ?? false);
         setGmailEmail(response.gmail_email ?? null);
         // Load job preferences
@@ -244,6 +268,41 @@ export const Profile: React.FC = () => {
     } finally {
       setIsSavingNorthStar(false);
     }
+  };
+
+  const handleSaveFreelance = async () => {
+    try {
+      setIsSavingFreelance(true);
+      await apiClient.updateCurrentUser({
+        available_for_hire: freelanceProfile.available_for_hire,
+        portfolio_url: freelanceProfile.portfolio_url.trim() || null,
+        linkedin_url: freelanceProfile.linkedin_url.trim() || null,
+        github_url: freelanceProfile.github_url.trim() || null,
+        hourly_rate: freelanceProfile.hourly_rate !== '' ? Number(freelanceProfile.hourly_rate) : null,
+        freelance_bio: freelanceProfile.freelance_bio.trim() || null,
+        freelance_skills: freelanceProfile.freelance_skills,
+      } as any);
+      toast.success('Freelance profile saved!');
+    } catch {
+      toast.error('Failed to save freelance profile');
+    } finally {
+      setIsSavingFreelance(false);
+    }
+  };
+
+  const handleAddSkill = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && freelanceSkillInput.trim()) {
+      e.preventDefault();
+      const skill = freelanceSkillInput.trim();
+      if (!freelanceProfile.freelance_skills.includes(skill)) {
+        setFreelanceProfile(p => ({ ...p, freelance_skills: [...p.freelance_skills, skill] }));
+      }
+      setFreelanceSkillInput('');
+    }
+  };
+
+  const handleRemoveSkill = (skill: string) => {
+    setFreelanceProfile(p => ({ ...p, freelance_skills: p.freelance_skills.filter(s => s !== skill) }));
   };
 
   const handleChangePassword = async () => {
@@ -694,6 +753,116 @@ export const Profile: React.FC = () => {
                   </div>
                   <Button onClick={handleSaveNorthStar} disabled={isSavingNorthStar} className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white">
                     {isSavingNorthStar ? 'Saving...' : 'Save North Star'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Freelance Profile card */}
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="border-b border-slate-100 dark:border-slate-800 px-6 py-5">
+                  <p className="font-semibold text-slate-900 dark:text-white">Freelance Profile</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Let others find you as a freelancer via Nova chat</p>
+                </div>
+                <div className="px-6 py-5 space-y-4">
+                  {/* Available for hire toggle */}
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <div>
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Available for hire</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Show your profile in freelancer search results</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFreelanceProfile(p => ({ ...p, available_for_hire: !p.available_for_hire }))}
+                      className={cn(
+                        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                        freelanceProfile.available_for_hire ? 'bg-violet-600' : 'bg-slate-300 dark:bg-slate-600'
+                      )}
+                    >
+                      <span className={cn(
+                        'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform',
+                        freelanceProfile.available_for_hire ? 'translate-x-6' : 'translate-x-1'
+                      )} />
+                    </button>
+                  </label>
+
+                  {freelanceProfile.available_for_hire && (
+                    <div className="space-y-4 pt-1">
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">Portfolio / Website</p>
+                          <Input
+                            placeholder="https://yourportfolio.com"
+                            value={freelanceProfile.portfolio_url}
+                            onChange={(e) => setFreelanceProfile(p => ({ ...p, portfolio_url: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">Hourly Rate (USD)</p>
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="e.g. 40 (0 = open to discuss)"
+                            value={freelanceProfile.hourly_rate}
+                            onChange={(e) => setFreelanceProfile(p => ({ ...p, hourly_rate: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">LinkedIn URL</p>
+                          <Input
+                            placeholder="https://linkedin.com/in/yourprofile"
+                            value={freelanceProfile.linkedin_url}
+                            onChange={(e) => setFreelanceProfile(p => ({ ...p, linkedin_url: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">GitHub URL</p>
+                          <Input
+                            placeholder="https://github.com/yourusername"
+                            value={freelanceProfile.github_url}
+                            onChange={(e) => setFreelanceProfile(p => ({ ...p, github_url: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">Skills</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Type a skill and press Enter to add</p>
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {freelanceProfile.freelance_skills.map(skill => (
+                            <span key={skill} className="inline-flex items-center gap-1 rounded-full bg-violet-50 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800 px-2.5 py-0.5 text-xs font-medium text-violet-700 dark:text-violet-300">
+                              {skill}
+                              <button type="button" onClick={() => handleRemoveSkill(skill)} className="hover:text-violet-900 transition-colors">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                        <Input
+                          ref={skillInputRef}
+                          placeholder="e.g. React, Node.js, Python…"
+                          value={freelanceSkillInput}
+                          onChange={(e) => setFreelanceSkillInput(e.target.value)}
+                          onKeyDown={handleAddSkill}
+                        />
+                      </div>
+                      <div>
+                        <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">Bio</p>
+                        <Textarea
+                          rows={3}
+                          maxLength={300}
+                          placeholder="Briefly describe what you do and what you're available for…"
+                          value={freelanceProfile.freelance_bio}
+                          onChange={(e) => setFreelanceProfile(p => ({ ...p, freelance_bio: e.target.value }))}
+                          className="resize-none"
+                        />
+                        <p className="text-xs text-slate-400 text-right mt-0.5">{freelanceProfile.freelance_bio.length}/300</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <Button onClick={handleSaveFreelance} disabled={isSavingFreelance} className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white">
+                    {isSavingFreelance ? 'Saving...' : 'Save Freelance Profile'}
                   </Button>
                 </div>
               </div>
