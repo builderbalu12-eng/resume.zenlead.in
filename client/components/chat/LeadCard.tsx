@@ -1,5 +1,19 @@
-import { MapPin, Phone, Globe, ExternalLink, BarChart2 } from 'lucide-react';
+import { MapPin, Phone, Globe, ExternalLink, BarChart2, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+function getInsight(lead: Lead): string {
+  const hw = lead['Has Website'];
+  const r  = lead.Rating;
+  const cat = lead.Category || 'business';
+  if (r == null && !hw) return `No website or rating data yet — first-mover digital opportunity.`;
+  if (!hw && r != null && r < 3.5) return `Low rating (${r}/5) with no website — prime prospect for review management and digital presence.`;
+  if (!hw && r != null && r >= 4)  return `Well-rated ${cat} (${r}/5) but no website — strong candidate for a digital presence pitch.`;
+  if (!hw)                          return `No website detected — clear opportunity for online visibility and digital presence.`;
+  if (hw && r != null && r < 3.5)  return `Has website but low rating (${r}/5) — needs a reputation and review management strategy.`;
+  if (hw && r != null && r >= 4.5) return `Top-rated ${cat} (${r}/5) with digital presence — focus on growth, loyalty, and lead generation.`;
+  if (hw && r != null)              return `Established ${cat} with ${r}/5 rating and website — look for upsell or optimisation opportunities.`;
+  return `Established ${cat} with a website — explore growth and conversion optimisation opportunities.`;
+}
 
 export interface Lead {
   Name: string;
@@ -31,15 +45,7 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 export function LeadCard({ lead, onSendMessage }: Props) {
-  const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   const hasCoords = lead.lat != null && lead.lng != null;
-
-  const mapUrl = hasCoords
-    ? `https://maps.googleapis.com/maps/api/staticmap`
-      + `?center=${lead.lat},${lead.lng}&zoom=15&size=560x200`
-      + `&markers=color:red%7C${lead.lat},${lead.lng}`
-      + `&key=${MAPS_KEY}`
-    : null;
 
   const mapsLink = hasCoords
     ? `https://www.google.com/maps?q=${lead.lat},${lead.lng}`
@@ -112,15 +118,11 @@ export function LeadCard({ lead, onSendMessage }: Props) {
           )}
         </div>
 
-        {/* Mini map */}
-        {mapUrl && (
-          <img
-            src={mapUrl}
-            alt="Location map"
-            className="w-full h-[90px] rounded-lg object-cover border border-border/30"
-            loading="lazy"
-          />
-        )}
+        {/* Inline insight */}
+        <div className="flex items-start gap-1.5 rounded-lg bg-muted/40 border border-border/30 px-3 py-2">
+          <Lightbulb className="h-3.5 w-3.5 shrink-0 text-amber-500 mt-0.5" />
+          <p className="text-[11px] text-muted-foreground leading-relaxed">{getInsight(lead)}</p>
+        </div>
 
         {/* Action buttons */}
         <div className="flex items-center gap-1.5 pt-0.5">
