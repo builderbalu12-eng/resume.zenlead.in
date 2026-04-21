@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Mail, Clock, MessageSquare } from "lucide-react";
+import { Mail, Clock, MessageSquare, Phone } from "lucide-react";
 import { useAppConfig } from "@/contexts/AppConfigContext";
 
 export function Contact() {
@@ -31,6 +31,22 @@ export function Contact() {
               <p className="text-blue-600 dark:text-blue-400 font-medium">{supportEmail}</p>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 For account issues, billing questions, and general inquiries
+              </p>
+            </div>
+          </a>
+
+          <a
+            href="tel:+919573217566"
+            className="flex items-start gap-4 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-green-400 dark:hover:border-green-500 transition-colors group"
+          >
+            <div className="h-10 w-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0 group-hover:bg-green-200 dark:group-hover:bg-green-800/40 transition-colors">
+              <Phone className="h-5 w-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="font-bold text-slate-900 dark:text-white">Phone Support</p>
+              <p className="text-green-600 dark:text-green-400 font-medium">+91 95732 17566</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Monday – Saturday, 10 AM – 6 PM IST
               </p>
             </div>
           </a>
@@ -73,9 +89,19 @@ export function Contact() {
             <br />
             {appName} — AI Resume Tailoring
             <br />
+            Phone:{" "}
+            <a href="tel:+919573217566" className="text-blue-600 dark:text-blue-400 underline">
+              +91 95732 17566
+            </a>
+            <br />
+            Email:{" "}
+            <a href={`mailto:${supportEmail}`} className="text-blue-600 dark:text-blue-400 underline">
+              {supportEmail}
+            </a>
+            <br />
             Website:{" "}
-            <a href="https://landyourjob.zenlead.in" className="text-blue-600 dark:text-blue-400 underline">
-              landyourjob.zenlead.in
+            <a href="https://resume.zenlead.in" className="text-blue-600 dark:text-blue-400 underline">
+              resume.zenlead.in
             </a>
           </p>
         </div>
