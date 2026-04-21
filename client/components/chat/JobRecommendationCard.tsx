@@ -235,7 +235,7 @@ export function JobRecommendationCard({ job, index, total, onSendMessage }: JobR
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-[11px] gap-1 px-3 rounded-full border-amber-200 text-amber-700 hover:bg-amber-50"
+              className="h-7 text-[11px] gap-1 px-3 rounded-full border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
               onClick={handleTailor}
             >
               <FileText className="h-3 w-3" />
