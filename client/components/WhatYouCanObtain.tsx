@@ -84,18 +84,16 @@ export function WhatYouCanObtain() {
           </div>
         </BlurFade>
 
-        <StaggerParent className="mt-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StaggerParent className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-4">
           {CARDS.map((card, index) => (
-            <SlideUpItem key={card.title}>
+            <SlideUpItem key={card.title} className="h-full">
             <div
-              className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/80 shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-transform duration-300 hover:scale-105 cursor-pointer"
+              className="flex flex-col h-full overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900/80 shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-transform duration-300 hover:scale-105 cursor-pointer"
             >
               <div
                 className="relative w-full overflow-hidden rounded-t-2xl"
                 style={{ paddingTop: "min(100%, 320px)" }}
-
-
-                >
+              >
                 {/* Dark gradient overlay for title readability */}
                 <div
                   className="absolute inset-0 z-10"
@@ -106,7 +104,7 @@ export function WhatYouCanObtain() {
                 />
 
                 {/* Title on top */}
-                <span className="absolute top-4 left-4 z-20 text-base font-bold leading-tight text-white">
+                <span className="absolute top-3 left-3 z-20 text-sm sm:text-base font-bold leading-tight text-white">
                   {card.title}
                 </span>
 
@@ -135,8 +133,8 @@ export function WhatYouCanObtain() {
                 )}
               </div>
 
-              <div className="px-4 pb-5 pt-3">
-                <p className="text-sm leading-relaxed text-slate-400">
+              <div className="flex-1 px-3 sm:px-4 pb-4 sm:pb-5 pt-2.5 sm:pt-3">
+                <p className="text-xs sm:text-sm leading-relaxed text-slate-400">
                   {card.description}
                 </p>
               </div>
