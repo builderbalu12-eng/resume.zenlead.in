@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Loader, ArrowLeft, Zap, Gift } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
-// TODO: Razorpay disabled — migrating to Cashfree
-// declare global { interface Window { Razorpay: any; } }
+import { useCashfree } from '@/hooks/useCashfree';
 
 interface CreditPackage {
   credits: number;
@@ -26,6 +24,7 @@ export const OneTimePayment: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { openCheckout } = useCashfree();
 
   const currency = searchParams.get('currency') || 'USD';
 
@@ -77,16 +76,18 @@ export const OneTimePayment: React.FC = () => {
         user._id
       );
 
-      if (!response.data || !response.data.order_id) {
+      if (!response.data || !response.data.payment_session_id) {
         throw new Error('Failed to create payment order');
       }
 
-      // TODO: Cashfree integration pending — Razorpay disabled
-      // Original Razorpay flow was:
-      //   const options = { key, amount, currency, order_id, handler: verifyPayment, ... }
-      //   new window.Razorpay(options).open()
-      throw new Error("Payment gateway not configured. Cashfree integration coming soon.");
-      // eslint-disable-next-line no-unreachable
+      // Open Cashfree checkout — redirects to /payment/success?order_id=... on success
+      await openCheckout({
+        paymentSessionId: response.data.payment_session_id,
+        onFailure: (reason) => {
+          setError(reason);
+          setIsProcessing(false);
+        },
+      });
       setIsProcessing(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process payment');
@@ -267,8 +268,6 @@ export const OneTimePayment: React.FC = () => {
         </div>
       </div>
 
-      {/* Load Razorpay Script */}
-      <script src="https://checkout.razorpay.com/v1/checkout.js" async />
     </div>
   );
 };

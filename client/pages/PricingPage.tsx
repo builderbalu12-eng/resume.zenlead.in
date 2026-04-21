@@ -6,8 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CouponInput } from "@/components/payment/CouponInput";
 import { PlanCard } from "@/components/payment/PlanCard";
 import { paymentService, type BillingCycle, type SubscriptionPlan } from "@/services/paymentService";
-import { useRazorpay } from "@/hooks/useRazorpay";
-import { useRazorpayCheckout } from "@/hooks/useRazorpayCheckout";
+import { useCashfree } from "@/hooks/useCashfree";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BlurFade, StaggerParent, FadeInItem } from "@/components/motion";
 
@@ -20,8 +19,7 @@ type CouponState =
 export function PricingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, user, updateCurrentUser } = useAuth();
-  const { ready: razorpayReady, open: openRazorpay } = useRazorpay();
-  const { openCheckout } = useRazorpayCheckout();
+  const { openCheckout } = useCashfree();
 
   const [plans, setPlans] = React.useState<SubscriptionPlan[]>([]);
   const [loadingPlans, setLoadingPlans] = React.useState(true);
@@ -115,6 +113,10 @@ export function PricingPage() {
 
       const coupon_code = coupon.status === "applied" ? coupon.code : undefined;
 
+      // All plans (recurring + one-time) use Cashfree order → checkout flow
+      let sessionId: string;
+      let cashfreeOrderId: string;
+
       if (plan.is_recurring) {
         const res = await paymentService.createSubscription({
           plan_id: plan._id,
@@ -122,64 +124,29 @@ export function PricingPage() {
           is_recurring: true,
           coupon_code,
         });
-
-        const razorpaySubscriptionId = res.data.razorpay_subscription_id;
-
-        if (!razorpaySubscriptionId) {
-          throw new Error("Missing subscription ID in response");
+        // Free plan activated immediately
+        if (!res.data.payment_session_id) {
+          toast.success("Plan activated!", { duration: 3000 });
+          navigate(`/payment/success?plan=${encodeURIComponent(plan.plan_name)}`);
+          return;
         }
-
-        openCheckout({
-          subscriptionId: razorpaySubscriptionId,
-          planName: plan.plan_name,
-          onSuccess: () => navigate("/payment/success"),
-          onFailure: (reason) => toast.error(reason, { duration: 5000 }),
+        sessionId = res.data.payment_session_id;
+        cashfreeOrderId = res.data.cashfree_order_id;
+      } else {
+        const orderRes = await paymentService.createOrder({
+          plan_id: plan._id,
+          billing_cycle: billingCycle,
+          is_recurring: false,
+          coupon_code,
         });
-        return;
+        sessionId = orderRes.data.payment_session_id;
+        cashfreeOrderId = orderRes.data.cashfree_order_id;
       }
 
-      if (!razorpayReady) {
-        throw new Error("Razorpay is still loading. Please try again.");
-      }
-
-      const orderRes = await paymentService.createOrder({
-        plan_id: plan._id,
-        billing_cycle: billingCycle,
-        is_recurring: false,
-        coupon_code,
-      });
-
-      const orderData = orderRes.data;
-
-      openRazorpay({
-        key: orderData.key || import.meta.env.VITE_RAZORPAY_KEY_ID,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        order_id: orderData.order_id,
-        name: "ResumeMatch",
-        description: orderData.description,
-        handler: async function (response: any) {
-          try {
-            await paymentService.verifyPayment({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-
-            toast.success("Payment successful", { duration: 3000 });
-
-            // refresh user context (FastAPI contract)
-            const me = await paymentService.refreshMe();
-            const nextUser = me?.data?.user || me?.data || me;
-            if (nextUser && typeof nextUser === "object") updateCurrentUser(nextUser);
-
-            navigate(`/payment/success?plan=${encodeURIComponent(plan.plan_name)}`);
-          } catch (e: any) {
-            toast.error(e?.message || "Payment verification failed", { duration: 5000 });
-          }
-        },
-        prefill: { name: user ? `${user.firstName} ${user.lastName}` : "", email: user?.email || "" },
-        theme: { color: "#6366f1" },
+      // Open Cashfree checkout — redirects to /payment/success?order_id=... on success
+      await openCheckout({
+        paymentSessionId: sessionId,
+        onFailure: (reason) => toast.error(reason, { duration: 5000 }),
       });
     } catch (e: any) {
       toast.error(e?.message || "Payment failed", { duration: 5000 });
@@ -301,7 +268,7 @@ export function PricingPage() {
           After payment success, you’ll be redirected to your dashboard automatically.
         </p>
         <p className="mt-1 text-sm text-indigo-800/80 dark:text-indigo-300/80">
-          For recurring plans, we redirect you to Razorpay hosted checkout (no modal).
+          Payments are processed securely by Cashfree. You'll be redirected to complete payment.
         </p>
       </div>
     </div>

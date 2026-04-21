@@ -97,12 +97,11 @@ export type CreateSubscriptionResponse = {
   status: number;
   data: {
     subscription_id: string;
-    razorpay_subscription_id: string;
-    short_url: string;
+    payment_session_id: string | null;  // null for free plans
+    cashfree_order_id: string | null;
     plan_name: string;
     amount: number;
     billing_cycle: BillingCycle;
-    is_recurring: true;
     renewal_date: string;
   };
 };
@@ -110,10 +109,10 @@ export type CreateSubscriptionResponse = {
 export type CreateOrderResponse = {
   status: number;
   data: {
-    key: string;
+    payment_session_id: string;
+    cashfree_order_id: string;
     amount: number;
     currency: string;
-    order_id: string;
     plan_name: string;
     description: string;
     coupon_id: string | null;
@@ -197,11 +196,7 @@ export const paymentService = {
     });
   },
 
-  verifyPayment(input: {
-    razorpay_payment_id: string;
-    razorpay_order_id: string;
-    razorpay_signature: string;
-  }): Promise<VerifyPaymentResponse> {
+  verifyPayment(input: { cashfree_order_id: string }): Promise<VerifyPaymentResponse> {
     return request("/payments/verify", {
       method: "POST",
       auth: true,

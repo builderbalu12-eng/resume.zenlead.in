@@ -16,21 +16,33 @@ export function PaymentSuccessPage() {
   const hasRunRef = React.useRef(false);
 
   React.useEffect(() => {
-    const p = params.get("plan");
-    setPlanName(p);
+    setPlanName(params.get("plan"));
+    const orderId = params.get("order_id");
 
-    // Run refresh only once — updateCurrentUser changes reference on each call, causing effect re-runs
     if (!hasRunRef.current) {
       hasRunRef.current = true;
-      paymentService
-        .refreshMe()
-        .then((me) => {
+
+      const run = async () => {
+        // Verify with Cashfree if order_id present (webhook also fires, this is belt-and-suspenders)
+        if (orderId) {
+          try {
+            await paymentService.verifyPayment({ cashfree_order_id: orderId });
+          } catch {
+            // Webhook likely already processed it — ignore verify errors on success page
+          }
+        }
+
+        // Refresh user to get updated plan + credits
+        try {
+          const me = await paymentService.refreshMe();
           const nextUser = me?.data?.user || me?.data || me;
           if (nextUser && typeof nextUser === "object") updateCurrentUser(nextUser);
-        })
-        .catch((e: any) => {
+        } catch (e: any) {
           toast.error(e?.message || "Could not refresh account. Please reload.", { duration: 5000 });
-        });
+        }
+      };
+
+      run();
     }
 
     const t = window.setTimeout(() => navigate("/billing"), 4000);
