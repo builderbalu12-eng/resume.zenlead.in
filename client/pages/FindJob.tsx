@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Briefcase, Loader2, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Briefcase, Loader2, Trash2, ArrowUp, ArrowDown, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { JobCard } from '@/components/job/JobCard';
 import { apiClient } from '@/services/api';
 import { StaggerParent, FadeInItem } from '@/components/motion';
@@ -34,6 +35,7 @@ export const FindJob: React.FC = () => {
 
   // view and selectedListId stay in React state — view is determined by API response, not user choice
   const [view, setView] = useState<View>('default');
+  const [mobileSearchesOpen, setMobileSearchesOpen] = useState(false);
   const [selectedListId, setSelectedListId] = useState<string | null>(searchParams.get('list'));
 
   // URL-persisted: sort, page, filters (useful to bookmark/share)
@@ -365,17 +367,40 @@ export const FindJob: React.FC = () => {
   if (view === 'recommendations') {
     return (
       <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
-        {/* Sidebar */}
-        <MySearchesSidebar
-          searches={searches}
-          selectedListId={selectedListId}
-          onSelectSearch={loadListJobs}
-          onNewSearch={() => setShowSearchForm(true)}
-          onDeleteSearch={handleDeleteSearch}
-        />
+        {/* Sidebar — desktop only */}
+        <div className="hidden md:block">
+          <MySearchesSidebar
+            searches={searches}
+            selectedListId={selectedListId}
+            onSelectSearch={loadListJobs}
+            onNewSearch={() => setShowSearchForm(true)}
+            onDeleteSearch={handleDeleteSearch}
+          />
+        </div>
+
+        {/* Mobile Sheet sidebar */}
+        <Sheet open={mobileSearchesOpen} onOpenChange={setMobileSearchesOpen}>
+          <SheetContent side="left" className="w-80 p-0">
+            <MySearchesSidebar
+              searches={searches}
+              selectedListId={selectedListId}
+              onSelectSearch={(id) => { loadListJobs(id); setMobileSearchesOpen(false); }}
+              onNewSearch={() => { setShowSearchForm(true); setMobileSearchesOpen(false); }}
+              onDeleteSearch={handleDeleteSearch}
+            />
+          </SheetContent>
+        </Sheet>
 
         {/* Main Content */}
         <div className="flex-1 overflow-hidden flex flex-col">
+          {/* Mobile header bar */}
+          <div className="flex md:hidden items-center gap-3 px-4 py-2.5 border-b bg-card shrink-0">
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setMobileSearchesOpen(true)}>
+              <Menu className="h-5 w-5" />
+            </Button>
+            <span className="text-sm font-semibold text-foreground">My Searches</span>
+          </div>
+
           {/* Header */}
           {selectedListMeta && (
             <div className="border-b bg-card px-6 py-4">
@@ -478,7 +503,7 @@ export const FindJob: React.FC = () => {
         {/* Filters */}
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
           <h3 className="font-bold text-slate-900 dark:text-white mb-4">Filters</h3>
-          <div className="grid md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
             <input
               type="text"
               placeholder="Search..."

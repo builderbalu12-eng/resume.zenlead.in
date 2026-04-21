@@ -532,7 +532,7 @@ function CompanyIntelTab() {
     <div className="space-y-5">
       {/* Form */}
       <div className="rounded-xl border bg-card p-5 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label>Company</Label>
             <Input
@@ -842,7 +842,7 @@ export default function InterviewPrep() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1 block">Company</label>
                   <Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="e.g. Google" />

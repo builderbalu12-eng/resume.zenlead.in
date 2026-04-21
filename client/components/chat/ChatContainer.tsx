@@ -5,6 +5,9 @@ import { ChatInput } from './ChatInput';
 import { ChatSession, ChatMessage, SendMessageRequest } from '@/types/chat';
 import { chatApi } from '@/services/chatApi';
 import { toast } from 'sonner';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Menu } from 'lucide-react';
 
 interface ChatContainerProps {
   currentSession: string | null;
@@ -25,6 +28,7 @@ export function ChatContainer({
 }: ChatContainerProps) {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
   const skipNextHistory = React.useRef(false);
   const contextInjected = React.useRef(false);
 
@@ -247,6 +251,31 @@ export function ChatContainer({
       )}
 
       <div className="flex flex-1 flex-col min-w-0">
+        {/* Mobile header — hamburger to access chat history on small screens */}
+        <div className="flex md:hidden items-center gap-3 px-3 py-2.5 border-b bg-background shrink-0">
+          <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0">
+              <ChatSidebar
+                sessions={sessions}
+                currentSession={currentSession}
+                onSessionSelect={(id) => { onSessionSelect(id); setMobileSidebarOpen(false); }}
+                onNewSession={() => { onNewSession(); setMobileSidebarOpen(false); }}
+                onDeleteSession={handleDeleteSession}
+                disabled={isLoading}
+              />
+            </SheetContent>
+          </Sheet>
+          <div className="flex items-center gap-2">
+            <img src="/logo/lo9o.png" alt="Logo" className="h-6 w-6 rounded-lg object-contain" />
+            <span className="text-sm font-semibold text-foreground">Nova</span>
+          </div>
+        </div>
+
         <ChatWindow messages={messages} isLoading={isLoading} onSendMessage={sendMessage} />
         <ChatInput onSend={sendMessage} disabled={isLoading} />
       </div>

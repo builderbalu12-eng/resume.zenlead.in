@@ -353,7 +353,7 @@ function EditDialog({
         <div className="space-y-3 pb-2">
           <p className="text-sm font-semibold">Generate LinkedIn Message</p>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Contact Name</Label>
               <Input

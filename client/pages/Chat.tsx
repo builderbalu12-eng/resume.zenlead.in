@@ -61,7 +61,7 @@ export default function ChatPage() {
   if (!isReady) {
     return (
       <div className="flex h-[calc(100vh-6rem)] -mx-4 -my-6 md:-mx-6 md:-my-8">
-        <div className="w-64 shrink-0 border-r border-border bg-card flex flex-col">
+        <div className="hidden md:flex w-64 shrink-0 border-r border-border bg-card flex-col">
           <div className="p-3 border-b border-border">
             <Skeleton className="h-8 w-full rounded-lg" />
           </div>
