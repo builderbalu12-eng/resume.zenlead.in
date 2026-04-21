@@ -147,6 +147,49 @@ class ChatApiService {
     }
   }
 
+  async *tailorFromJobStream(data: {
+    job_url?: string;
+    job_title?: string;
+    company?: string;
+    location?: string;
+  }): AsyncGenerator<any, void, unknown> {
+    const token = localStorage.getItem('access_token') ||
+                  localStorage.getItem('token') ||
+                  localStorage.getItem('auth_token');
+    const response = await fetch(`${CHAT_BASE}/tailor-for-job/stream`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    if (response.status === 401) {
+      localStorage.removeItem('access_token');
+      window.location.href = '/login?redirect=/chat';
+      return;
+    }
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${response.status}`);
+    }
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try { yield JSON.parse(line.slice(6)); } catch { /* skip */ }
+        }
+      }
+    }
+  }
+
   async saveJobInterest(data: {
     job_title: string;
     company: string;

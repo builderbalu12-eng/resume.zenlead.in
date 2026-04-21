@@ -269,7 +269,7 @@ function TailoredResumeCard({ data }: { data: any }) {
       <div className="flex flex-wrap gap-2 pt-1 border-t border-border/30">
         <button
           onClick={handlePDF}
-          disabled={loadingBtn !== null || !resumeData}
+          disabled={loadingBtn !== null}
           className="flex items-center gap-1.5 h-7 rounded-md border border-red-200 bg-red-50 dark:bg-red-950/20 px-3 text-xs font-medium text-red-700 dark:text-red-400 hover:bg-red-100 transition-colors disabled:opacity-50"
         >
           {loadingBtn === 'pdf' ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}

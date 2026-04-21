@@ -68,7 +68,7 @@ export function ChatWindow({ messages, isLoading, onSendMessage }: ChatWindowPro
                   onSendMessage={onSendMessage}
                 />
               ))}
-              {isLoading && <TypingIndicator />}
+              {isLoading && !messages.some((m: any) => m._streamId) && <TypingIndicator />}
               {/* Invisible anchor for scroll-to-bottom */}
               <div ref={bottomRef} className="h-1" />
             </div>

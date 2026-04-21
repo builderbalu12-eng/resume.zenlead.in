@@ -2,9 +2,11 @@ import { useState } from 'react';
 import {
   ExternalLink, Check, Building2, MapPin, Briefcase,
   DollarSign, Star, BarChart2, Search, FileText,
+  Loader2, TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { chatApi } from '@/services/chatApi';
+import { downloadResumePDF, generateResumeDocx } from '@/services/resumeGenerator';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -42,6 +44,13 @@ export function JobRecommendationCard({ job, index, total, onSendMessage }: JobR
   const [skipped, setSkipped]   = useState(false);
   const [tracking, setTracking] = useState(false);
 
+  // Tailor inline panel state
+  const [tailorState, setTailorState]         = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [tailorProgress, setTailorProgress]   = useState<{ step: number; total: number; label: string } | null>(null);
+  const [tailorResult, setTailorResult]       = useState<any>(null);
+  const [tailorError, setTailorError]         = useState('');
+  const [tailorLoadingBtn, setTailorLoadingBtn] = useState<null | 'pdf' | 'docx'>(null);
+
   const handleTrack = async () => {
     setTracking(true);
     try {
@@ -78,17 +87,70 @@ export function JobRecommendationCard({ job, index, total, onSendMessage }: JobR
     onSendMessage(`research company ${job.Company}`);
   };
 
-  const handleTailor = () => {
-    if (!onSendMessage) return;
-    const jd = [
-      job.Title    && `Job Title: ${job.Title}`,
-      job.Company  && `Company: ${job.Company}`,
-      job.Location && `Location: ${job.Location}`,
-      job.Experience && `Experience: ${job.Experience}`,
-      job.Salary   && `Salary: ${job.Salary}`,
-      job.URL      && `Job URL: ${job.URL}`,
-    ].filter(Boolean).join('\n');
-    onSendMessage(`tailor my resume for:\n${jd}`);
+  const handleTailorClick = async () => {
+    if (tailorState === 'loading') return;
+    setTailorState('loading');
+    setTailorProgress(null);
+    setTailorResult(null);
+    setTailorError('');
+    try {
+      for await (const event of chatApi.tailorFromJobStream({
+        job_url:   job.URL   || '',
+        job_title: job.Title || '',
+        company:   job.Company || '',
+        location:  job.Location || '',
+      })) {
+        if (event.type === 'progress') {
+          setTailorProgress({ step: event.step, total: event.total_steps, label: event.step_label });
+        } else if (event.type === 'done') {
+          setTailorResult(event.action_data);
+          setTailorState('done');
+        } else if (event.type === 'error') {
+          setTailorError(event.message || 'Something went wrong.');
+          setTailorState('error');
+        }
+      }
+    } catch (e) {
+      setTailorError(e instanceof Error ? e.message : 'Something went wrong.');
+      setTailorState('error');
+    }
+  };
+
+  const handleTailorPDF = async () => {
+    if (!tailorResult) return;
+    setTailorLoadingBtn('pdf');
+    try {
+      const company  = tailorResult.company  || job.Company || 'Company';
+      const jobTitle = tailorResult.job_title || job.Title  || 'Resume';
+      await downloadResumePDF(tailorResult.resume_data || tailorResult, company, jobTitle);
+    } catch {
+      toast.error('PDF generation failed');
+    } finally {
+      setTailorLoadingBtn(null);
+    }
+  };
+
+  const handleTailorDocx = async () => {
+    if (!tailorResult) return;
+    setTailorLoadingBtn('docx');
+    try {
+      const company  = tailorResult.company  || job.Company || 'Company';
+      const jobTitle = tailorResult.job_title || job.Title  || 'Resume';
+      const blob = tailorResult.resume_data
+        ? await generateResumeDocx(tailorResult.resume_data, company, jobTitle)
+        : new Blob([tailorResult.tailored_resume ?? ''], {
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          });
+      const url = URL.createObjectURL(blob);
+      const a   = document.createElement('a');
+      a.href = url; a.download = `tailored_resume_${Date.now()}.docx`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('DOCX generation failed');
+    } finally {
+      setTailorLoadingBtn(null);
+    }
   };
 
   if (skipped) {
@@ -103,6 +165,10 @@ export function JobRecommendationCard({ job, index, total, onSendMessage }: JobR
 
   const siteLabel = job.Site?.toLowerCase() || '';
   const siteChipClass = SITE_COLORS[siteLabel] || 'bg-muted/60 text-muted-foreground border-border/40';
+
+  const tailorAts: number = tailorResult?.ats_score ?? 0;
+  const tailorScoreBg    = tailorAts >= 80 ? 'bg-green-500' : tailorAts >= 60 ? 'bg-amber-400' : 'bg-red-500';
+  const tailorScoreColor = tailorAts >= 80 ? 'text-green-600' : tailorAts >= 60 ? 'text-amber-600' : 'text-red-600';
 
   return (
     <div
@@ -231,17 +297,21 @@ export function JobRecommendationCard({ job, index, total, onSendMessage }: JobR
           )}
 
           {/* Tailor resume button */}
-          {onSendMessage && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-[11px] gap-1 px-3 rounded-full border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-              onClick={handleTailor}
-            >
-              <FileText className="h-3 w-3" />
-              Tailor
-            </Button>
-          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className={cn(
+              'h-7 text-[11px] gap-1 px-3 rounded-full border-amber-400 dark:border-amber-600 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20',
+              tailorState === 'loading' && 'opacity-60 cursor-not-allowed',
+            )}
+            onClick={handleTailorClick}
+            disabled={tailorState === 'loading'}
+          >
+            {tailorState === 'loading'
+              ? <Loader2 className="h-3 w-3 animate-spin" />
+              : <FileText className="h-3 w-3" />}
+            {tailorState === 'loading' ? 'Tailoring…' : tailorState === 'done' ? 'Re-tailor' : 'Tailor'}
+          </Button>
 
           {/* Skip */}
           <Button
@@ -253,6 +323,88 @@ export function JobRecommendationCard({ job, index, total, onSendMessage }: JobR
             Skip
           </Button>
         </div>
+
+        {/* ── Inline tailor panel ────────────────────────────────────────── */}
+        {tailorState !== 'idle' && (
+          <div className="mt-3 border-t border-border/30 pt-3">
+
+            {/* Loading */}
+            {tailorState === 'loading' && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />
+                  <span className="text-xs font-medium text-foreground">
+                    {tailorProgress?.label || 'Tailoring resume…'}
+                  </span>
+                </div>
+                <div className="flex gap-1">
+                  {[1, 2, 3].map((n) => (
+                    <div
+                      key={n}
+                      className={cn(
+                        'h-1 flex-1 rounded-full transition-all duration-500',
+                        n < (tailorProgress?.step ?? 0)  ? 'bg-primary' :
+                        n === (tailorProgress?.step ?? 0) ? 'bg-primary/50 animate-pulse' :
+                        'bg-muted',
+                      )}
+                    />
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Step {tailorProgress?.step ?? 0} of {tailorProgress?.total ?? 3}
+                </p>
+              </div>
+            )}
+
+            {/* Done */}
+            {tailorState === 'done' && tailorResult && (
+              <div className="space-y-2.5">
+                {/* ATS bar */}
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="text-xs font-medium text-foreground">
+                    ATS Score: <span className={tailorScoreColor}>{tailorAts}%</span>
+                  </span>
+                  <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${tailorScoreBg}`}
+                      style={{ width: `${tailorAts}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Download buttons */}
+                <div className="flex gap-1.5 flex-wrap">
+                  <button
+                    onClick={handleTailorPDF}
+                    disabled={tailorLoadingBtn !== null}
+                    className="flex items-center gap-1 h-6 rounded-md border border-red-200 bg-red-50 dark:bg-red-950/20 px-2.5 text-[11px] font-medium text-red-700 dark:text-red-400 hover:bg-red-100 transition-colors disabled:opacity-50"
+                  >
+                    {tailorLoadingBtn === 'pdf'
+                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                      : <FileText className="h-3 w-3" />}
+                    {tailorLoadingBtn === 'pdf' ? 'Generating…' : 'PDF'}
+                  </button>
+                  <button
+                    onClick={handleTailorDocx}
+                    disabled={tailorLoadingBtn !== null}
+                    className="flex items-center gap-1 h-6 rounded-md border border-border bg-background px-2.5 text-[11px] font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                  >
+                    {tailorLoadingBtn === 'docx'
+                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                      : <FileText className="h-3 w-3" />}
+                    {tailorLoadingBtn === 'docx' ? 'Generating…' : 'DOCX'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Error */}
+            {tailorState === 'error' && (
+              <p className="text-xs text-red-600 dark:text-red-400">{tailorError}</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Footer */}
