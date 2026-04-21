@@ -52,7 +52,7 @@ export function ChatWindow({ messages, isLoading, onSendMessage }: ChatWindowPro
               </div>
               <div className="text-center space-y-1.5 max-w-xs">
                 <h2 className="text-xl font-bold text-foreground tracking-tight">
-                  hi, i'm Nova 👋
+                  Hi, I'm Nova 👋
                 </h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   i help you find the best next job. i scan thousands of roles daily to find the right one for you.
