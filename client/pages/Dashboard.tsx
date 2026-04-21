@@ -294,25 +294,7 @@ export const Dashboard: React.FC = () => {
 
             {/* Quick actions */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <Link
-                to={masterResume ? "/tailor" : "/upload"}
-                className="group flex flex-col gap-2 rounded-xl border bg-background p-4 transition-all hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/20"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="rounded-lg bg-purple-100 dark:bg-purple-900/30 p-2 transition-transform group-hover:scale-110">
-                    <Zap className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                  </span>
-                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-purple-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-purple-700 dark:group-hover:text-purple-300">
-                    {masterResume ? "Tailor Resume" : "Upload Resume"}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {masterResume ? "AI-optimized for every job" : "Get started in 30 seconds"}
-                  </p>
-                </div>
-              </Link>
+              {/* 1 — Find Jobs */}
               <Link
                 to="/findjob"
                 className="group flex flex-col gap-2 rounded-xl border bg-background p-4 transition-all hover:border-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/20"
@@ -332,6 +314,29 @@ export const Dashboard: React.FC = () => {
                   </p>
                 </div>
               </Link>
+
+              {/* 2 — Tailor Resume */}
+              <Link
+                to={masterResume ? "/tailor" : "/upload"}
+                className="group flex flex-col gap-2 rounded-xl border bg-background p-4 transition-all hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/20"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="rounded-lg bg-purple-100 dark:bg-purple-900/30 p-2 transition-transform group-hover:scale-110">
+                    <Zap className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  </span>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-purple-700 dark:group-hover:text-purple-300">
+                    {masterResume ? "Tailor Resume" : "Upload Resume"}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {masterResume ? "AI-optimized for every job" : "Get started in 30 seconds"}
+                  </p>
+                </div>
+              </Link>
+
+              {/* 3 — Find Clients */}
               <Link
                 to="/find-business"
                 className="group flex flex-col gap-2 rounded-xl border bg-background p-4 transition-all hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
@@ -351,22 +356,24 @@ export const Dashboard: React.FC = () => {
                   </p>
                 </div>
               </Link>
+
+              {/* 4 — Chrome Extension */}
               <Link
-                to="/chat"
-                className="group flex flex-col gap-2 rounded-xl border bg-background p-4 transition-all hover:border-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-950/20"
+                to="/resume"
+                className="group flex flex-col gap-2 rounded-xl border bg-background p-4 transition-all hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/20"
               >
                 <div className="flex items-center justify-between">
-                  <span className="rounded-lg bg-cyan-100 dark:bg-cyan-900/30 p-2 transition-transform group-hover:scale-110">
-                    <MessageSquare className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                  <span className="rounded-lg bg-violet-100 dark:bg-violet-900/30 p-2 transition-transform group-hover:scale-110">
+                    <Zap className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                   </span>
-                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-cyan-500" />
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-violet-500" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-cyan-700 dark:group-hover:text-cyan-300">
-                    AI Chat
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-violet-700 dark:group-hover:text-violet-300">
+                    Chrome Extension
                   </p>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    Ask anything, get answers
+                    Tailor on any job site
                   </p>
                 </div>
               </Link>
@@ -427,12 +434,6 @@ export const Dashboard: React.FC = () => {
             {/* Left Content */}
             <div className="space-y-8 relative z-10">
               <MountSlideUp delay={0} className="space-y-6">
-                <div className="inline-block px-5 py-2.5 rounded-full bg-gradient-to-r from-cyan-100 to-blue-100 dark:from-cyan-900/30 dark:to-blue-900/30 border border-cyan-300/50 dark:border-cyan-700/50 backdrop-blur-sm">
-                  <AnimatedGradientText className="text-sm font-semibold" from="#0891b2" via="#2563eb" to="#7c3aed">
-                    ✨ AI-Powered Resume Optimization
-                  </AnimatedGradientText>
-                </div>
-
                 <div className="space-y-3">
                   <h1
                     className={`text-4xl sm:text-5xl lg:text-6xl font-black font-heading leading-tight min-h-[60px] sm:min-h-[60px] lg:min-h-[130px] transition-opacity duration-300 ${
