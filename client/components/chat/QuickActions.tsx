@@ -1,38 +1,43 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { Briefcase, Users, Search, Lightbulb } from 'lucide-react';
+import { Briefcase, MapPin, Users, FileText } from 'lucide-react';
 
 interface QuickAction {
   icon: React.ReactNode;
   label: string;
   description: string;
   query: string;
+  color: string;
 }
 
 const quickActions: QuickAction[] = [
   {
     icon: <Briefcase className="h-4 w-4" />,
     label: 'Find Jobs',
-    description: 'Search freelance & full-time roles',
-    query: 'Help me find software developer jobs that match my skills',
+    description: 'Search live job openings for my role',
+    query: 'Find me jobs that match my skills and experience',
+    color: 'group-hover:bg-violet-100 group-hover:text-violet-600 dark:group-hover:bg-violet-900/30 dark:group-hover:text-violet-400',
+  },
+  {
+    icon: <MapPin className="h-4 w-4" />,
+    label: 'Find Clients',
+    description: 'Discover local business leads near you',
+    query: 'Find me business leads in my city',
+    color: 'group-hover:bg-emerald-100 group-hover:text-emerald-600 dark:group-hover:bg-emerald-900/30 dark:group-hover:text-emerald-400',
   },
   {
     icon: <Users className="h-4 w-4" />,
-    label: 'Hire Talent',
-    description: 'Find the right freelancer for your project',
-    query: 'I need to find a qualified freelancer for my project',
+    label: 'Find Freelancers',
+    description: 'Hire skilled freelancers for your project',
+    query: 'I need to find a freelancer for my project',
+    color: 'group-hover:bg-sky-100 group-hover:text-sky-600 dark:group-hover:bg-sky-900/30 dark:group-hover:text-sky-400',
   },
   {
-    icon: <Search className="h-4 w-4" />,
-    label: 'Career Advice',
-    description: 'Get personalized career guidance',
-    query: 'Give me personalized career advice based on my profile',
-  },
-  {
-    icon: <Lightbulb className="h-4 w-4" />,
-    label: 'Resume Tips',
-    description: 'Improve your resume and profile',
-    query: 'Help me improve my resume and professional profile',
+    icon: <FileText className="h-4 w-4" />,
+    label: 'Tailor Resume',
+    description: 'Optimize my resume for a specific job',
+    query: 'Tailor my resume for a job — paste the job description and I\'ll optimize it',
+    color: 'group-hover:bg-amber-100 group-hover:text-amber-600 dark:group-hover:bg-amber-900/30 dark:group-hover:text-amber-400',
   },
 ];
 
@@ -57,7 +62,7 @@ export function QuickActions({ onAction, disabled }: QuickActionsProps) {
               'disabled:opacity-50 disabled:cursor-not-allowed'
             )}
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+            <span className={cn('flex h-7 w-7 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors', action.color)}>
               {action.icon}
             </span>
             <span className="text-xs font-semibold text-foreground">{action.label}</span>
