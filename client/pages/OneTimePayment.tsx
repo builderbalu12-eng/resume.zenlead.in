@@ -6,11 +6,8 @@ import { apiClient } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-declare global {
-  interface Window {
-    Razorpay: any;
-  }
-}
+// TODO: Razorpay disabled — migrating to Cashfree
+// declare global { interface Window { Razorpay: any; } }
 
 interface CreditPackage {
   credits: number;
@@ -84,40 +81,12 @@ export const OneTimePayment: React.FC = () => {
         throw new Error('Failed to create payment order');
       }
 
-      // Initialize Razorpay
-      const options = {
-        key: response.data.key,
-        amount: response.data.amount,
-        currency: response.data.currency,
-        order_id: response.data.order_id,
-        description: response.data.description,
-        handler: async (razorpayResponse: any) => {
-          try {
-            // Verify payment
-            await apiClient.verifyPayment(
-              razorpayResponse.razorpay_payment_id,
-              razorpayResponse.razorpay_order_id,
-              razorpayResponse.razorpay_signature
-            );
-
-            // Success - redirect to payment success page
-            navigate('/payment/success?source=topup');
-          } catch (err) {
-            setError('Payment verification failed');
-            setIsProcessing(false);
-          }
-        },
-        prefill: {
-          email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
-        },
-        theme: {
-          color: '#06B6D4',
-        },
-      };
-
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
+      // TODO: Cashfree integration pending — Razorpay disabled
+      // Original Razorpay flow was:
+      //   const options = { key, amount, currency, order_id, handler: verifyPayment, ... }
+      //   new window.Razorpay(options).open()
+      throw new Error("Payment gateway not configured. Cashfree integration coming soon.");
+      // eslint-disable-next-line no-unreachable
       setIsProcessing(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process payment');
