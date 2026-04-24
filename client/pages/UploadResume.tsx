@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
 import { apiClient } from "@/services/api";
@@ -23,6 +23,24 @@ export const UploadResume: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  // Auto-navigate to Tailor tab 3s after upload
+  useEffect(() => {
+    if (!resume) return;
+    setCountdown(3);
+    const interval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          navigate("/resume?tab=tailor");
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resume]);
   const [portfolioUrl, setPortfolioUrl] = useState('');
   const [savingPortfolio, setSavingPortfolio] = useState(false);
   const [portfolioSaved, setPortfolioSaved] = useState(false);
@@ -331,13 +349,13 @@ export const UploadResume: React.FC = () => {
             </PremiumCard>
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-              <Button variant="gradient" onClick={() => navigate("/tailor")}>
-                Tailor resume
+              <Button variant="gradient" onClick={() => navigate("/resume?tab=tailor")}>
+                {countdown !== null ? `Going to Tailor in ${countdown}s…` : "Tailor resume"}
               </Button>
-              <Button variant="outline" onClick={() => setResume(null)}>
+              <Button variant="outline" onClick={() => { setCountdown(null); setResume(null); }}>
                 Upload new
               </Button>
-              <Button variant="secondary" onClick={() => navigate("/")}>
+              <Button variant="secondary" onClick={() => { setCountdown(null); navigate("/"); }}>
                 Dashboard
               </Button>
             </div>
