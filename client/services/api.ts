@@ -504,6 +504,13 @@ export class APIClient {
     });
   }
 
+  async generateSkillsRoadmap(resume: string, jobDescription: string): Promise<any> {
+    return this.request('/api/skills-roadmap', {
+      method: 'POST',
+      body: JSON.stringify({ resume, jobDescription, userCredits: 0 }),
+    });
+  }
+
   async checkCompleteness(resume: string): Promise<any> {
     return this.request('/api/check-completeness', {
       method: 'POST',
