@@ -270,7 +270,7 @@ export const Dashboard: React.FC = () => {
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  Welcome back, {user.firstName}! 👋
+                  Welcome bacT, {user.firstName}! 👋
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   {masterResume
