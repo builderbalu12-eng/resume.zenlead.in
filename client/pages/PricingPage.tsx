@@ -7,6 +7,7 @@ import { CouponInput } from "@/components/payment/CouponInput";
 import { PlanCard } from "@/components/payment/PlanCard";
 import { paymentService, type BillingCycle, type SubscriptionPlan } from "@/services/paymentService";
 import { useCashfree } from "@/hooks/useCashfree";
+import { CashfreePaymentModal } from "@/components/CashfreePaymentModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BlurFade, StaggerParent, FadeInItem } from "@/components/motion";
 
@@ -28,6 +29,8 @@ export function PricingPage() {
   const [coupon, setCoupon] = React.useState<CouponState>({ status: "idle" });
   const [processingPlanId, setProcessingPlanId] = React.useState<string | null>(null);
   const [showCoupon, setShowCoupon] = React.useState(false);
+  const [modalOpen, setModalOpen] = React.useState(false);
+  const [modalPlanName, setModalPlanName] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let active = true;
@@ -143,12 +146,23 @@ export function PricingPage() {
         cashfreeOrderId = orderRes.data.cashfree_order_id;
       }
 
-      // Open Cashfree checkout — redirects to /payment/success?order_id=... on success
+      // Open modal first so the container div is in the DOM, then launch Cashfree inline
+      setModalPlanName(plan.plan_name);
+      setModalOpen(true);
+
+      // Small tick to ensure the modal div is mounted before Cashfree tries to find it
+      await new Promise((r) => setTimeout(r, 50));
+
       await openCheckout({
         paymentSessionId: sessionId,
-        onFailure: (reason) => toast.error(reason, { duration: 5000 }),
+        onFailure: (reason) => {
+          setModalOpen(false);
+          toast.error(reason, { duration: 5000 });
+        },
+        onModalClose: () => setModalOpen(false),
       });
     } catch (e: any) {
+      setModalOpen(false);
       toast.error(e?.message || "Payment failed", { duration: 5000 });
     } finally {
       setProcessingPlanId(null);
@@ -156,6 +170,12 @@ export function PricingPage() {
   };
 
   return (
+    <>
+    <CashfreePaymentModal
+      isOpen={modalOpen}
+      onClose={() => setModalOpen(false)}
+      planName={modalPlanName}
+    />
     <div className="mx-auto max-w-7xl">
       <BlurFade className="mb-8">
         <h1 className="text-3xl font-black text-slate-900 dark:text-white">
@@ -272,6 +292,7 @@ export function PricingPage() {
         </p>
       </div>
     </div>
+    </>
   );
 }
 

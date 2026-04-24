@@ -6,7 +6,7 @@ declare global {
       checkout: (options: {
         paymentSessionId: string;
         returnUrl?: string;
-        redirectTarget?: "_self" | "_blank" | "_top";
+        redirectTarget?: "_self" | "_blank" | "_top" | HTMLElement;
       }) => Promise<{ error?: { message: string }; redirect?: boolean }>;
     };
   }
@@ -21,9 +21,11 @@ export function useCashfree() {
     async ({
       paymentSessionId,
       onFailure,
+      onModalClose,
     }: {
       paymentSessionId: string;
       onFailure?: (reason: string) => void;
+      onModalClose?: () => void;
     }) => {
       if (!window.Cashfree) {
         onFailure?.("Cashfree SDK not loaded. Please refresh and try again.");
@@ -32,15 +34,19 @@ export function useCashfree() {
 
       const cashfree = window.Cashfree({ mode: getCashfreeMode() });
 
+      // Try to render inline inside the modal container div
+      const container = document.getElementById("cashfree-payment-container");
+
       const result = await cashfree.checkout({
         paymentSessionId,
-        redirectTarget: "_self",
+        redirectTarget: container ?? "_self",
       });
 
       if (result?.error) {
+        onModalClose?.();
         onFailure?.(result.error.message || "Payment failed");
       }
-      // on success: Cashfree redirects to return_url automatically
+      // On success: Cashfree redirects to return_url automatically
     },
     []
   );

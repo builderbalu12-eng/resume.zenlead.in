@@ -6,6 +6,7 @@ import { apiClient } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCashfree } from '@/hooks/useCashfree';
+import { CashfreePaymentModal } from '@/components/CashfreePaymentModal';
 
 interface CreditPackage {
   credits: number;
@@ -33,6 +34,7 @@ export const OneTimePayment: React.FC = () => {
   const [customAmount, setCustomAmount] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const finalPackage = customCredits
     ? { credits: customCredits, amount: customAmount || 0 }
@@ -80,13 +82,18 @@ export const OneTimePayment: React.FC = () => {
         throw new Error('Failed to create payment order');
       }
 
-      // Open Cashfree checkout — redirects to /payment/success?order_id=... on success
+      // Open modal then launch Cashfree inline inside it
+      setModalOpen(true);
+      await new Promise((r) => setTimeout(r, 50));
+
       await openCheckout({
         paymentSessionId: response.data.payment_session_id,
         onFailure: (reason) => {
+          setModalOpen(false);
           setError(reason);
           setIsProcessing(false);
         },
+        onModalClose: () => setModalOpen(false),
       });
       setIsProcessing(false);
     } catch (err) {
@@ -96,6 +103,12 @@ export const OneTimePayment: React.FC = () => {
   };
 
   return (
+    <>
+    <CashfreePaymentModal
+      isOpen={modalOpen}
+      onClose={() => setModalOpen(false)}
+      planName={finalPackage ? `${finalPackage.credits} Credits` : null}
+    />
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-blue-950 dark:to-purple-950 py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
@@ -269,5 +282,6 @@ export const OneTimePayment: React.FC = () => {
       </div>
 
     </div>
+    </>
   );
 };
