@@ -565,7 +565,7 @@ type Results = {
   jobData: JobDescription;
   atsBefore: number;
   atsAfter: number;
-  scoreBreakdown: { label: string; before: number; after: number; max: number }[];
+  scoreBreakdown: { label: string; before: number; after: number; max: number; detail?: string }[];
   keywordsAdded: string[];
   keywordsPresent: string[];
   suggestions: string[];
@@ -694,37 +694,124 @@ function ResultsScreen({ results, onReset, styleCfg }: { results: Results; onRes
                   <p style={{ marginBottom: 12, color: "#222" }}>{t.summary}</p>
                 </>
               )}
-              {t.experience?.length > 0 && (
-                <>
-                  <div style={{ fontFamily: "Arial, sans-serif", fontWeight: 700, fontSize: styleCfg.fontSize * 0.78, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Experience</div>
-                  {t.experience.map((exp, i) => (
-                    <div key={i} style={{ marginBottom: 10 }}>
-                      <div style={{ fontWeight: 600, fontSize: styleCfg.fontSize * 0.87, marginBottom: 2 }}>{exp.title} · {exp.company}{exp.location ? ` · ${exp.location}` : ""}</div>
-                      <div style={{ color: "#666", fontSize: styleCfg.fontSize * 0.78, marginBottom: 5 }}>{exp.startDate} – {exp.endDate || "Present"}</div>
-                      <ul style={{ paddingLeft: 16, color: "#222" }}>
-                        {(exp.description || []).map((d, j) => <li key={j} style={{ marginBottom: 4 }}>{d}</li>)}
-                      </ul>
-                    </div>
-                  ))}
-                </>
-              )}
-              {t.skills?.length > 0 && (
-                <>
-                  <div style={{ fontFamily: "Arial, sans-serif", fontWeight: 700, fontSize: styleCfg.fontSize * 0.78, letterSpacing: "0.08em", textTransform: "uppercase", margin: "12px 0 6px" }}>Skills</div>
-                  <p style={{ color: "#222" }}>{t.skills.join(" · ")}</p>
-                </>
-              )}
-              {t.education?.length > 0 && (
-                <>
-                  <div style={{ fontFamily: "Arial, sans-serif", fontWeight: 700, fontSize: styleCfg.fontSize * 0.78, letterSpacing: "0.08em", textTransform: "uppercase", margin: "12px 0 6px" }}>Education</div>
-                  {t.education.map((ed, i) => (
-                    <div key={i} style={{ marginBottom: 6 }}>
-                      <div style={{ fontWeight: 600, fontSize: styleCfg.fontSize * 0.87 }}>{ed.degree}{ed.field ? `, ${ed.field}` : ""}</div>
-                      <div style={{ color: "#666", fontSize: styleCfg.fontSize * 0.78 }}>{ed.institution} · {ed.graduationDate}</div>
-                    </div>
-                  ))}
-                </>
-              )}
+              {(() => {
+                const SectionHeader: React.FC<{ children: React.ReactNode; first?: boolean }> = ({ children, first }) => (
+                  <div style={{
+                    fontFamily: "Arial, sans-serif", fontWeight: 700,
+                    fontSize: styleCfg.fontSize * 0.78,
+                    letterSpacing: "0.08em", textTransform: "uppercase",
+                    margin: first ? "0 0 6px" : "12px 0 6px",
+                  }}>{children}</div>
+                );
+                return (
+                  <>
+                    {t.experience?.length > 0 && (
+                      <>
+                        <SectionHeader first>Experience</SectionHeader>
+                        {t.experience.map((exp, i) => (
+                          <div key={i} style={{ marginBottom: 10 }}>
+                            <div style={{ fontWeight: 600, fontSize: styleCfg.fontSize * 0.87, marginBottom: 2 }}>{exp.title} · {exp.company}{exp.location ? ` · ${exp.location}` : ""}</div>
+                            <div style={{ color: "#666", fontSize: styleCfg.fontSize * 0.78, marginBottom: 5 }}>{exp.startDate} – {exp.endDate || "Present"}</div>
+                            <ul style={{ paddingLeft: 16, color: "#222" }}>
+                              {(exp.description || []).map((d, j) => <li key={j} style={{ marginBottom: 4 }}>{d}</li>)}
+                            </ul>
+                          </div>
+                        ))}
+                      </>
+                    )}
+
+                    {t.projects && t.projects.length > 0 && (
+                      <>
+                        <SectionHeader>Projects</SectionHeader>
+                        {t.projects.map((p, i) => (
+                          <div key={i} style={{ marginBottom: 10 }}>
+                            <div style={{ fontWeight: 600, fontSize: styleCfg.fontSize * 0.87, marginBottom: 2 }}>
+                              {p.title}
+                              {p.link ? <span style={{ fontWeight: 400, fontSize: styleCfg.fontSize * 0.78, color: "#666" }}> · {p.link}</span> : null}
+                            </div>
+                            {p.technologies && p.technologies.length > 0 && (
+                              <div style={{ color: "#666", fontSize: styleCfg.fontSize * 0.78, marginBottom: 4 }}>{p.technologies.join(" · ")}</div>
+                            )}
+                            {p.description && (
+                              <div style={{ color: "#222", marginBottom: 4 }}>{p.description}</div>
+                            )}
+                            {p.date && <div style={{ color: "#666", fontSize: styleCfg.fontSize * 0.78 }}>{p.date}</div>}
+                          </div>
+                        ))}
+                      </>
+                    )}
+
+                    {t.education?.length > 0 && (
+                      <>
+                        <SectionHeader>Education</SectionHeader>
+                        {t.education.map((ed, i) => (
+                          <div key={i} style={{ marginBottom: 6 }}>
+                            <div style={{ fontWeight: 600, fontSize: styleCfg.fontSize * 0.87 }}>{ed.degree}{ed.field ? `, ${ed.field}` : ""}</div>
+                            <div style={{ color: "#666", fontSize: styleCfg.fontSize * 0.78 }}>{ed.institution} · {ed.graduationDate}</div>
+                            {ed.achievements && ed.achievements.length > 0 && (
+                              <ul style={{ paddingLeft: 16, color: "#222", marginTop: 3 }}>
+                                {ed.achievements.map((a, j) => <li key={j} style={{ marginBottom: 2 }}>{a}</li>)}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </>
+                    )}
+
+                    {t.skills?.length > 0 && (
+                      <>
+                        <SectionHeader>Skills</SectionHeader>
+                        <p style={{ color: "#222" }}>{t.skills.join(" · ")}</p>
+                      </>
+                    )}
+
+                    {t.certifications && t.certifications.length > 0 && (
+                      <>
+                        <SectionHeader>Certifications</SectionHeader>
+                        <ul style={{ paddingLeft: 16, color: "#222" }}>
+                          {t.certifications.map((c, i) => <li key={i} style={{ marginBottom: 3 }}>{c}</li>)}
+                        </ul>
+                      </>
+                    )}
+
+                    {t.achievements && t.achievements.length > 0 && (
+                      <>
+                        <SectionHeader>Achievements</SectionHeader>
+                        <ul style={{ paddingLeft: 16, color: "#222" }}>
+                          {t.achievements.map((a, i) => <li key={i} style={{ marginBottom: 3 }}>{a}</li>)}
+                        </ul>
+                      </>
+                    )}
+
+                    {t.publications && t.publications.length > 0 && (
+                      <>
+                        <SectionHeader>Publications</SectionHeader>
+                        <ul style={{ paddingLeft: 16, color: "#222" }}>
+                          {t.publications.map((p, i) => <li key={i} style={{ marginBottom: 3 }}>{p}</li>)}
+                        </ul>
+                      </>
+                    )}
+
+                    {t.hobbies && t.hobbies.length > 0 && (
+                      <>
+                        <SectionHeader>Hobbies & Interests</SectionHeader>
+                        <p style={{ color: "#222" }}>{t.hobbies.join(" · ")}</p>
+                      </>
+                    )}
+
+                    {t.customSections && Object.keys(t.customSections).length > 0 && (
+                      <>
+                        {Object.entries(t.customSections).map(([name, body]) => (
+                          <React.Fragment key={name}>
+                            <SectionHeader>{name}</SectionHeader>
+                            <p style={{ color: "#222", whiteSpace: "pre-wrap" }}>{body}</p>
+                          </React.Fragment>
+                        ))}
+                      </>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
           {/* download */}
@@ -774,20 +861,26 @@ function ResultsScreen({ results, onReset, styleCfg }: { results: Results; onRes
             </div>
 
             <div>
-              <div style={sectionLabel}>Score Breakdown</div>
+              <div style={sectionLabel}>Section Match Score</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {results.scoreBreakdown.map(({ label, before, after, max }) => (
-                  <div key={label}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>
-                      <span style={{ color: "var(--text-2)" }}>{label}</span>
-                      <span style={{ color: "var(--text-3)", fontFamily: "DM Mono, monospace", fontSize: 11 }}>{before} → <span style={{ color: "var(--green)" }}>{after}</span>/{max}</span>
+                {results.scoreBreakdown.map(({ label, after, max, detail }) => {
+                  const pct = Math.round((after / max) * 100);
+                  const color = pct >= 70 ? "var(--green)" : pct >= 40 ? "var(--amber)" : "var(--red)";
+                  return (
+                    <div key={label}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>
+                        <span style={{ color: "var(--text-2)" }}>{label}</span>
+                        <span style={{ color: "var(--text-3)", fontFamily: "DM Mono, monospace", fontSize: 11 }}>
+                          <span style={{ color }}>{pct}%</span>
+                          {detail ? <span style={{ marginLeft: 8, opacity: 0.7 }}>{detail}</span> : null}
+                        </span>
+                      </div>
+                      <div style={{ height: 4, background: "var(--surface2)", borderRadius: 2, overflow: "hidden", position: "relative" }}>
+                        <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${pct}%`, background: color, borderRadius: 2, opacity: 0.85 }} />
+                      </div>
                     </div>
-                    <div style={{ height: 4, background: "var(--surface2)", borderRadius: 2, overflow: "hidden", position: "relative" }}>
-                      <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${(before / max) * 100}%`, background: "var(--border)", borderRadius: 2 }} />
-                      <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${(after / max) * 100}%`, background: "var(--green)", borderRadius: 2, opacity: 0.8 }} />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -1087,6 +1180,25 @@ const ResumeOptimizer: React.FC = () => {
           const tx = (tailorVal.projects || []).find((tp: any) => tp.title?.toLowerCase() === proj.title?.toLowerCase());
           return { ...proj, description: tx?.description?.trim() ? tx.description : proj.description };
         }),
+        // Pass through every section the user provided — never silently drop
+        education: Array.isArray(tailorVal.education) && tailorVal.education.length > 0
+          ? tailorVal.education
+          : (resumePayload.education || []),
+        certifications: Array.isArray(tailorVal.certifications) && tailorVal.certifications.length > 0
+          ? tailorVal.certifications
+          : (resumePayload.certifications || []),
+        achievements: Array.isArray(tailorVal.achievements) && tailorVal.achievements.length > 0
+          ? tailorVal.achievements
+          : (resumePayload.achievements || []),
+        publications: Array.isArray(tailorVal.publications) && tailorVal.publications.length > 0
+          ? tailorVal.publications
+          : (resumePayload.publications || []),
+        hobbies: Array.isArray(tailorVal.hobbies) && tailorVal.hobbies.length > 0
+          ? tailorVal.hobbies
+          : (resumePayload.hobbies || []),
+        customSections: (tailorVal.customSections && Object.keys(tailorVal.customSections).length > 0)
+          ? tailorVal.customSections
+          : (resumePayload.customSections || {}),
       };
 
       const jdKeywords: string[] = [
@@ -1102,15 +1214,62 @@ const ResumeOptimizer: React.FC = () => {
       const atsAfter = tailorVal.estimatedATSScore ?? tailorVal.atsScore ?? 73;
       const atsBefore = atsVal.atsScore ?? tailorVal.originalAtsScore ?? Math.max(0, atsAfter - 16);
 
-      const breakdownAfter = tailorVal.scoreBreakdown || atsVal.scoreBreakdown || {};
-      const breakdownBefore = tailorVal.originalScoreBreakdown || atsVal.scoreBreakdown || {};
-      const num = (v: any, fallback: number) => typeof v === "number" ? v : fallback;
-      const scoreBreakdown = [
-        { label: "Parsability",      before: num(breakdownBefore.formatting, 12), after: num(breakdownAfter.formatting, 18), max: 20 },
-        { label: "Keyword Density",  before: num(breakdownBefore.keywords, 14),   after: num(breakdownAfter.keywords, 18),   max: 35 },
-        { label: "Title Alignment",  before: num(breakdownBefore.structure, 16),  after: num(breakdownAfter.structure, 22),  max: 25 },
-        { label: "Experience Match", before: num(breakdownBefore.relevance, 15),  after: num(breakdownAfter.relevance, 17),  max: 20 },
-      ];
+      // Per-section score breakdown — one bar per section the user actually has.
+      // Source of truth: tailorVal.sectionScores (from Claude). Fallback: heuristic
+      // computed locally from keywordsPresent/keywordsAdded vs each section's text blob.
+      const apiSectionScores: Array<{ section: string; score: number; jdKeywordsFound?: number; jdKeywordsTotal?: number }> =
+        Array.isArray(tailorVal.sectionScores) ? tailorVal.sectionScores : [];
+
+      const buildHeuristicSectionScores = () => {
+        const allMatched = [...keywordsPresent, ...keywordsAdded].map(k => k.toLowerCase());
+        const total = Math.max(jdKeywords.length, allMatched.length, 1);
+        const blobOf = (parts: string[]) => parts.join(" ").toLowerCase();
+        const matchPct = (blob: string) => {
+          if (!blob) return 0;
+          const hits = allMatched.filter(k => k && blob.includes(k)).length;
+          return Math.round((hits / total) * 100);
+        };
+        const rows: Array<{ section: string; score: number; detail?: string }> = [];
+        if (resumePayload.skills?.length) rows.push({ section: "Skills", score: matchPct(blobOf(resumePayload.skills)) });
+        if (resumePayload.experience?.length) {
+          const blob = blobOf(resumePayload.experience.flatMap((e: any) => [e.title, e.company, ...(e.description || [])]));
+          rows.push({ section: "Experience", score: matchPct(blob) });
+        }
+        if (resumePayload.projects?.length) {
+          const blob = blobOf(resumePayload.projects.flatMap((p: any) => [p.title, p.description, ...(p.technologies || [])]));
+          rows.push({ section: "Projects", score: matchPct(blob) });
+        }
+        if (resumePayload.education?.length) {
+          const blob = blobOf(resumePayload.education.flatMap((e: any) => [e.degree, e.field, e.institution]));
+          rows.push({ section: "Education", score: matchPct(blob) });
+        }
+        if (resumePayload.certifications?.length) rows.push({ section: "Certifications", score: matchPct(blobOf(resumePayload.certifications)) });
+        if (resumePayload.achievements?.length) rows.push({ section: "Achievements", score: matchPct(blobOf(resumePayload.achievements)) });
+        if (resumePayload.publications?.length) rows.push({ section: "Publications", score: matchPct(blobOf(resumePayload.publications)) });
+        if (resumePayload.hobbies?.length) rows.push({ section: "Hobbies", score: matchPct(blobOf(resumePayload.hobbies)) });
+        for (const [name, body] of Object.entries(resumePayload.customSections || {})) {
+          rows.push({ section: name, score: matchPct(String(body || "").toLowerCase()) });
+        }
+        return rows;
+      };
+
+      const sectionRows = apiSectionScores.length > 0
+        ? apiSectionScores.map(s => ({
+            section: s.section,
+            score: Math.max(0, Math.min(100, s.score | 0)),
+            detail: (s.jdKeywordsFound != null && s.jdKeywordsTotal != null)
+              ? `${s.jdKeywordsFound}/${s.jdKeywordsTotal} JD keywords`
+              : undefined,
+          }))
+        : buildHeuristicSectionScores();
+
+      const scoreBreakdown = sectionRows.map(r => ({
+        label: r.section,
+        before: 0,
+        after: r.score,
+        max: 100,
+        detail: (r as any).detail,
+      }));
 
       const suggestions: string[] = (tailorVal.optimizationNotes as string[])
         || ((atsVal.improvements || []).map((it: any) => it.suggestion || it.issue).filter(Boolean))

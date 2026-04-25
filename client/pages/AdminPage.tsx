@@ -2233,10 +2233,10 @@ function ClaudeResourcePanel() {
 }
 
 function ResourcesTab() {
-  const [subTab, setSubTab] = useState<ResourceSubTab>("google");
+  const [subTab, setSubTab] = useState<ResourceSubTab>("claude");
 
+  // Gemini removed — Claude is the only AI provider. No "google" sub-tab.
   const SUB_TABS: { id: ResourceSubTab; label: string; icon: string }[] = [
-    { id: "google",  label: "Google",  icon: "✦" },
     { id: "claude",  label: "Claude",  icon: "◆" },
     { id: "mongodb", label: "MongoDB", icon: "🍃" },
     { id: "vercel",  label: "Vercel",  icon: "▲" },
@@ -2245,9 +2245,6 @@ function ResourcesTab() {
 
   return (
     <div className="space-y-4">
-      {/* Active Provider switcher — always visible at top */}
-      <ActiveProviderCard />
-
       {/* Inner sub-tab bar */}
       <div className="flex gap-1 p-1 bg-muted/40 rounded-lg w-fit">
         {SUB_TABS.map(({ id, label, icon }) => (
