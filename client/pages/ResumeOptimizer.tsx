@@ -427,7 +427,7 @@ function LoadingScreen({ progressOverride }: { progressOverride?: number }) {
   const realProgress = progressOverride !== undefined ? progressOverride : progress;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "calc(100vh - 220px)", gap: 40, padding: "60px 24px" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "calc(100vh - 64px - 46px)", gap: 40, padding: "60px 24px" }}>
         <div style={{ position: "relative", width: 96, height: 96 }}>
           <svg width={96} height={96} style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}>
             <circle cx={48} cy={48} r={42} fill="none" stroke="var(--border)" strokeWidth="2" />
@@ -658,7 +658,7 @@ function ResultsScreen({ results, onReset, styleCfg }: { results: Results; onRes
         </div>
       </div>
 
-      <div className="ro-results-grid" style={{ display: "grid", gridTemplateColumns: "1.6fr 310px 1fr", gap: 0, height: "calc(100vh - 220px)", overflow: "hidden" }}>
+      <div className="ro-results-grid" style={{ display: "grid", gridTemplateColumns: "1.6fr 310px 1fr", gap: 0, height: "calc(100vh - 64px - 46px - 41px)", overflow: "hidden" }}>
 
         {/* col 1 — resume preview */}
         <div style={{ borderRight: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -1158,7 +1158,7 @@ const ResumeOptimizer: React.FC = () => {
   };
 
   return (
-    <div className="resume-optimizer" style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)" }}>
+    <div className="resume-optimizer -mx-4 -my-6 md:-mx-6 md:-my-8" style={{ minHeight: "calc(100vh - 64px)", background: "var(--bg)", color: "var(--text)" }}>
       <style>{`
         .resume-optimizer {
           --bg: oklch(0.13 0.018 255);
