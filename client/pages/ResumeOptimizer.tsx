@@ -424,7 +424,7 @@ function LoadingScreen({ progressOverride }: { progressOverride?: number }) {
   const [step, setStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const steps = [
-    "Parsing your resume...",
+    "Extracting your resume...",
     "Analysing job requirements...",
     "Finding keyword gaps...",
     "Rewriting bullet points...",
@@ -1113,6 +1113,81 @@ function derivePieData(
   ];
 }
 
+/* ── helpers: textarea ↔ ResumeData reconciliation ── */
+// Used to detect whether the user's pasted text still matches the structured master
+// resume. If so, we skip the extract call. If they edited the text, we re-extract
+// via Claude so the tailor prompt always sees real data.
+function flattenResumeForCompare(r: ResumeData): string {
+  return [
+    r.contact?.name,
+    [r.contact?.email, r.contact?.phone, r.contact?.location].filter(Boolean).join(" · "),
+    "",
+    r.summary,
+    "",
+    "Skills: " + (r.skills || []).join(", "),
+    "",
+    ...(r.experience || []).flatMap(e => [
+      `${e.title} · ${e.company} · ${e.startDate} – ${e.endDate || "Present"}`,
+      ...(e.description || []).map(d => `• ${d}`),
+      "",
+    ]),
+  ].join("\n");
+}
+
+function normalizeForCompare(s: string): string {
+  return s.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+// Map the /api/extract-resume response shape to our ResumeData type.
+// The extract endpoint returns: contact, summary, skills, experience, education,
+// projects, certifications. We carry through optional sections (achievements,
+// publications, hobbies, customSections) when present in the response.
+function mapExtractedToResumeData(ext: any): ResumeData {
+  const contact = ext.contact || {};
+  return {
+    contact: {
+      name:     contact.name     || "",
+      email:    contact.email    || "",
+      phone:    contact.phone    || "",
+      location: contact.location || "",
+      website:  contact.website  || undefined,
+      linkedin: contact.linkedin || undefined,
+      github:   contact.github   || undefined,
+    } as any,
+    summary: ext.summary || "",
+    skills: Array.isArray(ext.skills) ? ext.skills : [],
+    experience: Array.isArray(ext.experience) ? ext.experience.map((e: any) => ({
+      title: e.title || "",
+      company: e.company || "",
+      location: e.location || "",
+      startDate: e.startDate || "",
+      endDate: e.endDate || "",
+      isCurrentlyWorking: !!e.isCurrentlyWorking,
+      description: Array.isArray(e.description) ? e.description : [],
+    })) : [],
+    education: Array.isArray(ext.education) ? ext.education.map((e: any) => ({
+      institution: e.institution || "",
+      degree: e.degree || "",
+      field: e.field || "",
+      graduationDate: e.graduationDate || "",
+      gpa: e.gpa || undefined,
+      achievements: Array.isArray(e.achievements) ? e.achievements : [],
+    })) : [],
+    projects: Array.isArray(ext.projects) ? ext.projects.map((p: any) => ({
+      title: p.title || "",
+      description: p.description || "",
+      technologies: Array.isArray(p.technologies) ? p.technologies : [],
+      link: p.link || "",
+      date: p.date || "",
+    })) : [],
+    certifications: Array.isArray(ext.certifications) ? ext.certifications : [],
+    achievements: Array.isArray(ext.achievements) ? ext.achievements : [],
+    publications: Array.isArray(ext.publications) ? ext.publications : [],
+    hobbies: Array.isArray(ext.hobbies) ? ext.hobbies : [],
+    customSections: (ext.customSections && typeof ext.customSections === "object") ? ext.customSections : {},
+  } as ResumeData;
+}
+
 /* ── main page ── */
 const ResumeOptimizer: React.FC = () => {
   const [screen, setScreen] = useState<Screen>("input");
@@ -1157,17 +1232,42 @@ const ResumeOptimizer: React.FC = () => {
 
   const handleSubmit = async () => {
     setError(null);
+
+    // Guard: require resume + JD. The textarea is the source of truth — without
+    // real content here Claude has nothing to tailor and would hallucinate from the JD.
+    const trimmedResume = resumeText.trim();
+    if (trimmedResume.length < 100) {
+      setError("Please paste your full resume in the resume box first.");
+      return;
+    }
+    if (jobText.trim().length < 50 && jobUrl.trim().length === 0) {
+      setError("Please paste a job description (or a job URL) to tailor against.");
+      return;
+    }
+
     setScreen("loading");
 
     try {
-      // Use the structured master resume if we have it; otherwise wrap raw text.
-      const resumePayload: ResumeData = masterResume ?? {
-        contact: { name: "Candidate", email: "", phone: "", location: "" },
-        summary: "",
-        skills: [],
-        experience: [],
-        education: [],
-      };
+      // Resolve a structured ResumeData from what's in the textarea.
+      // If a saved master resume exactly matches the textarea content, reuse it
+      // (avoids a redundant extract call). Otherwise call the Claude-backed
+      // extract endpoint so we always feed the tailor prompt real data — not a
+      // stub. This is the root-cause fix for the "Candidate / blank contact /
+      // JD-text-as-Education" bug.
+      const masterFlat = masterResume ? flattenResumeForCompare(masterResume) : "";
+      const useMaster = !!masterResume && normalizeForCompare(masterFlat) === normalizeForCompare(trimmedResume);
+
+      let resumePayload: ResumeData;
+      if (useMaster) {
+        resumePayload = masterResume!;
+      } else {
+        const ext = await apiClient.extractResume(trimmedResume);
+        if (!ext || (ext as any).error) {
+          throw new Error((ext as any)?.message || "Failed to read your resume. Please check the text and try again.");
+        }
+        resumePayload = mapExtractedToResumeData(ext);
+      }
+
       const fullJobText = (jobText.trim() ? jobText : "") +
         (notes.trim() ? `\n\nAdditional notes from candidate:\n${notes.trim()}` : "") +
         (jobUrl.trim() ? `\n\nSource URL: ${jobUrl.trim()}` : "");
@@ -1200,6 +1300,11 @@ const ResumeOptimizer: React.FC = () => {
 
       const tailored: ResumeData = {
         ...resumePayload,
+        // contact must always come from the user's resume — never let the tailor
+        // response (which may omit it) drop the name/email/phone in the preview or PDF.
+        contact: (tailorVal.contact && tailorVal.contact.name)
+          ? { ...resumePayload.contact, ...tailorVal.contact }
+          : resumePayload.contact,
         summary: tailorVal.summary || resumePayload.summary,
         skills: Array.isArray(tailorVal.skills) && tailorVal.skills.length > 0 ? tailorVal.skills : resumePayload.skills,
         experience: (resumePayload.experience || []).map(exp => {
