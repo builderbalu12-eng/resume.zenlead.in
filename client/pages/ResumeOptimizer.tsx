@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
 import { ResumeData, JobDescription } from "@/types";
 import { getMasterResume } from "@/utils/storage";
 import { apiClient } from "@/services/api";
@@ -18,34 +17,71 @@ const IcoLink = (p: any) => <Icon d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07
 const IcoCopy = (p: any) => <Icon d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2 M8 4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2z" {...p} />;
 const IcoCheck = (p: any) => <Icon d="M20 6L9 17l-5-5" {...p} />;
 const IcoArrow = (p: any) => <Icon d="M5 12h14 M12 5l7 7-7 7" {...p} />;
-const IcoStar = (p: any) => <Icon d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" {...p} />;
 const IcoEdit = (p: any) => <Icon d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" {...p} />;
 const IcoSettings = (p: any) => <Icon d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" {...p} />;
 
-/* ── shared layout ── */
-const Shell: React.FC<{ children: React.ReactNode; topbar?: React.ReactNode }> = ({ children, topbar }) => {
-  const navigate = useNavigate();
+/* ── step tabs (Input / Loading / Results) ── */
+type Screen = "input" | "loading" | "results";
+const StepTabs: React.FC<{
+  current: Screen;
+  hasResults: boolean;
+  onJump: (s: Screen) => void;
+}> = ({ current, hasResults, onJump }) => {
+  const order: Screen[] = ["input", "loading", "results"];
+  const currentIdx = order.indexOf(current);
+  const tabs: { id: Screen; label: string }[] = [
+    { id: "input",   label: "1 · Input" },
+    { id: "loading", label: "2 · Loading" },
+    { id: "results", label: "3 · Results" },
+  ];
+  const isReachable = (s: Screen) => {
+    if (s === "input") return true;
+    if (s === "loading") return current === "loading";
+    if (s === "results") return hasResults;
+    return false;
+  };
+
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <nav style={{
-        borderBottom: "1px solid var(--border-subtle)",
-        padding: "0 24px",
-        height: 52,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        position: "sticky", top: 0, zIndex: 10,
-        background: "var(--bg)",
-      }}>
-        <div onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-          <div style={{ width: 22, height: 22, borderRadius: 5, background: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <IcoStar size={12} stroke="#fff" fill="#fff" />
-          </div>
-          <span style={{ fontWeight: 600, fontSize: 14, letterSpacing: "-0.01em" }}>ResumeAI</span>
-        </div>
-        <div>{topbar}</div>
-      </nav>
-      <div style={{ flex: 1 }}>{children}</div>
+    <div style={{
+      borderBottom: "1px solid var(--border-subtle)",
+      padding: "0 24px",
+      display: "flex",
+      gap: 4,
+      background: "var(--bg)",
+    }}>
+      {tabs.map((t, i) => {
+        const reachable = isReachable(t.id);
+        const active = current === t.id;
+        const past = i < currentIdx;
+        return (
+          <button
+            key={t.id}
+            onClick={() => reachable && onJump(t.id)}
+            disabled={!reachable}
+            style={{
+              position: "relative",
+              padding: "14px 18px",
+              background: "transparent",
+              border: "none",
+              fontSize: 13,
+              fontWeight: active ? 500 : 400,
+              fontFamily: "DM Sans, sans-serif",
+              color: active ? "var(--text)" : past ? "var(--text-2)" : "var(--text-3)",
+              cursor: reachable ? "pointer" : "default",
+              opacity: reachable ? 1 : 0.55,
+              transition: "color 0.15s",
+            }}
+          >
+            {t.label}
+            {active && (
+              <span style={{
+                position: "absolute", bottom: -1, left: 12, right: 12,
+                height: 2, background: "var(--accent)", borderRadius: 1,
+              }} />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 };
@@ -131,8 +167,8 @@ function InputScreen({
   };
 
   return (
-    <Shell topbar={
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 24px 80px", position: "relative" }}>
+      <div style={{ position: "absolute", top: 16, right: 24, zIndex: 4 }}>
         <button
           onClick={() => setStylePanelOpen(o => !o)}
           style={{
@@ -144,13 +180,8 @@ function InputScreen({
         >
           <IcoSettings size={12} /> Style
         </button>
-        <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ color: "var(--green)", fontSize: 11 }}>●</span>
-          2 free optimizations / month
-        </div>
       </div>
-    }>
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 24px 80px", position: "relative" }}>
+      <div style={{ position: "relative" }}>
         {/* style panel popover */}
         {stylePanelOpen && (
           <div style={{
@@ -361,7 +392,7 @@ function InputScreen({
           </div>
         </div>
       </div>
-    </Shell>
+    </div>
   );
 }
 
@@ -396,8 +427,7 @@ function LoadingScreen({ progressOverride }: { progressOverride?: number }) {
   const realProgress = progressOverride !== undefined ? progressOverride : progress;
 
   return (
-    <Shell>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "calc(100vh - 52px)", gap: 40 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "calc(100vh - 220px)", gap: 40, padding: "60px 24px" }}>
         <div style={{ position: "relative", width: 96, height: 96 }}>
           <svg width={96} height={96} style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}>
             <circle cx={48} cy={48} r={42} fill="none" stroke="var(--border)" strokeWidth="2" />
@@ -431,8 +461,7 @@ function LoadingScreen({ progressOverride }: { progressOverride?: number }) {
             }} />
           ))}
         </div>
-      </div>
-    </Shell>
+    </div>
   );
 }
 
@@ -614,23 +643,22 @@ function ResultsScreen({ results, onReset, styleCfg }: { results: Results; onRes
   };
 
   return (
-    <Shell topbar={
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ background: "var(--green-dim)", border: "1px solid var(--green)", borderRadius: 20, padding: "4px 12px", fontSize: 12, color: "var(--green)", fontWeight: 500 }}>
-          ATS Score {results.atsBefore} → {results.atsAfter} <span style={{ opacity: 0.7 }}>({results.atsAfter - results.atsBefore >= 0 ? "+" : ""}{results.atsAfter - results.atsBefore})</span>
-        </div>
-        <button onClick={onReset} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 7, padding: "6px 14px", fontSize: 12, color: "var(--text-2)", cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>
-          ← Start over
-        </button>
-      </div>
-    }>
-      <div style={{ background: "var(--surface)", borderBottom: "1px solid var(--border-subtle)", padding: "10px 24px", display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
+    <div>
+      <div style={{ background: "var(--surface)", borderBottom: "1px solid var(--border-subtle)", padding: "10px 24px", display: "flex", alignItems: "center", gap: 10, fontSize: 13, flexWrap: "wrap" }}>
         <span style={{ color: "var(--green)" }}>✓</span>
         <span style={{ fontWeight: 500 }}>Your optimized resume is ready.</span>
         <span style={{ color: "var(--text-2)" }}>Review the changes below before downloading.</span>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ background: "var(--green-dim)", border: "1px solid var(--green)", borderRadius: 20, padding: "4px 12px", fontSize: 12, color: "var(--green)", fontWeight: 500 }}>
+            ATS Score {results.atsBefore} → {results.atsAfter} <span style={{ opacity: 0.7 }}>({results.atsAfter - results.atsBefore >= 0 ? "+" : ""}{results.atsAfter - results.atsBefore})</span>
+          </div>
+          <button onClick={onReset} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 7, padding: "6px 14px", fontSize: 12, color: "var(--text-2)", cursor: "pointer", fontFamily: "DM Sans, sans-serif" }}>
+            ← Start over
+          </button>
+        </div>
       </div>
 
-      <div className="ro-results-grid" style={{ display: "grid", gridTemplateColumns: "1.6fr 310px 1fr", gap: 0, height: "calc(100vh - 52px - 41px)", overflow: "hidden" }}>
+      <div className="ro-results-grid" style={{ display: "grid", gridTemplateColumns: "1.6fr 310px 1fr", gap: 0, height: "calc(100vh - 220px)", overflow: "hidden" }}>
 
         {/* col 1 — resume preview */}
         <div style={{ borderRight: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -913,7 +941,7 @@ function ResultsScreen({ results, onReset, styleCfg }: { results: Results; onRes
         </div>
 
       </div>
-    </Shell>
+    </div>
   );
 }
 
@@ -962,8 +990,7 @@ function derivePieData(
 
 /* ── main page ── */
 const ResumeOptimizer: React.FC = () => {
-  const navigate = useNavigate();
-  const [screen, setScreen] = useState<"input" | "loading" | "results">("input");
+  const [screen, setScreen] = useState<Screen>("input");
   const [resumeText, setResumeText] = useState("");
   const [jobText, setJobText] = useState("");
   const [jobUrl, setJobUrl] = useState("");
@@ -1170,6 +1197,16 @@ const ResumeOptimizer: React.FC = () => {
           .resume-optimizer .ro-results-grid > div { border-right: none !important; border-bottom: 1px solid var(--border-subtle); }
         }
       `}</style>
+
+      <StepTabs
+        current={screen}
+        hasResults={!!results}
+        onJump={(s) => {
+          if (s === "input") setScreen("input");
+          else if (s === "results" && results) setScreen("results");
+          // "loading" is not user-jumpable; only the in-flight optimization can land there
+        }}
+      />
 
       {error && (
         <div style={{ padding: "10px 24px", background: "var(--surface)", borderBottom: "1px solid var(--red)", color: "var(--red)", fontSize: 13 }}>

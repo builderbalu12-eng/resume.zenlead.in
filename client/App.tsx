@@ -104,7 +104,9 @@ function AnimatedRoutes() {
           path="/resume"
           element={
             <ProtectedRoute>
-              <ResumeOptimizer />
+              <AppShell>
+                <ResumeOptimizer />
+              </AppShell>
             </ProtectedRoute>
           }
         />
