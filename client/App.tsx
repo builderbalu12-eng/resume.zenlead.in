@@ -23,7 +23,7 @@ import { AppShell } from "./components/layout/AppShell";
 import { PricingPage } from "./pages/PricingPage";
 import { BillingPage } from "./pages/BillingPage";
 import { PaymentSuccessPage } from "./pages/PaymentSuccessPage";
-import { ResumeWorkspace } from "./pages/ResumeWorkspace";
+import ResumeOptimizer from "./pages/ResumeOptimizer";
 import { AdminPage } from "./pages/AdminPage";
 import { AdminRoute } from "./components/AdminRoute";
 import InterviewPrep from "./pages/InterviewPrep";
@@ -104,14 +104,12 @@ function AnimatedRoutes() {
           path="/resume"
           element={
             <ProtectedRoute>
-              <AppShell>
-                <ResumeWorkspace />
-              </AppShell>
+              <ResumeOptimizer />
             </ProtectedRoute>
           }
         />
-        <Route path="/upload" element={<Navigate to="/resume?tab=upload" replace />} />
-        <Route path="/tailor" element={<Navigate to="/resume?tab=tailor" replace />} />
+        <Route path="/upload" element={<Navigate to="/resume" replace />} />
+        <Route path="/tailor" element={<Navigate to="/resume" replace />} />
         <Route
           path="/history"
           element={

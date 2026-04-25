@@ -1,4 +1,4 @@
-// API client for ResumeMatch Pro backend
+// API client for LandYourJob backend
 
 const API_BASE_URL = (
   import.meta.env.VITE_API_URL ||
@@ -506,6 +506,13 @@ export class APIClient {
 
   async generateSkillsRoadmap(resume: string, jobDescription: string): Promise<any> {
     return this.request('/api/skills-roadmap', {
+      method: 'POST',
+      body: JSON.stringify({ resume, jobDescription, userCredits: 0 }),
+    });
+  }
+
+  async getKeywordDistribution(resume: string, jobDescription: string): Promise<any> {
+    return this.request('/api/keyword-distribution', {
       method: 'POST',
       body: JSON.stringify({ resume, jobDescription, userCredits: 0 }),
     });
