@@ -116,6 +116,29 @@ const sectionLabel: React.CSSProperties = {
   marginBottom: 10,
 };
 
+/* ── per-section colors (used by both pie chart and bars) ── */
+const SECTION_COLORS: Record<string, string> = {
+  "Skills":         "#3b82f6", // blue
+  "Skills Relevant": "#3b82f6",
+  "Experience":     "#ef4444", // red
+  "Experience Relevant": "#ef4444",
+  "Projects":       "#10b981", // green
+  "Projects Relevant": "#10b981",
+  "Objective":      "#eab308", // yellow
+  "Summary":        "#eab308", // yellow (treated as objective)
+  "Achievements":   "#92400e", // brown
+  "Certifications": "#ec4899", // pink
+  "Education":      "#a855f7", // purple
+  "Hobbies":        "#06b6d4", // cyan
+  "Hobbies & Interests": "#06b6d4",
+  "Publications":   "#f97316", // orange
+  "Not Relevant":   "#64748b", // slate (gap)
+  "Others Relevant": "#94a3b8",
+};
+const FALLBACK_PALETTE = ["#0ea5e9", "#84cc16", "#f59e0b", "#d946ef", "#14b8a6", "#f43f5e", "#a3a3a3"];
+const colorForSection = (name: string, idx: number): string =>
+  SECTION_COLORS[name] || FALLBACK_PALETTE[idx % FALLBACK_PALETTE.length];
+
 /* ── style settings (font / size / template) ── */
 type StyleConfig = {
   fontFamily: "Georgia" | "Arial" | "DM Sans" | "Times New Roman";
@@ -583,14 +606,12 @@ function ResultsScreen({ results, onReset, styleCfg }: { results: Results; onRes
   const [roadmap, setRoadmap] = useState<{ data: any | null; loading: boolean }>({ data: null, loading: false });
 
   const t = results.tailored;
-  const totalKeywords = results.keywordsAdded.length + results.keywordsPresent.length;
-  const keywordsPct = totalKeywords > 0
-    ? Math.round((results.keywordsPresent.length + results.keywordsAdded.length) / Math.max(totalKeywords, 1) * 100)
-    : results.skillsMatchedPct;
+  const keywordsPct = results.skillsMatchedPct;
   const bulletsPct = results.bulletsRewritten > 0
     ? Math.min(100, Math.round((results.bulletsRewritten / Math.max(results.original.experience.length, 1)) * 100))
     : 20;
-  const skillsAddedPct = results.keywordsAdded.length > 0
+  const totalKeywords = results.keywordsAdded.length + results.keywordsPresent.length;
+  const skillsAddedPct = totalKeywords > 0
     ? Math.round((results.keywordsAdded.length / Math.max(totalKeywords, 1)) * 100)
     : 33;
 
@@ -863,9 +884,9 @@ function ResultsScreen({ results, onReset, styleCfg }: { results: Results; onRes
             <div>
               <div style={sectionLabel}>Section Match Score</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {results.scoreBreakdown.map(({ label, after, max, detail }) => {
+                {results.scoreBreakdown.map(({ label, after, max, detail }, i) => {
                   const pct = Math.round((after / max) * 100);
-                  const color = pct >= 70 ? "var(--green)" : pct >= 40 ? "var(--amber)" : "var(--red)";
+                  const color = colorForSection(label, i);
                   return (
                     <div key={label}>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>
@@ -1044,19 +1065,30 @@ function derivePieData(
   keywordsPresent: string[],
   master: ResumeData,
   jdSkills: string[],
-  apiCategories?: { name: string; value: number }[]
+  apiCategories?: { name: string; value: number }[],
+  sectionScoreRows?: Array<{ section: string; score: number; jdKeywordsFound?: number; jdKeywordsTotal?: number }>
 ): PieDatum[] {
-  const colors: Record<string, string> = {
-    "Skills Relevant":     "#00cc00",
-    "Experience Relevant": "#ff9900",
-    "Projects Relevant":   "#ff0000",
-    "Others Relevant":     "#ffff00",
-    "Not Relevant":        "#999999",
-  };
-  if (apiCategories && apiCategories.length > 0) {
-    return apiCategories.map(c => ({ ...c, color: colors[c.name] || "#888" }));
+  // prefer per-section data from sectionScores (jdKeywordsFound per section)
+  if (sectionScoreRows && sectionScoreRows.length > 0) {
+    const slices = sectionScoreRows
+      .filter(r => (r.jdKeywordsFound ?? r.score) > 0)
+      .map((r, i) => ({
+        name: r.section,
+        value: r.jdKeywordsFound ?? Math.round(r.score / 10),
+        color: colorForSection(r.section, i),
+      }));
+    if (slices.length > 0) return slices;
   }
 
+  // fallback: backend keyword-distribution categories with SECTION_COLORS
+  if (apiCategories && apiCategories.length > 0) {
+    return apiCategories.map((c, i) => ({
+      ...c,
+      color: colorForSection(c.name, i),
+    }));
+  }
+
+  // last-resort: heuristic bucketing by where keywords appear
   const all = [...keywordsAdded, ...keywordsPresent];
   const skillsLower = master.skills.map(s => s.toLowerCase());
   const expBlob = master.experience.map(e => [e.title, e.company, ...(e.description || [])].join(" ")).join(" ").toLowerCase();
@@ -1073,11 +1105,11 @@ function derivePieData(
   const notRel = Math.max(0, jdSkills.length - all.length);
 
   return [
-    { name: "Skills Relevant",     value: skillsRel, color: colors["Skills Relevant"] },
-    { name: "Experience Relevant", value: expRel,    color: colors["Experience Relevant"] },
-    { name: "Projects Relevant",   value: projRel,   color: colors["Projects Relevant"] },
-    { name: "Others Relevant",     value: others,    color: colors["Others Relevant"] },
-    { name: "Not Relevant",        value: notRel,    color: colors["Not Relevant"] },
+    { name: "Skills Relevant",     value: skillsRel, color: colorForSection("Skills Relevant", 0) },
+    { name: "Experience Relevant", value: expRel,    color: colorForSection("Experience Relevant", 1) },
+    { name: "Projects Relevant",   value: projRel,   color: colorForSection("Projects Relevant", 2) },
+    { name: "Others Relevant",     value: others,    color: colorForSection("Others Relevant", 3) },
+    { name: "Not Relevant",        value: notRel,    color: colorForSection("Not Relevant", 4) },
   ];
 }
 
@@ -1290,13 +1322,15 @@ const ResumeOptimizer: React.FC = () => {
         }
       }
 
+      const matchedSet = new Set([...keywordsPresent, ...keywordsAdded].map(k => k.toLowerCase()));
       const skillsMatchedPct = jdKeywords.length > 0
-        ? Math.round(((keywordsPresent.length + keywordsAdded.length) / jdKeywords.length) * 100)
+        ? Math.min(100, Math.round((matchedSet.size / jdKeywords.length) * 100))
         : 47;
 
       const pieData = derivePieData(
         keywordsAdded, keywordsPresent, resumePayload, jdKeywords,
-        kwDistVal?.categories
+        kwDistVal?.categories,
+        apiSectionScores.length > 0 ? apiSectionScores : undefined
       );
 
       setResults({
