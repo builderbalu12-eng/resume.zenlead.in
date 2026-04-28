@@ -582,6 +582,8 @@ function ScoreRing({ value, max, color, label }: { value: number; max: number; c
 }
 
 /* ── results screen ── */
+type SuggestionItem = string | { section?: string; note: string; before?: string; after?: string };
+
 type Results = {
   tailored: ResumeData;
   original: ResumeData;
@@ -591,7 +593,7 @@ type Results = {
   scoreBreakdown: { label: string; before: number; after: number; max: number; detail?: string }[];
   keywordsAdded: string[];
   keywordsPresent: string[];
-  suggestions: string[];
+  suggestions: SuggestionItem[];
   pieData: PieDatum[];
   bulletsRewritten: number;
   skillsMatchedPct: number;
@@ -961,13 +963,32 @@ function ResultsScreen({ results, onReset, styleCfg }: { results: Results; onRes
             {results.suggestions.length > 0 && (
               <div>
                 <div style={sectionLabel}>AI Suggestions</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {results.suggestions.map((s, i) => (
-                    <div key={i} style={{ display: "flex", gap: 10, fontSize: 13, color: "var(--text-2)", lineHeight: 1.6 }}>
-                      <span style={{ color: "var(--accent)", flexShrink: 0, marginTop: 2 }}>→</span>
-                      <span>{s}</span>
-                    </div>
-                  ))}
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {results.suggestions.map((s, i) => {
+                    const item = typeof s === "string" ? { note: s } : s;
+                    return (
+                      <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 9, overflow: "hidden", fontSize: 12 }}>
+                        <div style={{ padding: "8px 12px", background: "var(--surface)" }}>
+                          {item.section && (
+                            <span style={{ fontSize: 10, fontWeight: 600, color: "var(--accent)", marginRight: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>{item.section}</span>
+                          )}
+                          <span style={{ color: "var(--text-2)", lineHeight: 1.5 }}>{item.note}</span>
+                        </div>
+                        {item.before && (
+                          <div style={{ padding: "8px 12px", borderTop: "1px solid var(--border-subtle)", background: "rgba(239,68,68,0.08)" }}>
+                            <div style={{ fontSize: 10, fontWeight: 600, color: "var(--red)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 3 }}>Before</div>
+                            <div style={{ color: "var(--text-2)", lineHeight: 1.5 }}>{item.before}</div>
+                          </div>
+                        )}
+                        {item.after && (
+                          <div style={{ padding: "8px 12px", borderTop: "1px solid var(--border-subtle)" }}>
+                            <div style={{ fontSize: 10, fontWeight: 600, color: "var(--green)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 3 }}>After</div>
+                            <div style={{ color: "var(--text)", lineHeight: 1.5 }}>{item.after}</div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1068,19 +1089,16 @@ function derivePieData(
   apiCategories?: { name: string; value: number }[],
   sectionScoreRows?: Array<{ section: string; score: number; jdKeywordsFound?: number; jdKeywordsTotal?: number }>
 ): PieDatum[] {
-  // prefer per-section data from sectionScores (jdKeywordsFound per section)
+  // prefer per-section score data — one slice per resume section
   if (sectionScoreRows && sectionScoreRows.length > 0) {
-    const slices = sectionScoreRows
-      .filter(r => (r.jdKeywordsFound ?? r.score) > 0)
-      .map((r, i) => ({
-        name: r.section,
-        value: r.jdKeywordsFound ?? Math.round(r.score / 10),
-        color: colorForSection(r.section, i),
-      }));
-    if (slices.length > 0) return slices;
+    return sectionScoreRows.map((r, i) => ({
+      name: r.section,
+      value: Math.max(1, r.jdKeywordsFound ?? r.score),
+      color: colorForSection(r.section, i),
+    }));
   }
 
-  // fallback: backend keyword-distribution categories with SECTION_COLORS
+  // fallback: backend keyword-distribution categories
   if (apiCategories && apiCategories.length > 0) {
     return apiCategories.map((c, i) => ({
       ...c,
@@ -1088,29 +1106,26 @@ function derivePieData(
     }));
   }
 
-  // last-resort: heuristic bucketing by where keywords appear
-  const all = [...keywordsAdded, ...keywordsPresent];
+  // last-resort: heuristic bucketing by where JD keywords appear in the resume
+  const jdLower = jdSkills.map(k => k.toLowerCase());
   const skillsLower = master.skills.map(s => s.toLowerCase());
   const expBlob = master.experience.map(e => [e.title, e.company, ...(e.description || [])].join(" ")).join(" ").toLowerCase();
   const projBlob = (master.projects || []).map(p => [p.title, p.description, ...(p.technologies || [])].join(" ")).join(" ").toLowerCase();
 
   let skillsRel = 0, expRel = 0, projRel = 0, others = 0;
-  for (const k of all) {
-    const lk = k.toLowerCase();
-    if (skillsLower.some(s => s === lk || s.includes(lk) || lk.includes(s))) skillsRel++;
-    else if (expBlob.includes(lk)) expRel++;
-    else if (projBlob.includes(lk)) projRel++;
+  for (const k of jdLower) {
+    if (skillsLower.some(s => s === k || s.includes(k) || k.includes(s))) skillsRel++;
+    else if (expBlob.includes(k)) expRel++;
+    else if (projBlob.includes(k)) projRel++;
     else others++;
   }
-  const notRel = Math.max(0, jdSkills.length - all.length);
 
   return [
-    { name: "Skills Relevant",     value: skillsRel, color: colorForSection("Skills Relevant", 0) },
-    { name: "Experience Relevant", value: expRel,    color: colorForSection("Experience Relevant", 1) },
-    { name: "Projects Relevant",   value: projRel,   color: colorForSection("Projects Relevant", 2) },
-    { name: "Others Relevant",     value: others,    color: colorForSection("Others Relevant", 3) },
-    { name: "Not Relevant",        value: notRel,    color: colorForSection("Not Relevant", 4) },
-  ];
+    { name: "Skills",     value: Math.max(1, skillsRel), color: colorForSection("Skills", 0) },
+    { name: "Experience", value: Math.max(1, expRel),    color: colorForSection("Experience", 1) },
+    { name: "Projects",   value: Math.max(1, projRel),   color: colorForSection("Projects", 2) },
+    { name: "Other",      value: Math.max(1, others),    color: colorForSection("Other", 3) },
+  ].filter((_, i, arr) => arr[i].value > 1 || arr.every(s => s.value === 1));
 }
 
 /* ── helpers: textarea ↔ ResumeData reconciliation ── */
@@ -1348,8 +1363,8 @@ const ResumeOptimizer: React.FC = () => {
       const keywordsPresent = (tailorVal.keywordsPresent as string[]) ||
         jdKeywords.filter(k => origSkillsLower.includes(k.toLowerCase()));
 
-      const atsAfter = tailorVal.estimatedATSScore ?? tailorVal.atsScore ?? 73;
-      const atsBefore = atsVal.atsScore ?? tailorVal.originalAtsScore ?? Math.max(0, atsAfter - 16);
+      const atsAfterFromClaude: number | undefined = tailorVal.estimatedATSScore ?? tailorVal.atsScore ?? undefined;
+      const atsBeforeFromClaude: number | undefined = atsVal.atsScore ?? tailorVal.originalAtsScore ?? undefined;
 
       // Per-section score breakdown — one bar per section the user actually has.
       // Source of truth: tailorVal.sectionScores (from Claude). Fallback: heuristic
@@ -1358,12 +1373,12 @@ const ResumeOptimizer: React.FC = () => {
         Array.isArray(tailorVal.sectionScores) ? tailorVal.sectionScores : [];
 
       const buildHeuristicSectionScores = () => {
-        const allMatched = [...keywordsPresent, ...keywordsAdded].map(k => k.toLowerCase());
-        const total = Math.max(jdKeywords.length, allMatched.length, 1);
+        const jdLower = jdKeywords.map(k => k.toLowerCase()).filter(Boolean);
+        const total = Math.max(jdLower.length, 1);
         const blobOf = (parts: string[]) => parts.join(" ").toLowerCase();
         const matchPct = (blob: string) => {
-          if (!blob) return 0;
-          const hits = allMatched.filter(k => k && blob.includes(k)).length;
+          if (!blob || !jdLower.length) return 0;
+          const hits = jdLower.filter(k => blob.includes(k)).length;
           return Math.round((hits / total) * 100);
         };
         const rows: Array<{ section: string; score: number; detail?: string }> = [];
@@ -1408,7 +1423,7 @@ const ResumeOptimizer: React.FC = () => {
         detail: (r as any).detail,
       }));
 
-      const suggestions: string[] = (tailorVal.optimizationNotes as string[])
+      const suggestions: SuggestionItem[] = (tailorVal.optimizationNotes as SuggestionItem[])
         || ((atsVal.improvements || []).map((it: any) => it.suggestion || it.issue).filter(Boolean))
         || [];
 
@@ -1432,10 +1447,14 @@ const ResumeOptimizer: React.FC = () => {
         ? Math.min(100, Math.round((matchedSet.size / jdKeywords.length) * 100))
         : 47;
 
+      const keywordBasedAts = Math.min(95, Math.max(30, Math.round(skillsMatchedPct * 0.9 + 10)));
+      const atsAfter = atsAfterFromClaude ?? keywordBasedAts;
+      const atsBefore = atsBeforeFromClaude ?? Math.max(5, atsAfter - Math.round(matchedSet.size * 2.5));
+
       const pieData = derivePieData(
         keywordsAdded, keywordsPresent, resumePayload, jdKeywords,
         kwDistVal?.categories,
-        apiSectionScores.length > 0 ? apiSectionScores : undefined
+        sectionRows.length > 0 ? sectionRows : undefined
       );
 
       setResults({
