@@ -59,6 +59,6 @@ export function getRouteTitle(pathname: string): string {
   if (pathname.startsWith("/interview-prep")) return "Interview Prep";
   if (pathname.startsWith("/github-sync")) return "GitHub Sync";
   if (pathname.startsWith("/auto-apply")) return "Auto Apply";
-  return "ResumeMatch";
+  return "LandYourJob";
 }
 

@@ -362,7 +362,7 @@ export const TailorResume: React.FC = () => {
 
   const handleShareWhatsApp = () => {
     const diff = tailorState.atsScore - tailorState.originalAtsScore;
-    const msg = `I improved my ATS score by ${diff} points using ResumeMatch AI! Check it out at resume.zenlead.in`;
+    const msg = `I improved my ATS score by ${diff} points using LandYourJob AI! Check it out at landyourjob.zenlead.in`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 

@@ -41,6 +41,17 @@ export const UploadResume: React.FC = () => {
     }, 1000);
     return () => clearInterval(interval);
   }, [resume]);
+
+  const [masterConfirmed, setMasterConfirmed] = useState(false);
+
+  const handleSetAsMaster = async () => {
+    if (!resume) return;
+    setCountdown(null);
+    await forceSyncMasterResume(resume);
+    setMasterConfirmed(true);
+    setTimeout(() => setMasterConfirmed(false), 3000);
+  };
+
   const [portfolioUrl, setPortfolioUrl] = useState('');
   const [savingPortfolio, setSavingPortfolio] = useState(false);
   const [portfolioSaved, setPortfolioSaved] = useState(false);
@@ -351,6 +362,9 @@ export const UploadResume: React.FC = () => {
             <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
               <Button variant="gradient" onClick={() => navigate("/resume?tab=tailor")}>
                 {countdown !== null ? `Going to Tailor in ${countdown}s…` : "Tailor resume"}
+              </Button>
+              <Button variant="outline" onClick={handleSetAsMaster} disabled={masterConfirmed}>
+                {masterConfirmed ? 'Set as master ✓' : 'Set as Master Resume'}
               </Button>
               <Button variant="outline" onClick={() => { setCountdown(null); setResume(null); }}>
                 Upload new

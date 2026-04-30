@@ -5,8 +5,8 @@ import {
 
 let injectedButton = false;
 
-// Proactively save the auth token to chrome.storage.sync whenever we are on a ZenLead page.
-// This ensures the sidebar can find the token even if the ZenLead tab is later closed.
+// Proactively save the auth token to chrome.storage.sync whenever we are on a LandYourJob page.
+// This ensures the sidebar can find the token even if the LandYourJob tab is later closed.
 (function autosaveAuthToken() {
   const hostname = window.location.hostname;
   if (hostname.includes("zenlead.in") || hostname === "localhost" || hostname === "127.0.0.1") {

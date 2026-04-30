@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import { useAppConfig } from "@/contexts/AppConfigContext";
 
 export function PrivacyPolicy() {
-  const { app_name: appName, support_email: supportEmail } = useAppConfig();
+  const { app_name: rawAppName, support_email: supportEmail } = useAppConfig();
+  const appName = rawAppName || "LandYourJob";
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-16 px-4">
       <div className="max-w-3xl mx-auto">
@@ -20,10 +21,12 @@ export function PrivacyPolicy() {
           <section>
             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">1. Who We Are</h2>
             <p>
-              {appName} ("we", "us", "our") is operated by ZenLead and available at{" "}
+              {appName} ("we", "us", "our") is operated by ZenLead (trading as LandYourJob) and available at{" "}
               <a href="https://landyourjob.zenlead.in" className="text-blue-600 dark:text-blue-400 underline">
                 landyourjob.zenlead.in
-              </a>. We provide an AI-powered resume tailoring web application and Chrome extension.
+              </a>. We provide an AI-powered SaaS platform for resume tailoring and ATS score analysis. We do not guarantee employment, placement, or job interviews. We are not a recruitment agency.
+            </p>
+            <p className="mt-3">
               For privacy questions, contact us at{" "}
               <a href={`mailto:${supportEmail}`} className="text-blue-600 dark:text-blue-400 underline">
                 {supportEmail}
@@ -55,7 +58,7 @@ export function PrivacyPolicy() {
             <h3 className="font-semibold mb-2">Payment Data</h3>
             <ul className="list-disc list-inside space-y-1">
               <li>Plan selected, currency, amount paid</li>
-              <li>Razorpay transaction and order IDs (we do not store card numbers or bank details — Razorpay handles all payment card data)</li>
+              <li>Cashfree payment IDs and order IDs (we do not store card numbers or bank details — Cashfree handles all payment card data)</li>
             </ul>
           </section>
 
@@ -89,11 +92,11 @@ export function PrivacyPolicy() {
             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">5. Third Parties We Share Data With</h2>
             <div className="space-y-4">
               <div>
-                <h3 className="font-semibold">Razorpay (Payment Processor)</h3>
+                <h3 className="font-semibold">Cashfree (Payment Processor)</h3>
                 <p className="text-sm">
-                  We use Razorpay to process payments. Razorpay receives your transaction amount, currency, and order information. Razorpay's privacy policy applies to payment data:{" "}
-                  <a href="https://razorpay.com/privacy" className="text-blue-600 dark:text-blue-400 underline" target="_blank" rel="noopener noreferrer">
-                    razorpay.com/privacy
+                  We use Cashfree to process payments. Cashfree receives your transaction amount, currency, and order information. Cashfree's privacy policy applies to payment data:{" "}
+                  <a href="https://www.cashfree.com/privacy-policy/" className="text-blue-600 dark:text-blue-400 underline" target="_blank" rel="noopener noreferrer">
+                    cashfree.com/privacy-policy
                   </a>
                 </p>
               </div>
@@ -107,12 +110,6 @@ export function PrivacyPolicy() {
                 <h3 className="font-semibold">Google Analytics</h3>
                 <p className="text-sm">
                   We use Google Analytics (measurement ID: G-20D27HKD4T) to understand how users interact with our website. This may include anonymised IP addresses, pages visited, and session duration. You can opt out via the Google Analytics Opt-out Browser Add-on.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold">Google Maps API</h3>
-                <p className="text-sm">
-                  The "Find Clients" feature uses the Google Maps API to display business locations. Location data is processed by Google when you use this feature.
                 </p>
               </div>
               <div>

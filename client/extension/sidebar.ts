@@ -137,13 +137,13 @@ const CONNECT_CONTENT = `
     <div style="font-size:38px;margin-bottom:14px;">🔗</div>
     <h2 style="font-size:15px;font-weight:700;margin-bottom:8px;">Connect Your Account</h2>
     <p style="font-size:12px;color:#888;margin-bottom:20px;line-height:1.5;">
-      Sign in to ZenLead so the extension can load your resume.
+      Sign in to LandYourJob so the extension can load your resume.
       Once logged in, this panel updates automatically.
     </p>
     <button id="open-app-btn" style="width:100%;padding:11px;border:none;border-radius:6px;
       font-size:13px;font-weight:600;cursor:pointer;margin-bottom:10px;
       background:linear-gradient(135deg,hsl(262,80%,50%) 0%,hsl(218,92%,50%) 100%);color:white;">
-      🚀 Open ZenLead &amp; Sign In
+      🚀 Open LandYourJob &amp; Sign In
     </button>
     <button id="retry-btn" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;
       font-size:13px;font-weight:600;cursor:pointer;background:#f5f5f5;color:#333;">
@@ -563,7 +563,7 @@ async function handleTailor() {
     return;
   }
   if (!state.masterResume) {
-    if (errorEl) { errorEl.classList.remove("hidden"); errorEl.textContent = "✗ Resume not found. Open ZenLead, sign in, then click Retry."; }
+    if (errorEl) { errorEl.classList.remove("hidden"); errorEl.textContent = "✗ Resume not found. Open LandYourJob, sign in, then click Retry."; }
     return;
   }
 

@@ -270,7 +270,7 @@ export const Dashboard: React.FC = () => {
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  Welcome bacT, {user.firstName}! 👋
+                  Welcome back, {user.firstName}! 👋
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   {masterResume
@@ -818,7 +818,7 @@ export const Dashboard: React.FC = () => {
                           <Zap className="h-4 w-4 text-white" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-white">ResumeMatch Pro</p>
+                          <p className="text-xs font-bold text-white">LandYourJob</p>
                           <p className="text-[10px] text-violet-200">Chrome Extension</p>
                         </div>
                         <div className="ml-auto flex gap-1">
@@ -966,7 +966,7 @@ export const Dashboard: React.FC = () => {
                       <Zap className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-white">ResumeMatch Pro</p>
+                      <p className="text-xs font-bold text-white">LandYourJob</p>
                       <p className="text-[10px] text-violet-200">Chrome Extension</p>
                     </div>
                     <div className="ml-auto flex gap-1">

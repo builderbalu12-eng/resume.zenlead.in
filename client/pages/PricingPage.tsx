@@ -182,7 +182,7 @@ export function PricingPage() {
           Pricing
         </h1>
         <p className="mt-2 text-slate-600 dark:text-slate-400">
-          Choose a plan that matches your ResumeMatch workflow.
+          Choose a plan that matches your LandYourJob workflow.
         </p>
       </BlurFade>
 

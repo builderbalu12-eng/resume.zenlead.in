@@ -152,6 +152,7 @@ function InputScreen({
   onSubmit, resumeText, setResumeText, jobText, setJobText,
   jobUrl, setJobUrl, notes, setNotes, length, setLength,
   styleCfg, setStyleCfg, busy,
+  onSetAsMaster, masterSaving, masterSavedMsg,
 }: {
   onSubmit: () => void;
   resumeText: string; setResumeText: (s: string) => void;
@@ -161,6 +162,9 @@ function InputScreen({
   length: string; setLength: (s: string) => void;
   styleCfg: StyleConfig; setStyleCfg: (c: StyleConfig) => void;
   busy: boolean;
+  onSetAsMaster?: () => void;
+  masterSaving?: boolean;
+  masterSavedMsg?: string | null;
 }) {
   const [dragging, setDragging] = useState(false);
   const [stylePanelOpen, setStylePanelOpen] = useState(false);
@@ -271,7 +275,26 @@ function InputScreen({
               <div style={cardHeader}>
                 <IcoFile size={14} stroke="var(--accent)" />
                 <span style={{ fontWeight: 500, fontSize: 13 }}>Your Resume</span>
-                <span style={{ fontSize: 11, color: "var(--text-3)", marginLeft: "auto" }}>paste text or upload PDF</span>
+                <span style={{ fontSize: 11, color: "var(--text-3)" }}>paste text or upload PDF</span>
+                {onSetAsMaster && (
+                  <button
+                    onClick={onSetAsMaster}
+                    disabled={masterSaving || resumeText.trim().length < 50}
+                    style={{
+                      marginLeft: "auto",
+                      background: masterSavedMsg ? "var(--green-dim, #d1fae5)" : "var(--surface2)",
+                      border: `1px solid ${masterSavedMsg ? "var(--green, #16a34a)" : "var(--border)"}`,
+                      color: masterSavedMsg ? "var(--green, #16a34a)" : "var(--text-2)",
+                      borderRadius: 6, padding: "4px 10px", fontSize: 11,
+                      cursor: masterSaving || resumeText.trim().length < 50 ? "not-allowed" : "pointer",
+                      opacity: masterSaving ? 0.6 : 1,
+                      fontFamily: "DM Sans, sans-serif",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {masterSavedMsg ?? (masterSaving ? "Saving…" : "Set as Master")}
+                  </button>
+                )}
               </div>
               <textarea
                 value={resumeText}
@@ -1215,6 +1238,24 @@ const ResumeOptimizer: React.FC = () => {
   const [results, setResults] = useState<Results | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [masterResume, setMasterResume] = useState<ResumeData | null>(null);
+  const [masterSaving, setMasterSaving] = useState(false);
+  const [masterSavedMsg, setMasterSavedMsg] = useState<string | null>(null);
+
+  const handleSetAsMaster = async () => {
+    const text = resumeText.trim();
+    if (text.length < 50) return;
+    setMasterSaving(true);
+    try {
+      await apiClient.saveMasterResumeText(text);
+      setMasterSavedMsg('Saved ✓');
+      setTimeout(() => setMasterSavedMsg(null), 3000);
+    } catch {
+      setMasterSavedMsg('Failed');
+      setTimeout(() => setMasterSavedMsg(null), 3000);
+    } finally {
+      setMasterSaving(false);
+    }
+  };
 
   // load master resume on mount, prefill textarea with a flattened text view
   useEffect(() => {
@@ -1239,6 +1280,12 @@ const ResumeOptimizer: React.FC = () => {
               ]),
             ].join("\n");
             setResumeText(txt);
+          }
+        } else {
+          // No structured master in localStorage — try raw text saved from backend
+          const serverMaster = await apiClient.getMasterResumeText();
+          if (serverMaster?.raw_text && !resumeText) {
+            setResumeText(serverMaster.raw_text);
           }
         }
       } catch { /* not signed in or no resume — ok */ }
@@ -1541,6 +1588,9 @@ const ResumeOptimizer: React.FC = () => {
           length={length} setLength={setLength}
           styleCfg={styleCfg} setStyleCfg={setStyleCfg}
           busy={false}
+          onSetAsMaster={handleSetAsMaster}
+          masterSaving={masterSaving}
+          masterSavedMsg={masterSavedMsg}
         />
       )}
       {screen === "loading" && <LoadingScreen />}

@@ -158,7 +158,7 @@ export const ResetPassword: React.FC = () => {
         </div>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          © 2024 ResumeMatch Pro. All rights reserved.
+          © 2026 LandYourJob. All rights reserved.
         </p>
       </div>
     </div>

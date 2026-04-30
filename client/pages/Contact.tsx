@@ -3,7 +3,8 @@ import { Mail, Clock, MessageSquare, Phone } from "lucide-react";
 import { useAppConfig } from "@/contexts/AppConfigContext";
 
 export function Contact() {
-  const { app_name: appName, support_email: supportEmail } = useAppConfig();
+  const { app_name: rawAppName, support_email: supportEmail } = useAppConfig();
+  const appName = rawAppName || "LandYourJob";
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-16 px-4">
       <div className="max-w-2xl mx-auto">
@@ -65,13 +66,30 @@ export function Contact() {
           </div>
 
           <div className="flex items-start gap-4 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <div className="h-10 w-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
+              <MessageSquare className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+            </div>
+            <div>
+              <p className="font-bold text-slate-900 dark:text-white">Grievance Officer</p>
+              <p className="text-slate-700 dark:text-slate-300 font-medium">Balakrishna Akula</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                For unresolved complaints, email{" "}
+                <a href={`mailto:${supportEmail}`} className="text-blue-600 dark:text-blue-400 underline">
+                  {supportEmail}
+                </a>{" "}
+                with subject "Grievance". We will respond within 7 working days per RBI Payment Aggregator guidelines.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-4 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <div className="h-10 w-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center shrink-0">
               <MessageSquare className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
               <p className="font-bold text-slate-900 dark:text-white">Refund Requests</p>
               <p className="text-slate-700 dark:text-slate-300 text-sm mt-1">
-                Email us with subject "Refund Request" and include your Razorpay transaction ID.
+                Email us with subject "Refund Request" and include your payment ID or order ID.
                 See our{" "}
                 <Link to="/refund-policy" className="text-blue-600 dark:text-blue-400 underline">
                   Refund Policy
@@ -85,9 +103,15 @@ export function Contact() {
         <div className="mt-10 p-6 rounded-2xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
           <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Business Details</p>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            ZenLead
+            ZenLead (trading as LandYourJob)
             <br />
             {appName} — AI Resume Tailoring
+            <br />
+            Second Floor, 28 A/5 B, Kamala Nivas,
+            <br />
+            Jia Sarai, Hauz Khas,
+            <br />
+            New Delhi, Delhi 110016, India
             <br />
             Phone:{" "}
             <a href="tel:+919573217566" className="text-blue-600 dark:text-blue-400 underline">
@@ -100,8 +124,8 @@ export function Contact() {
             </a>
             <br />
             Website:{" "}
-            <a href="https://resume.zenlead.in" className="text-blue-600 dark:text-blue-400 underline">
-              resume.zenlead.in
+            <a href="https://landyourjob.zenlead.in" className="text-blue-600 dark:text-blue-400 underline">
+              landyourjob.zenlead.in
             </a>
           </p>
         </div>

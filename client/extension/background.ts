@@ -6,7 +6,7 @@ let pageData: {
 
 // Log when extension is installed and configure side panel behaviour
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("[Background] ResumeMatch Pro extension installed");
+  console.log("[Background] LandYourJob extension installed");
   // Make clicking the extension icon open/close the side panel automatically
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {
     console.warn("[Background] Could not set panel behaviour (Chrome 114+ required)");

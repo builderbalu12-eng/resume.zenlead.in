@@ -282,6 +282,21 @@ export class APIClient {
     });
   }
 
+  async saveMasterResumeText(rawText: string): Promise<{ success: boolean }> {
+    return this.request('/api/resumes/set-master', {
+      method: 'POST',
+      body: JSON.stringify({ raw_text: rawText }),
+    });
+  }
+
+  async getMasterResumeText(): Promise<{ raw_text: string } | null> {
+    try {
+      return await this.request('/api/resumes/master-text', { method: 'GET' });
+    } catch {
+      return null;
+    }
+  }
+
   async tailorResumeOld(resumeId: string, jobDescription: string): Promise<any> {
     return this.request(`/api/resume/${resumeId}/tailor`, {
       method: 'POST',
