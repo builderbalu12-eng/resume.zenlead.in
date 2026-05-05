@@ -1,177 +1,197 @@
 import * as React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useTheme } from "next-themes";
-import {
-  ChevronRight,
-  CreditCard,
-  LogOut,
-  Moon,
-  Receipt,
-  Sun,
-  User as UserIcon,
-} from "lucide-react";
-
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { LogOut, User as UserIcon, CreditCard, Receipt, Menu, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppConfig } from "@/contexts/AppConfigContext";
-import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { getRouteTitle } from "./nav";
+import { PRIMARY_NAV, ACCOUNT_NAV, type NavItem } from "./nav";
 
-function getInitials(first?: string, last?: string) {
-  const f = first?.slice(0, 1) ?? "";
-  const l = last?.slice(0, 1) ?? "";
-  return (f + l).toUpperCase();
+function useIsMobile() {
+  const [isMobile, setIsMobile] = React.useState(() => window.innerWidth < 768);
+  React.useEffect(() => {
+    const fn = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return isMobile;
 }
 
-export function AppHeader({
-  primaryAction,
-}: {
-  primaryAction?: React.ReactNode;
-}) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user, isAuthenticated, logout } = useAuth();
-  const { theme, setTheme } = useTheme();
-  const { logo_url: logoUrl } = useAppConfig();
-
-  const title = getRouteTitle(location.pathname);
-
-  const crumbs = React.useMemo(() => {
-    const segs = location.pathname.split("/").filter(Boolean);
-    if (segs.length === 0) return [{ label: "Dashboard" }];
-    return segs.map((s) => ({ label: s.replace(/-/g, " ") }));
-  }, [location.pathname]);
-
+function AppNavLink({ item, onClick }: { item: NavItem; onClick?: () => void }) {
+  const [hovered, setHovered] = React.useState(false);
+  const Icon = item.icon;
   return (
-    <div className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl">
-      <div className="flex h-16 items-center gap-3 px-4 md:px-6">
-        <SidebarTrigger className="md:mr-1" />
-
-        <img
-          src={logoUrl}
-          alt="Logo"
-          className="h-7 w-7 rounded-lg object-contain bg-white shrink-0"
-        />
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-3">
-            <div className="min-w-0">
-              <h1 className="truncate text-sm font-semibold tracking-tight text-foreground md:text-base">
-                {title}
-              </h1>
-              <div className="hidden md:block">
-                <Breadcrumb>
-                  <BreadcrumbList className="text-xs text-muted-foreground">
-                    {crumbs.slice(0, 3).map((c, idx) => (
-                      <React.Fragment key={`${c.label}-${idx}`}>
-                        <BreadcrumbItem>
-                          {idx === crumbs.length - 1 ? (
-                            <BreadcrumbPage className="capitalize">
-                              {c.label}
-                            </BreadcrumbPage>
-                          ) : (
-                            <span className="capitalize">{c.label}</span>
-                          )}
-                        </BreadcrumbItem>
-                        {idx !== crumbs.length - 1 && (
-                          <BreadcrumbSeparator>
-                            <ChevronRight className="h-3 w-3" />
-                          </BreadcrumbSeparator>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </BreadcrumbList>
-                </Breadcrumb>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {primaryAction}
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-xl"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            aria-label="Toggle theme"
-          >
-            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-xl border border-border/60 bg-card/60 px-2 py-1.5",
-                  "hover:bg-card transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                )}
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-gradient-primary text-white text-xs font-semibold flex items-center justify-center">
-                    {user ? (
-                      getInitials(user.firstName, user.lastName) || (
-                        <UserIcon className="h-4 w-4" />
-                      )
-                    ) : (
-                      <UserIcon className="h-4 w-4" />
-                    )}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="hidden sm:flex flex-col text-left leading-tight">
-                  <span className="text-xs font-semibold">
-                    {user ? user.firstName : "Guest"}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground">
-                    {user ? user.email : "Not signed in"}
-                  </span>
-                </div>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/profile")} disabled={!isAuthenticated}>
-                <UserIcon className="mr-2 h-4 w-4" />
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal py-1">Usage</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => navigate("/billing")} disabled={!isAuthenticated}>
-                <CreditCard className="mr-2 h-4 w-4" />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/billing#credits")} disabled={!isAuthenticated}>
-                <Receipt className="mr-2 h-4 w-4" />
-                Credit Activity
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {isAuthenticated ? (
-                <DropdownMenuItem
-                  onClick={() => {
-                    logout();
-                    navigate("/login");
-                  }}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Log out
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem onClick={() => navigate("/login")}>
-                  Log in
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-    </div>
+    <NavLink
+      to={item.path}
+      end={item.path === "/"}
+      onClick={onClick}
+      style={({ isActive }) => ({
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "8px 14px", borderRadius: 8,
+        fontSize: 13, fontWeight: isActive ? 600 : 500,
+        color: isActive ? "white" : hovered ? "#94a3b8" : "#64748b",
+        background: isActive ? "rgba(255,255,255,0.09)" : "transparent",
+        textDecoration: "none",
+        transition: "color 0.2s, background 0.2s",
+        whiteSpace: "nowrap",
+      })}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <Icon className="w-3.5 h-3.5" />
+      {item.label}
+    </NavLink>
   );
 }
 
+export function AppHeader({ primaryAction }: { primaryAction?: React.ReactNode }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, isAuthenticated, logout } = useAuth();
+  const { logo_url: logoUrl, app_name: appName } = useAppConfig();
+  const [dropOpen, setDropOpen] = React.useState(false);
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const dropRef = React.useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
+
+  // Close mobile menu on route change
+  React.useEffect(() => { setMenuOpen(false); }, [location.pathname]);
+
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const initials = ((user?.firstName?.slice(0, 1) ?? "") + (user?.lastName?.slice(0, 1) ?? "")).toUpperCase() || "?";
+  const name = appName ?? "LandYourJob";
+  const allNavItems = [...PRIMARY_NAV, ...ACCOUNT_NAV];
+
+  const userDropdown = (
+    <div ref={dropRef} style={{ position: "relative" }}>
+      <button
+        onClick={() => setDropOpen(o => !o)}
+        style={{
+          display: "flex", alignItems: "center", gap: 8,
+          background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 10, padding: "6px 10px 6px 8px", cursor: "pointer",
+        }}
+      >
+        <div style={{
+          width: 28, height: 28, borderRadius: "50%",
+          background: "linear-gradient(135deg,#7c3aed,#9333ea)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 11, fontWeight: 700, color: "white", flexShrink: 0,
+        }}>{initials}</div>
+        {!isMobile && (
+          <div style={{ textAlign: "left" }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "white", lineHeight: 1.2 }}>{user?.firstName}</div>
+            <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.2 }}>{user?.email}</div>
+          </div>
+        )}
+      </button>
+      {dropOpen && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 8px)", right: 0, width: 200,
+          background: "#0d1220", border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 12, boxShadow: "0 20px 60px rgba(0,0,0,0.6)", overflow: "hidden", zIndex: 9999,
+        }}>
+          {[
+            { icon: <UserIcon size={14} />, label: "Profile", path: "/profile" },
+            { icon: <CreditCard size={14} />, label: "Billing", path: "/billing" },
+            { icon: <Receipt size={14} />, label: "Credit Activity", path: "/billing#credits" },
+          ].map((item, i) => (
+            <button key={i} onClick={() => { navigate(item.path); setDropOpen(false); }}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 16px", background: "transparent", border: "none", color: "#94a3b8", fontSize: 13, cursor: "pointer", fontFamily: "Inter, sans-serif", textAlign: "left" }}
+              onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "white"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#94a3b8"; }}>
+              <span style={{ color: "#64748b" }}>{item.icon}</span>{item.label}
+            </button>
+          ))}
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+            <button onClick={() => { logout(); navigate("/login"); setDropOpen(false); }}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 16px", background: "transparent", border: "none", color: "#f87171", fontSize: 13, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
+              <LogOut size={14} /> Log out
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      <nav style={{
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000,
+        height: 60,
+        background: "rgba(7,9,15,0.96)",
+        backdropFilter: "blur(20px)",
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "0 20px",
+        fontFamily: "Inter, sans-serif",
+      }}>
+        {/* Logo */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          <img src={logoUrl || "/logo/lo9o.png"} alt="" style={{ width: 30, height: 30, borderRadius: 8, objectFit: "contain" }} />
+          <span style={{ fontFamily: "Space Grotesk, sans-serif", fontWeight: 700, fontSize: 17, color: "white", letterSpacing: "-0.02em" }}>{name}</span>
+        </div>
+
+        {/* Desktop nav items */}
+        {!isMobile && (
+          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {allNavItems.map(item => <AppNavLink key={item.path} item={item} />)}
+          </div>
+        )}
+
+        {/* Right side */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          {primaryAction}
+
+          {isAuthenticated && user ? userDropdown : (
+            <>
+              {!isMobile && (
+                <a href="/login" style={{ color: "#94a3b8", textDecoration: "none", fontSize: 13, fontWeight: 500 }}>Sign in</a>
+              )}
+              <a href="/register" style={{ background: "linear-gradient(135deg,#7c3aed,#9333ea)", color: "white", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: "none", display: "inline-block", whiteSpace: "nowrap" }}>
+                {isMobile ? "Join" : "Get Started"}
+              </a>
+            </>
+          )}
+
+          {/* Hamburger — mobile only */}
+          {isMobile && (
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "7px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}
+            >
+              {menuOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+          )}
+        </div>
+      </nav>
+
+      {/* Mobile drawer */}
+      {isMobile && menuOpen && (
+        <div style={{
+          position: "fixed", top: 60, left: 0, right: 0, zIndex: 999,
+          background: "rgba(7,9,15,0.98)",
+          backdropFilter: "blur(20px)",
+          borderBottom: "1px solid rgba(255,255,255,0.07)",
+          padding: "12px 16px 20px",
+        }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {allNavItems.map(item => (
+              <AppNavLink key={item.path} item={item} onClick={() => setMenuOpen(false)} />
+            ))}
+          </div>
+          {!isAuthenticated && (
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+              <a href="/login" style={{ display: "block", textAlign: "center", color: "#94a3b8", textDecoration: "none", fontSize: 14, fontWeight: 500, padding: "10px" }}>Sign in</a>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+}

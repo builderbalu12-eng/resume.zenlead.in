@@ -19,9 +19,9 @@ export function CashfreePaymentModal({ isOpen, onClose, planName }: Props) {
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-md mx-4 rounded-2xl bg-white dark:bg-slate-900 shadow-2xl overflow-hidden">
+      <div className="relative z-10 w-full max-w-2xl mx-4 rounded-2xl bg-white dark:bg-slate-900 shadow-2xl" style={{ overflow: "visible" }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700 rounded-t-2xl" style={{ background: "inherit" }}>
           <div>
             <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide font-semibold">
               Secure Payment
@@ -44,7 +44,7 @@ export function CashfreePaymentModal({ isOpen, onClose, planName }: Props) {
         {/* Cashfree renders here */}
         <div
           id="cashfree-payment-container"
-          className="min-h-[420px] p-2"
+          className="min-h-[520px]"
         />
 
         <p className="text-center text-xs text-slate-400 dark:text-slate-500 pb-3">

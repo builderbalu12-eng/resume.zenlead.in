@@ -444,9 +444,10 @@ export const Profile: React.FC = () => {
           </div>
         ) : (
           user && (
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-stretch">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
 
-              {/* LEFT — Profile + Change Password in one card */}
+              {/* LEFT — Profile + Change Password + Account Overview */}
+              <div className="flex flex-col gap-6">
               <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
 
                 {/* Avatar strip */}
@@ -522,7 +523,34 @@ export const Profile: React.FC = () => {
                 )}
               </div>
 
-              {/* RIGHT — Telegram + Account Overview */}
+              {/* Account Overview — in left column */}
+              <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                <div className="border-b border-slate-100 dark:border-slate-800 px-6 py-5">
+                  <p className="font-semibold text-slate-900 dark:text-white">Account Overview</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Your credits and plan at a glance</p>
+                </div>
+                <div className="px-6 py-5 space-y-4">
+                  <div className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-800 px-4 py-3">
+                    <span className="text-sm text-slate-600 dark:text-slate-300">Available Credits</span>
+                    <span className="text-lg font-bold text-violet-600 dark:text-violet-400">{authUser.credits ?? 0}</span>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = '/billing'}>
+                      💳 View Billing &amp; Payments
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = '/billing#credits'}>
+                      📊 Credit Activity
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = '/pricing'}>
+                      🚀 Upgrade Plan
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              </div>{/* end left column */}
+
+              {/* RIGHT — Telegram + Gmail + Job Prefs + North Star + Freelance */}
               <div className="flex flex-col gap-6">
               <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <div className="border-b border-slate-100 dark:border-slate-800 px-6 py-5">
@@ -622,30 +650,6 @@ export const Profile: React.FC = () => {
                 </div>
               </div>
 
-              {/* Account Overview card */}
-              <div className="flex-1 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div className="border-b border-slate-100 dark:border-slate-800 px-6 py-5">
-                  <p className="font-semibold text-slate-900 dark:text-white">Account Overview</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Your credits and plan at a glance</p>
-                </div>
-                <div className="px-6 py-5 space-y-4">
-                  <div className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-800 px-4 py-3">
-                    <span className="text-sm text-slate-600 dark:text-slate-300">Available Credits</span>
-                    <span className="text-lg font-bold text-violet-600 dark:text-violet-400">{authUser.credits ?? 0}</span>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = '/billing'}>
-                      💳 View Billing &amp; Payments
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = '/billing#credits'}>
-                      📊 Credit Activity
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = '/pricing'}>
-                      🚀 Upgrade Plan
-                    </Button>
-                  </div>
-                </div>
-              </div>
 
               {/* Job Preferences card */}
               <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">

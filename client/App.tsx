@@ -30,6 +30,7 @@ import InterviewPrep from "./pages/InterviewPrep";
 import TrackerPage from "./pages/TrackerPage";
 import GitHubSync from "./pages/GitHubSync";
 import AutoApply from "./pages/AutoApply";
+import ExtensionPage from "./pages/ExtensionPage";
 import { Toaster } from "@/components/ui/sonner";
 import { usePageTracking } from "@/hooks/usePageTracking";
 
@@ -64,22 +65,11 @@ function AnimatedRoutes() {
         {/* Public Landing Page - No Auth Required */}
         <Route
           path="/"
-          element={
-            <AppShell>
-              <Dashboard />
-            </AppShell>
-          }
+          element={<Dashboard />}
         />
 
         {/* Pricing & Payments Hub */}
-        <Route
-          path="/pricing"
-          element={
-            <AppShell>
-              <PricingPage />
-            </AppShell>
-          }
-        />
+        <Route path="/pricing" element={<PricingPage />} />
         <Route
           path="/billing"
           element={
@@ -217,6 +207,9 @@ function AnimatedRoutes() {
             </AdminRoute>
           }
         />
+
+        {/* Chrome Extension Marketing Page */}
+        <Route path="/extension" element={<ExtensionPage />} />
 
         {/* Legal & Info Pages */}
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />

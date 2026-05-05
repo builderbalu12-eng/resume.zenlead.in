@@ -21,11 +21,9 @@ export function useCashfree() {
     async ({
       paymentSessionId,
       onFailure,
-      onModalClose,
     }: {
       paymentSessionId: string;
       onFailure?: (reason: string) => void;
-      onModalClose?: () => void;
     }) => {
       if (!window.Cashfree) {
         onFailure?.("Cashfree SDK not loaded. Please refresh and try again.");
@@ -34,12 +32,9 @@ export function useCashfree() {
 
       const cashfree = window.Cashfree({ mode: getCashfreeMode() });
 
-      // Try to render inline inside the modal container div
-      const container = document.getElementById("cashfree-payment-container");
-
       const result = await cashfree.checkout({
         paymentSessionId,
-        redirectTarget: container ?? "_self",
+        redirectTarget: "_self",
       });
 
       if (result?.error) {
