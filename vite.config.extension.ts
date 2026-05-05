@@ -41,23 +41,23 @@ export default defineConfig({
           console.log("✓ sidebar.html");
         }
 
-        // Copy debug HTML
-        if (fs.existsSync("client/extension/debug.html")) {
-          fs.copyFileSync(
-            "client/extension/debug.html",
-            `${distDir}/debug.html`,
-          );
-          console.log("✓ debug.html");
-        }
-
-        // Copy favicon
-        if (fs.existsSync("public/favicon.ico")) {
-          fs.copyFileSync("public/favicon.ico", `${distDir}/favicon.ico`);
-          console.log("✓ favicon.ico");
+        // Copy PNG icons
+        for (const size of [16, 48, 128]) {
+          const iconFile = `public/icon-${size}.png`;
+          if (fs.existsSync(iconFile)) {
+            fs.copyFileSync(iconFile, `${distDir}/icon-${size}.png`);
+            console.log(`✓ icon-${size}.png`);
+          }
         }
       },
     },
   ],
+  // Don't copy the web app's public/ folder into the extension output
+  publicDir: false,
+  // Strip console.* calls during the esbuild transform phase
+  esbuild: {
+    drop: ["console", "debugger"],
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "client"),
@@ -67,7 +67,7 @@ export default defineConfig({
   build: {
     target: "esnext",
     outDir: "dist/extension",
-    emptyOutDir: false,
+    emptyOutDir: true,
     lib: {
       entry: {
         background: "client/extension/background.ts",
@@ -84,6 +84,6 @@ export default defineConfig({
         entryFileNames: "[name].js",
       },
     },
-    minify: "terser",
+    minify: "esbuild",
   },
 });

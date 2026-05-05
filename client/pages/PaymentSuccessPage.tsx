@@ -61,7 +61,7 @@ export function PaymentSuccessPage() {
   if (state === "verifying") {
     return (
       <div className="mx-auto max-w-2xl">
-        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <Loader2 className="mx-auto h-16 w-16 text-indigo-500 animate-spin" />
           <h1 className="mt-4 text-2xl font-black text-slate-900 dark:text-white">
             Verifying payment…
@@ -75,7 +75,7 @@ export function PaymentSuccessPage() {
   if (state === "failed") {
     return (
       <div className="mx-auto max-w-2xl">
-        <div className="rounded-2xl border border-red-200 bg-white p-10 text-center shadow-sm dark:border-red-900 dark:bg-slate-900">
+        <div className="rounded-2xl border border-red-200 bg-white p-6 sm:p-10 text-center shadow-sm dark:border-red-900 dark:bg-slate-900">
           <XCircle className="mx-auto h-16 w-16 text-red-500" />
           <h1 className="mt-4 text-2xl font-black text-slate-900 dark:text-white">
             Payment not completed
@@ -107,7 +107,7 @@ export function PaymentSuccessPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <CheckCircle2 className="mx-auto h-16 w-16 text-emerald-600" />
         <h1 className="mt-4 text-2xl font-black text-slate-900 dark:text-white">
           Payment Successful!

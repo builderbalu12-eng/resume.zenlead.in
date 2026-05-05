@@ -77,7 +77,7 @@ export function BillingPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div>
-        <h1 className="text-3xl font-black text-slate-900 dark:text-white">
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
           Billing
         </h1>
         <p className="mt-2 text-slate-600 dark:text-slate-400">
@@ -98,7 +98,7 @@ export function BillingPage() {
       ) : (
         <>
           {/* SECTION 1 — Current Plan */}
-          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
               💳 Current Plan
             </h2>
@@ -109,7 +109,7 @@ export function BillingPage() {
           </section>
 
           {/* SECTION 2 — Payment History */}
-          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
               🧾 Payment History
             </h2>
@@ -120,7 +120,7 @@ export function BillingPage() {
           </section>
 
           {/* SECTION 3 — Credit Activity */}
-          <section ref={creditsRef} id="credits" className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <section ref={creditsRef} id="credits" className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <h2 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
               💳 Credit Activity
             </h2>

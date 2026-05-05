@@ -94,13 +94,13 @@ export const Login: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Card */}
-        <MountSlideUp className="bg-card border border-border rounded-lg shadow-lg p-8">
+        <MountSlideUp className="bg-card border border-border rounded-lg shadow-lg p-5 sm:p-8">
           {/* Header */}
           <div className="mb-8">
             <MountScaleIn delay={0.08}>
               <img src={logoUrl} alt="Logo" className="h-12 w-12 rounded-xl object-contain mb-4" />
             </MountScaleIn>
-            <h1 className="text-3xl font-bold text-foreground mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
               Welcome Back
             </h1>
             <p className="text-muted-foreground">

@@ -703,6 +703,10 @@ export class APIClient {
     });
   }
 
+  async getPublicStats(): Promise<{ data: { total_users: number } }> {
+    return this.request('/api/settings/public-stats', { method: 'GET' });
+  }
+
   async getApplicationStats(): Promise<{
     totalApplications: number;
     stageBreakdown: Record<string, number>;

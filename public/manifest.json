@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "ResumeMatch Pro",
+  "name": "LandYourJob",
   "version": "1.0.0",
-  "description": "AI-powered resume tailoring for job applications",
+  "description": "AI-powered resume tailoring for any job post. Live ATS score, keyword gap analysis, and one-click tailoring on LinkedIn, Indeed, Naukri & 40+ job boards.",
+  "homepage_url": "https://landyourjob.zenlead.in",
   "permissions": ["storage", "tabs", "scripting", "downloads", "sidePanel"],
   "host_permissions": [
     "https://*.zenlead.in/*",
@@ -25,17 +26,17 @@
     "default_path": "sidebar.html"
   },
   "action": {
-    "default_title": "ResumeMatch Pro",
+    "default_title": "LandYourJob",
     "default_icons": {
-      "16": "favicon.ico",
-      "48": "favicon.ico",
-      "128": "favicon.ico"
+      "16": "icon-16.png",
+      "48": "icon-48.png",
+      "128": "icon-128.png"
     }
   },
   "icons": {
-    "16": "favicon.ico",
-    "48": "favicon.ico",
-    "128": "favicon.ico"
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
   },
   "content_scripts": [
     {
@@ -57,7 +58,17 @@
   "web_accessible_resources": [
     {
       "resources": ["popup.html", "sidebar.html"],
-      "matches": ["*://*/*"]
+      "matches": [
+        "*://*.zenlead.in/*",
+        "*://*.linkedin.com/*",
+        "*://*.naukri.com/*",
+        "*://*.indeed.com/*",
+        "*://*.monster.com/*",
+        "*://*.glassdoor.com/*",
+        "*://*.dice.com/*",
+        "*://*.ziprecruiter.com/*",
+        "*://*.builtin.com/*"
+      ]
     }
   ]
 }
