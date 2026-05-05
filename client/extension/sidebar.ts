@@ -115,6 +115,10 @@ const STANDARD_CONTENT = `
     <div class="skel" style="width:90%"></div>
     <div class="skel" style="width:65%"></div>
     <div class="skel" style="width:100%;height:36px;border-radius:8px;margin-top:4px"></div>
+    <p style="text-align:center;font-size:12px;color:#888;margin-top:14px;line-height:1.6;">
+      ✨ Analyzing &amp; tailoring your resume…<br>
+      <strong style="color:#555;">Please stay on this page</strong> — this may take a minute.
+    </p>
   </div>
   <div id="error" class="error hidden"></div>
   <div id="success" class="success hidden"></div>

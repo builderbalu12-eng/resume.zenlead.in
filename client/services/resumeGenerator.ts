@@ -12,27 +12,8 @@ import {
   WidthType,
 } from "docx";
 import { ResumeData } from "@/types";
-
-// Load html2pdf from CDN and generate actual PDF
-async function loadHtml2Pdf(): Promise<any> {
-  return new Promise((resolve, reject) => {
-    if ((window as any).html2pdf) {
-      resolve((window as any).html2pdf);
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src =
-      "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
-    script.onload = () => {
-      resolve((window as any).html2pdf);
-    };
-    script.onerror = () => {
-      reject(new Error("Failed to load html2pdf library"));
-    };
-    document.head.appendChild(script);
-  });
-}
+// @ts-ignore — no type declarations for html2pdf.js
+import html2pdf from "html2pdf.js";
 
 // Generate proper PDF using html2pdf
 async function generatePDFBlobProper(
@@ -155,8 +136,6 @@ async function generatePDFBlobProper(
   `;
 
   try {
-    const html2pdf = await loadHtml2Pdf();
-
     // Create element to convert
     const element = document.createElement("div");
     element.innerHTML = htmlContent;
@@ -472,8 +451,6 @@ export async function downloadResumePDF(
   jobTitle: string,
 ): Promise<void> {
   try {
-    const html2pdf = await loadHtml2Pdf();
-
     const { contact, summary, skills, experience, education, projects } =
       resume;
 

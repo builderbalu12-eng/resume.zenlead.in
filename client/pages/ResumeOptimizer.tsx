@@ -168,6 +168,7 @@ function InputScreen({
 }) {
   const [dragging, setDragging] = useState(false);
   const [stylePanelOpen, setStylePanelOpen] = useState(false);
+  const [pdfFileName, setPdfFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const lengths = [
@@ -177,19 +178,34 @@ function InputScreen({
     { id: "cv", label: "Academic CV", sub: "PhD / research / academia" },
   ];
 
-  const canSubmit = !busy && resumeText.trim().length > 20 && (jobText.trim().length > 20 || jobUrl.trim().length > 5);
+  const isPdfLoaded = resumeText.startsWith("[PDF_FILE_BASE64]");
+  const canSubmit = !busy && (isPdfLoaded || resumeText.trim().length > 20) && (jobText.trim().length > 20 || jobUrl.trim().length > 5);
 
   const handleFile = async (file: File) => {
     if (!file) return;
-    const buf = await file.arrayBuffer();
-    // Send to backend extract endpoint via api client; simple text fallback
     try {
-      const text = new TextDecoder().decode(buf);
-      // For PDFs the bytes will be opaque; the backend extract pipeline handles that.
-      // Here we just stash plain text; backend tailor will accept either.
-      setResumeText(text.length > 50 && /[a-zA-Z]/.test(text) ? text : `(uploaded ${file.name})`);
+      const name = file.name.toLowerCase();
+      if (name.endsWith(".pdf")) {
+        const buf = await file.arrayBuffer();
+        const uint8 = new Uint8Array(buf);
+        let binary = "";
+        for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
+        setResumeText(`[PDF_FILE_BASE64]${btoa(binary)}`);
+        setPdfFileName(file.name);
+      } else if (name.endsWith(".docx")) {
+        const { extractRawText } = await import("mammoth");
+        const buf = await file.arrayBuffer();
+        const result = await extractRawText({ arrayBuffer: buf });
+        setResumeText(result.value);
+        setPdfFileName(null);
+      } else {
+        const text = await file.text();
+        setResumeText(text);
+        setPdfFileName(null);
+      }
     } catch {
       setResumeText(`(uploaded ${file.name})`);
+      setPdfFileName(null);
     }
   };
 
@@ -296,13 +312,30 @@ function InputScreen({
                   </button>
                 )}
               </div>
-              <textarea
-                value={resumeText}
-                onChange={e => setResumeText(e.target.value)}
-                placeholder={"Paste your resume here — work experience, education, skills, any relevant sections."}
-                style={textareaStyle}
-                rows={10}
-              />
+              {isPdfLoaded ? (
+                <div style={{ ...textareaStyle, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", minHeight: 52 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 20 }}>📄</span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{pdfFileName}</div>
+                      <div style={{ fontSize: 11, color: "var(--green)", marginTop: 2 }}>PDF ready to tailor ✓</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { setResumeText(""); setPdfFileName(null); }}
+                    style={{ background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", fontSize: 18, lineHeight: 1, padding: "4px 6px" }}
+                    title="Remove PDF"
+                  >✕</button>
+                </div>
+              ) : (
+                <textarea
+                  value={resumeText}
+                  onChange={e => setResumeText(e.target.value)}
+                  placeholder={"Paste your resume here — work experience, education, skills, any relevant sections."}
+                  style={textareaStyle}
+                  rows={10}
+                />
+              )}
             </div>
             {/* drop zone */}
             <div
@@ -327,8 +360,8 @@ function InputScreen({
             >
               <IcoUpload size={16} stroke="var(--text-3)" />
               <div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-2)" }}>Drag & drop PDF, or click to upload</div>
-                <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>PDF only · max 5 MB</div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-2)" }}>Drag & drop PDF, DOCX, or TXT — or click to upload</div>
+                <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>PDF, DOCX, TXT · max 5 MB</div>
               </div>
               <input
                 ref={fileInputRef}
@@ -1295,10 +1328,10 @@ const ResumeOptimizer: React.FC = () => {
   const handleSubmit = async () => {
     setError(null);
 
-    // Guard: require resume + JD. The textarea is the source of truth — without
-    // real content here Claude has nothing to tailor and would hallucinate from the JD.
+    // Guard: require resume + JD.
     const trimmedResume = resumeText.trim();
-    if (trimmedResume.length < 100) {
+    const isPdf = trimmedResume.startsWith("[PDF_FILE_BASE64]");
+    if (!isPdf && trimmedResume.length < 100) {
       setError("Please paste your full resume in the resume box first.");
       return;
     }
