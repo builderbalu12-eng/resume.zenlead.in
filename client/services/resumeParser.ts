@@ -33,19 +33,36 @@ export async function parseFile(file: File): Promise<string> {
 
 async function extractTextFromPDF(file: File): Promise<string> {
   try {
-    const arrayBuffer = await file.arrayBuffer();
+    const pdfjsLib = await import("pdfjs-dist");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+      "pdfjs-dist/build/pdf.worker.min.mjs",
+      import.meta.url,
+    ).toString();
 
-    // Use pdf-parse library if available, otherwise we'll rely on Gemini to handle the PDF
-    // For now, we'll encode the PDF and send it to Gemini as base64
-    const uint8Array = new Uint8Array(arrayBuffer);
-    let binaryString = "";
-    for (let i = 0; i < uint8Array.length; i++) {
-      binaryString += String.fromCharCode(uint8Array[i]);
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+
+    let fullText = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items
+        .filter((item: any) => "str" in item)
+        .map((item: any) => item.str)
+        .join(" ");
+      fullText += pageText + "\n\n";
     }
-    const base64 = btoa(binaryString);
-    return `[PDF_FILE_BASE64]${base64}`;
+
+    if (!fullText.trim()) {
+      throw new Error(
+        "No readable text found in this PDF. The file may be image-based (scanned). Please convert to DOCX or use a text-based PDF.",
+      );
+    }
+
+    return fullText.trim();
   } catch (error) {
     console.error("Error extracting PDF text:", error);
+    if (error instanceof Error) throw error;
     throw new Error("Could not process PDF file.");
   }
 }
