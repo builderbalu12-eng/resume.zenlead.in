@@ -601,7 +601,7 @@ const V3Footer: React.FC<V3FooterProps> = ({ appName }) => {
             { title: "Product", links: [{ label: "Pricing", href: "/pricing" }, { label: "Find Jobs", href: "/findjob" }, { label: "Find Clients", href: "/find-business" }, { label: "Chrome Extension", href: "/extension" }, { label: "App Tracker", href: "/tracker" }] },
             { title: "Account", links: [{ label: "Sign Up", href: "/register" }, { label: "Sign In", href: "/login" }, { label: "Dashboard", href: "/" }, { label: "Settings", href: "/profile" }] },
             { title: "Legal", links: [{ label: "Privacy Policy", href: "/privacy-policy" }, { label: "Terms of Service", href: "/terms" }, { label: "Refund Policy", href: "/refund-policy" }] },
-            { title: "Support", links: [{ label: "Contact Us", href: "/contact" }, { label: "Help Center", href: "/contact" }] },
+            { title: "Support", links: [{ label: "About Us", href: "/about" }, { label: "Contact Us", href: "/contact" }, { label: "Help Center", href: "/contact" }] },
           ].map(col => (
             <div key={col.title}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", marginBottom: 16, textTransform: "uppercase" as const, letterSpacing: "0.07em" }}>{col.title}</div>

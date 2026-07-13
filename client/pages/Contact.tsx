@@ -105,6 +105,8 @@ export function Contact() {
           <p className="text-sm text-slate-600 dark:text-slate-400">
             ZenLead (trading as LandYourJob)
             <br />
+            Operated by Balakrishna Akula
+            <br />
             {appName} — AI Resume Tailoring
             <br />
             Second Floor, 28 A/5 B, Kamala Nivas,

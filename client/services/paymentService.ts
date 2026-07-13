@@ -175,6 +175,7 @@ export const paymentService = {
     billing_cycle: BillingCycle;
     is_recurring: true;
     coupon_code?: string;
+    customer_phone?: string;
   }): Promise<CreateSubscriptionResponse> {
     return request("/payments/subscriptions", {
       method: "POST",
@@ -188,6 +189,7 @@ export const paymentService = {
     billing_cycle: BillingCycle;
     is_recurring: false;
     coupon_code?: string;
+    customer_phone?: string;
   }): Promise<CreateOrderResponse> {
     return request("/payments/create-order", {
       method: "POST",

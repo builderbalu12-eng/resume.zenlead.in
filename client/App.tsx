@@ -13,6 +13,7 @@ import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfService } from "./pages/TermsOfService";
 import { RefundPolicy } from "./pages/RefundPolicy";
 import { Contact } from "./pages/Contact";
+import { About } from "./pages/About";
 import { FindJob } from "./pages/FindJob";
 import { FindBusinessPage } from "./pages/FindBusinessPage";
 import ChatPage from "./pages/Chat";
@@ -216,6 +217,7 @@ function AnimatedRoutes() {
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/refund-policy" element={<RefundPolicy />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/about" element={<About />} />
 
         {/* Catch-all */}
         <Route path="*" element={<NotFound />} />

@@ -265,6 +265,9 @@ export function PricingPage() {
   const [coupon, setCoupon] = React.useState<CouponState>({ status: "idle" });
   const [processingPlanId, setProcessingPlanId] = React.useState<string | null>(null);
   const [showCoupon, setShowCoupon] = React.useState(false);
+  const [phonePlan, setPhonePlan] = React.useState<SubscriptionPlan | null>(null);
+  const [phoneInput, setPhoneInput] = React.useState("");
+  const [phoneError, setPhoneError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let active = true;
@@ -312,30 +315,65 @@ export function PricingPage() {
     return { amount: discounted, label: `Discount applied: -${Math.round((coupon.discount / coupon.original) * 100)}%` };
   };
 
-  const startPayment = async (plan: SubscriptionPlan) => {
+  // Cashfree requires a real customer phone on every order (placeholder numbers
+  // get flagged in production review and break UPI-intent flows).
+  const PHONE_STORAGE_KEY = "payment_phone";
+  const isValidPhone = (v: string) => /^[6-9]\d{9}$/.test(v);
+  const getSavedPhone = (): string | null => {
     try {
-      if (plan.amount === 0) {
-        if (!isAuthenticated) { navigate("/register"); return; }
-        toast.success("You're on the Free plan!", { duration: 3000 });
-        navigate("/resume");
-        return;
-      }
-      if (!isAuthenticated) { navigate(`/login?redirect=${encodeURIComponent("/pricing")}`); return; }
+      const v = localStorage.getItem(PHONE_STORAGE_KEY) || "";
+      return isValidPhone(v) ? v : null;
+    } catch { return null; }
+  };
+
+  const startPayment = async (plan: SubscriptionPlan) => {
+    if (plan.amount === 0) {
+      if (!isAuthenticated) { navigate("/register"); return; }
+      toast.success("You're on the Free plan!", { duration: 3000 });
+      navigate("/resume");
+      return;
+    }
+    if (!isAuthenticated) { navigate(`/login?redirect=${encodeURIComponent("/pricing")}`); return; }
+
+    const savedPhone = getSavedPhone();
+    if (!savedPhone) {
+      setPhoneInput("");
+      setPhoneError(null);
+      setPhonePlan(plan); // ask once, then remember
+      return;
+    }
+    await proceedPayment(plan, savedPhone);
+  };
+
+  const proceedPayment = async (plan: SubscriptionPlan, customerPhone: string) => {
+    try {
       setProcessingPlanId(plan._id);
       const coupon_code = coupon.status === "applied" ? coupon.code : undefined;
       let sessionId: string, cashfreeOrderId: string;
       if (plan.is_recurring) {
-        const res = await paymentService.createSubscription({ plan_id: plan._id, billing_cycle: billingCycle, is_recurring: true, coupon_code });
+        const res = await paymentService.createSubscription({ plan_id: plan._id, billing_cycle: billingCycle, is_recurring: true, coupon_code, customer_phone: customerPhone });
         if (!res.data.payment_session_id) { toast.success("Plan activated!", { duration: 3000 }); navigate(`/payment/success?plan=${encodeURIComponent(plan.plan_name)}`); return; }
         sessionId = res.data.payment_session_id; cashfreeOrderId = res.data.cashfree_order_id;
       } else {
-        const orderRes = await paymentService.createOrder({ plan_id: plan._id, billing_cycle: billingCycle, is_recurring: false, coupon_code });
+        const orderRes = await paymentService.createOrder({ plan_id: plan._id, billing_cycle: billingCycle, is_recurring: false, coupon_code, customer_phone: customerPhone });
         sessionId = orderRes.data.payment_session_id; cashfreeOrderId = orderRes.data.cashfree_order_id;
       }
       await openCheckout({ paymentSessionId: sessionId, onFailure: (reason) => { toast.error(reason, { duration: 5000 }); } });
     } catch (e: any) {
       toast.error(e?.message || "Payment failed", { duration: 5000 });
     } finally { setProcessingPlanId(null); }
+  };
+
+  const submitPhone = async () => {
+    const digits = phoneInput.replace(/\D/g, "").replace(/^91(?=\d{10}$)/, "").replace(/^0(?=\d{10}$)/, "");
+    if (!isValidPhone(digits)) {
+      setPhoneError("Enter a valid 10-digit mobile number");
+      return;
+    }
+    try { localStorage.setItem(PHONE_STORAGE_KEY, digits); } catch { /* ignore */ }
+    const plan = phonePlan;
+    setPhonePlan(null);
+    if (plan) await proceedPayment(plan, digits);
   };
 
   const name = appName ?? "LandYourJob";
@@ -436,6 +474,38 @@ export function PricingPage() {
           </div>
         </div>
       </footer>
+
+      {/* ── PHONE PROMPT (required by Cashfree) ─────────────────── */}
+      {phonePlan && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }} onClick={() => setPhonePlan(null)} />
+          <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 400, margin: "0 16px", background: "#0d1017", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: 28 }}>
+            <div style={{ fontFamily: "Space Grotesk, sans-serif", fontSize: 18, fontWeight: 700, color: "white", marginBottom: 6 }}>Mobile number for payment</div>
+            <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6, marginBottom: 18 }}>
+              Required by our payment provider (Cashfree) for the payment receipt and UPI. We only ask once.
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 14, color: "#94a3b8", padding: "11px 12px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8 }}>+91</span>
+              <input
+                value={phoneInput}
+                onChange={e => { setPhoneInput(e.target.value.replace(/[^\d]/g, "").slice(0, 10)); setPhoneError(null); }}
+                onKeyDown={e => { if (e.key === "Enter") submitPhone(); }}
+                placeholder="10-digit mobile number"
+                inputMode="numeric"
+                autoFocus
+                style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: `1px solid ${phoneError ? "#f87171" : "rgba(255,255,255,0.1)"}`, borderRadius: 8, padding: "11px 14px", color: "white", fontSize: 14, fontFamily: "Inter, sans-serif", outline: "none" }}
+              />
+            </div>
+            {phoneError && <div style={{ fontSize: 12.5, color: "#f87171", marginBottom: 8 }}>{phoneError}</div>}
+            <button
+              onClick={submitPhone}
+              style={{ width: "100%", marginTop: 10, padding: "12px 0", borderRadius: 8, background: "linear-gradient(135deg,#7c3aed,#9333ea)", border: "none", color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "Inter, sans-serif" }}
+            >
+              Continue to payment
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
